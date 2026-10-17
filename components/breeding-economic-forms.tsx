@@ -1,10 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { submitBreedingEconomicEvidenceFormAction } from "@/app/(private)/breeding/actions";
+import {
+  submitBreedingEconomicEvidenceFormAction,
+  submitOffspringCostBasisFormAction,
+} from "@/app/(private)/breeding/actions";
 
 export type BreedingEconomicWriteStatus =
-  "identity_not_connected" | "persistence_not_configured" | "evidence_ready";
+  | "identity_not_connected"
+  | "persistence_not_configured"
+  | "evidence_ready"
+  | "ready";
 
 const statusCopy: Record<
   BreedingEconomicWriteStatus,
@@ -24,6 +30,11 @@ const statusCopy: Record<
     label: "Breeding evidence ready",
     detail:
       "Confirmed owner-scoped breeding transactions can be recorded. Cost-basis assignment remains disabled until accepted event evidence and owned offspring can be resolved server-side.",
+  },
+  ready: {
+    label: "Breeding economics ready",
+    detail:
+      "Confirmed owner-scoped breeding evidence can be recorded and accepted costs can be assigned to a confirmed owned offspring without combining assets or estimating value.",
   },
 };
 
@@ -177,12 +188,12 @@ function BreedingEvidenceFields({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function CostBasisFields() {
+function CostBasisFields({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
     <fieldset
       aria-describedby="cost-basis-help"
       className="grid gap-4"
-      disabled
+      disabled={disabled}
     >
       <legend className="text-lg font-semibold">
         Offspring cost-basis review
@@ -223,7 +234,7 @@ function CostBasisFields() {
       </div>
       <button
         className="w-fit rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        disabled
+        disabled={disabled}
         type="submit"
       >
         Review offspring cost basis
@@ -240,7 +251,12 @@ export function BreedingEconomicForms({
     submitBreedingEconomicEvidenceFormAction,
     null,
   );
-  const evidenceReady = status === "evidence_ready";
+  const [costBasisResult, costBasisAction, costBasisPending] = useActionState(
+    submitOffspringCostBasisFormAction,
+    null,
+  );
+  const evidenceReady = status === "evidence_ready" || status === "ready";
+  const costBasisReady = status === "ready";
 
   return (
     <section aria-labelledby="breeding-economic-evidence">
@@ -284,10 +300,20 @@ export function BreedingEconomicForms({
           )}
         </form>
         <form
+          action={costBasisAction}
           aria-label="Offspring cost-basis review"
           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
         >
-          <CostBasisFields />
+          <CostBasisFields disabled={!costBasisReady || costBasisPending} />
+          {costBasisResult === null ? null : (
+            <p
+              aria-live="polite"
+              className="mt-4 text-sm leading-6 text-[var(--muted)]"
+              role="status"
+            >
+              <strong>{costBasisResult.title}.</strong> {costBasisResult.detail}
+            </p>
+          )}
         </form>
       </div>
     </section>

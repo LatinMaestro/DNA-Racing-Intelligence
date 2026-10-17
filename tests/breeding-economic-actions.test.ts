@@ -8,6 +8,11 @@ const breedingPersistence = vi.hoisted(() => ({
     status: "not_configured" as const,
   })),
 }));
+const vaultCatalogue = vi.hoisted(() => ({
+  fromEnvironment: vi.fn<() => unknown>(() => ({
+    status: "not_configured" as const,
+  })),
+}));
 
 vi.mock("../lib/clerk-owner-session", () => ({
   authenticatedClerkOwnerId: session.ownerId,
@@ -15,6 +20,10 @@ vi.mock("../lib/clerk-owner-session", () => ({
 vi.mock("../lib/neon-breeding-economic-write-repository", () => ({
   neonBreedingEconomicPersistenceFromEnvironment:
     breedingPersistence.fromEnvironment,
+}));
+vi.mock("../lib/neon-owner-vault-catalogue-repository", () => ({
+  neonOwnerVaultCatalogueRepositoryFromEnvironment:
+    vaultCatalogue.fromEnvironment,
 }));
 
 import {
@@ -85,6 +94,7 @@ afterEach(() => {
   breedingPersistence.fromEnvironment.mockReturnValue({
     status: "not_configured",
   });
+  vaultCatalogue.fromEnvironment.mockReturnValue({ status: "not_configured" });
 });
 
 describe("breeding economic Server Actions", () => {
@@ -211,6 +221,7 @@ describe("breeding economic Server Actions", () => {
         loadAssignedTransactionIdsByOwner: vi.fn(async () => []),
         saveCostBasisByOwner: vi.fn(),
       },
+      loadEvidenceByBreedingEventByOwner: vi.fn(async () => []),
     });
     const formData = new FormData();
     formData.set("breedingEventId", "breeding-event-1");
@@ -231,5 +242,101 @@ describe("breeding economic Server Actions", () => {
       expect.stringMatching(/^breeding_economic_evidence:/),
     );
     expect(saveEvidenceByOwner).toHaveBeenCalledOnce();
+  });
+
+  it("assigns cost basis from stored event evidence and confirmed Vault ownership", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const saveCostBasisByOwner = vi.fn(async () => ({
+      status: "created" as const,
+      economicVersion: "2",
+    }));
+    breedingPersistence.fromEnvironment.mockReturnValue({
+      status: "ready",
+      loadContextByOwner: vi.fn(async () => ({
+        assetRegistry: {
+          status: "ready" as const,
+          version: "a".repeat(64),
+          assets: [{ code: "DEZ", kind: "crypto" as const, precision: 8 }],
+        },
+        economicVersion: "1",
+      })),
+      loadEvidenceByBreedingEventByOwner: vi.fn(async () => [
+        {
+          record: {
+            input: evidenceInput.evidence,
+            assessment: {
+              evidenceId: "evidence-1",
+              breedingEventId: "breeding-1",
+              source: "manual_confirmed" as const,
+              lifecycle: "completed" as const,
+              occurredAt: "2026-07-26T02:00:00.000Z",
+              status: "postable_review" as const,
+              postings: [
+                {
+                  postingId: "breeding-1:transaction-1",
+                  transactionId: "transaction-1",
+                  breedingEventId: "breeding-1",
+                  category: "dna_base_fee" as const,
+                  direction: "debit" as const,
+                  assetCode: "DEZ",
+                  assetKind: "crypto" as const,
+                  amount: "2.5",
+                  signedAmount: "-2.5",
+                  parentCoreIds: ["parent-a", "parent-b"] as const,
+                  offspringCoreId: "offspring-1",
+                  externalReference: null,
+                },
+              ],
+              totalsByAsset: [],
+              holdReasons: [],
+              arenaListingTreatedAsIncome: false as const,
+              assetsCombined: false as const,
+              ledgerMutationAllowed: false as const,
+              walletOrGameTransactionAllowed: false as const,
+            },
+            assets: [],
+          },
+          fingerprint: "b".repeat(64),
+          economicVersion: "1",
+        },
+      ]),
+      repository: {
+        status: "ready" as const,
+        loadEvidenceByOwner: vi.fn(async () => null),
+        saveEvidenceByOwner: vi.fn(),
+        loadCostBasisByOwner: vi.fn(async () => null),
+        loadAssignedTransactionIdsByOwner: vi.fn(async () => []),
+        saveCostBasisByOwner,
+      },
+    });
+    vaultCatalogue.fromEnvironment.mockReturnValue({
+      status: "ready",
+      listCoresByOwner: vi.fn(async () => [
+        {
+          sourceCoreId: "offspring-1",
+          displayName: "Synthetic offspring",
+          coreClass: "Genesis",
+          element: "Fire",
+          fNumber: 1,
+          sex: "female",
+          inMyVault: true,
+          meEligible: true,
+          version: 0,
+          updatedAt: null,
+        },
+      ]),
+    });
+    const formData = new FormData();
+    formData.set("offspringCoreId", "offspring-1");
+    formData.set("breedingEventId", "breeding-1");
+    formData.set("transactionId", "transaction-1");
+
+    await expect(
+      assignOffspringCostBasisFormAction(formData),
+    ).resolves.toMatchObject({
+      status: "recorded",
+    });
+    expect(saveCostBasisByOwner).toHaveBeenCalledOnce();
   });
 });

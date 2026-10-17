@@ -20,6 +20,7 @@ const ROLE = /^[a-z_][a-z0-9_]{0,62}$/;
 const HASH = /^[a-f0-9]{64}$/;
 const ERROR = "Breeding economic persistence unavailable.";
 const MAXIMUM_TRANSACTION_IDS = 128;
+const MAXIMUM_EVENT_EVIDENCE_RECORDS = 128;
 
 const VERIFY_SQL = `
   SELECT owner.id::text AS database_owner_id,
@@ -73,6 +74,12 @@ const READ_SQL = `
   SELECT record_kind,record_json,fingerprint,record_sha256,economic_version
   FROM dna.read_breeding_economic_record($1::uuid,$2::text)
 `;
+const READ_EVENT_EVIDENCE_SQL = `
+  SELECT record_kind,record_json,fingerprint,record_sha256,economic_version
+  FROM dna.list_breeding_economic_evidence_by_event(
+    $1::uuid,$2::text,$3::integer
+  )
+`;
 const ASSIGNED_SQL = `
   SELECT transaction_id
   FROM dna.list_assigned_breeding_cost_transactions($1::uuid,$2::text[])
@@ -91,6 +98,12 @@ export type NeonBreedingEconomicPersistence =
       loadContextByOwner: (
         ownerId: string,
       ) => Promise<BreedingEconomicWriteContext>;
+      loadEvidenceByBreedingEventByOwner: (
+        ownerId: string,
+        breedingEventId: string,
+      ) => Promise<
+        readonly StoredBreedingEconomicRecord<ValidatedBreedingEconomicRecord>[]
+      >;
     }>;
 
 function fail(): never {
@@ -434,6 +447,30 @@ export function createNeonBreedingEconomicPersistence(
           economicVersion: numericVersion(row.economic_version),
         };
       }),
+    loadEvidenceByBreedingEventByOwner: (ownerId, breedingEventId) => {
+      const eventId = breedingEventId.trim();
+      if (eventId === "" || eventId.length > 128) {
+        return Promise.reject(new Error(ERROR));
+      }
+      return transaction(ownerId, async (client) => {
+        const result = await client.query(READ_EVENT_EVIDENCE_SQL, [
+          configuration.databaseOwnerId,
+          eventId,
+          MAXIMUM_EVENT_EVIDENCE_RECORDS,
+        ]);
+        if (result.rows.length > MAXIMUM_EVENT_EVIDENCE_RECORDS) fail();
+        return result.rows.map((value) => {
+          const row = object(value);
+          if (row.record_kind !== "evidence") fail();
+          const stored = storedRecord(row, evidenceRecord, (record) => ({
+            input: record.input,
+            assets: record.assets,
+          }));
+          if (stored.record.input.breedingEventId !== eventId) fail();
+          return stored;
+        });
+      });
+    },
   };
 }
 
