@@ -19,6 +19,7 @@ function input(
     gateCount: 4,
     availableGates: 0,
     enteredCoreIds: ["owned-1", "opponent-1", "opponent-2", "opponent-3"],
+    eventIdentity: { status: "confirmed", eventId: "event-1" },
     selectedOwnedCoreId: "owned-1",
     provisionalRecommendedCoreId: "owned-1",
     preEntryStatus: "provisional",
@@ -40,6 +41,16 @@ describe("Open Race field lock", () => {
       coreSwitchAllowed: false,
       raceEntryAllowed: false,
       currentRaceStarsCaptured: false,
+      eventIdentity: { status: "confirmed", eventId: "event-1" },
+    });
+  });
+
+  it("keeps legacy identity unavailable without substituting request identity", () => {
+    const { eventIdentity, ...legacy } = input();
+    expect(eventIdentity).toEqual({ status: "confirmed", eventId: "event-1" });
+    expect(lockOpenRaceField(legacy).eventIdentity).toEqual({
+      status: "unavailable",
+      eventId: null,
     });
   });
 

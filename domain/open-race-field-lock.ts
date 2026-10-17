@@ -1,3 +1,8 @@
+import {
+  normalizeOpenRaceEventIdentity,
+  type OpenRaceEventIdentity,
+} from "@/domain/open-race-field-input";
+
 export type OpenRaceFieldLockInput = Readonly<{
   lockId: string;
   requestId: string;
@@ -9,6 +14,8 @@ export type OpenRaceFieldLockInput = Readonly<{
   gateCount: number;
   availableGates: number;
   enteredCoreIds: readonly string[];
+  /** Legacy locks may omit identity and normalize to unavailable. */
+  eventIdentity?: OpenRaceEventIdentity | null;
   selectedOwnedCoreId: string;
   provisionalRecommendedCoreId: string | null;
   preEntryStatus: "provisional" | "insufficient_evidence";
@@ -24,6 +31,7 @@ export type OpenRaceFieldLockResult = Readonly<{
   lockedAt: string;
   gateCount: number;
   enteredCoreIds: readonly string[];
+  eventIdentity: OpenRaceEventIdentity;
   selectedOwnedCoreId: string;
   provisionalRecommendedCoreId: string | null;
   selectionMatchedProvisionalLeader: boolean | null;
@@ -108,6 +116,7 @@ export function lockOpenRaceField(
   const enteredCoreIds = input.enteredCoreIds.map((coreId) =>
     required(coreId, "Entered core ID"),
   );
+  const eventIdentity = normalizeOpenRaceEventIdentity(input.eventIdentity);
   if (enteredCoreIds.length !== gateCount) {
     throw new Error("Entered core count must equal gate count at field lock.");
   }
@@ -169,6 +178,7 @@ export function lockOpenRaceField(
     lockedAt,
     gateCount,
     enteredCoreIds,
+    eventIdentity,
     selectedOwnedCoreId,
     provisionalRecommendedCoreId,
     selectionMatchedProvisionalLeader:

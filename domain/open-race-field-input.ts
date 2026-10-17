@@ -108,7 +108,7 @@ function exactNonNegativeDecimal(value: string, label: string): string {
   return normalized;
 }
 
-function normalizeEventIdentity(
+export function normalizeOpenRaceEventIdentity(
   value: OpenRaceEventIdentity | null | undefined,
 ): OpenRaceEventIdentity {
   if (value == null) return { status: "unavailable", eventId: null };
@@ -225,7 +225,7 @@ export function validateOpenRaceField(
           asset: required(input.entryFee.asset, "Entry fee asset"),
         };
   const raceFormat = required(input.raceFormat, "Race format");
-  const eventIdentity = normalizeEventIdentity(input.eventIdentity);
+  const eventIdentity = normalizeOpenRaceEventIdentity(input.eventIdentity);
   // Snapshots created before exact probability context was introduced remain
   // readable, but cannot be used by the exact-context history boundary.
   const probabilityContext =

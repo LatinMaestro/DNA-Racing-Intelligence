@@ -37,6 +37,7 @@ const evidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    eventIdentity: { status: "confirmed", eventId: "event-1" },
     probabilityContext: {
       mode: "horse",
       distanceMeters: 1_600,
@@ -153,6 +154,7 @@ const lockedEvidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 0,
     enteredCoreIds: ["owned-a", "opponent-a", "opponent-b", "opponent-c"],
+    eventIdentity: { status: "confirmed", eventId: "event-1" },
     selectedOwnedCoreId: "owned-a",
     provisionalRecommendedCoreId: "owned-a",
     preEntryStatus: "provisional",
@@ -393,6 +395,26 @@ describe("compact Neon Open Race workspace dependency", () => {
       observationRecordStatus: "recorded",
     });
     expect(h.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
+  });
+
+  it("rejects a browser event identity that differs from the locked canonical identity", async () => {
+    const h = harness({ rows: [row({}, lockedEvidence)] });
+    await expect(
+      h.repository.recordObservationByOwner?.(identity, {
+        requestId: lockedEvidence.field.requestId,
+        observedAt: "2026-07-23T00:00:00.000Z",
+        gameEventId: "different-event",
+        gold: { status: "assigned", coreId: "opponent-a" },
+        blue: { status: "assigned", coreId: "owned-a" },
+        note: null,
+      }),
+    ).rejects.toThrow(unavailable);
+    expect(
+      h.query.mock.calls.some(([sql]) =>
+        sql.includes("SELECT dna.publish_open_race_observation_comparison"),
+      ),
+    ).toBe(false);
+    expect(h.query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
   });
 
   it("denies another authenticated owner before opening persistence", async () => {
