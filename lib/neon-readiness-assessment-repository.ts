@@ -85,6 +85,12 @@ const ASSESSMENT_KEYS = [
   "ownerGateFApproval",
   "activationRequested",
 ] as const;
+const MODULE_BOUNDARY_STATES = [
+  "not_verified",
+  "fixture_verified",
+  "connected_verified",
+  "failed",
+] as const;
 
 function fail(): never {
   throw new Error(ERROR);
@@ -126,7 +132,12 @@ function oneOf(value: unknown, allowed: readonly string[]) {
 }
 
 function verifyAssessmentShape(value: Record<string, unknown>) {
-  exactKeys(value, ASSESSMENT_KEYS);
+  exactKeys(
+    value,
+    value.moduleBoundaries === undefined
+      ? ASSESSMENT_KEYS
+      : [...ASSESSMENT_KEYS, "moduleBoundaries"],
+  );
   exactKeys(record(value.gates), ["gateA", "gateB", "gateC", "gateD", "gateE"]);
   for (const gate of Object.values(record(value.gates)))
     oneOf(gate, ["accepted", "not_accepted", "blocked"]);
@@ -156,6 +167,22 @@ function verifyAssessmentShape(value: Record<string, unknown>) {
     "activationRequested",
   ])
     if (typeof value[field] !== "boolean") fail();
+  if (value.moduleBoundaries !== undefined) {
+    const boundaries = record(value.moduleBoundaries);
+    exactKeys(boundaries, ["vaultPerformance", "openRace", "lifecycle"]);
+    const vaultPerformance = record(boundaries.vaultPerformance);
+    exactKeys(vaultPerformance, ["readModel", "economicEvidenceWrites"]);
+    const openRace = record(boundaries.openRace);
+    exactKeys(openRace, ["readModel", "fieldLock", "postLockObservation"]);
+    const lifecycle = record(boundaries.lifecycle);
+    exactKeys(lifecycle, ["readModel", "economicEvidenceWrites"]);
+    for (const state of [
+      ...Object.values(vaultPerformance),
+      ...Object.values(openRace),
+      ...Object.values(lifecycle),
+    ])
+      oneOf(state, MODULE_BOUNDARY_STATES);
+  }
 }
 
 function decodeSnapshot(

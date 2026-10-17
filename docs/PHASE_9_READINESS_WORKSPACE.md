@@ -20,6 +20,9 @@ The compact repository supplies one assessment containing:
 - large-history performance and capacity evidence;
 - security and privacy evidence;
 - accessibility and responsive evidence;
+- explicit Vault Performance, Open Race and Lifecycle boundary evidence that
+  distinguishes fixture/CI verification from bounded connected owner-data
+  acceptance;
 - reversible migration status;
 - documented limitations;
 - fail-closed Production controls; and
@@ -46,6 +49,10 @@ all evidence is complete.
   assessment.
 - The interface distinguishes passed, review-required and blocked evidence.
 - Missing evidence never becomes a pass.
+- Fixture-verified module boundaries remain review-required; only a separately
+  accepted bounded connected proof may mark a boundary connected.
+- A failed commissioning boundary blocks readiness, and a legacy assessment
+  without boundary evidence remains review-required.
 - An assessment cannot describe a different deployed head as current.
 - Gate F remains client-only.
 - The workspace has no activation action and cannot attach a domain, expose a

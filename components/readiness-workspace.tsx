@@ -32,6 +32,38 @@ function label(value: string): string {
     .join(" ");
 }
 
+const moduleBoundaryLabels = {
+  vaultPerformance: {
+    heading: "Vault Performance",
+    boundaries: {
+      readModel: "Compact summary read",
+      economicEvidenceWrites: "Economic evidence writes",
+    },
+  },
+  openRace: {
+    heading: "Open Race",
+    boundaries: {
+      readModel: "Session read model",
+      fieldLock: "Field-lock publication",
+      postLockObservation: "Post-lock observation",
+    },
+  },
+  lifecycle: {
+    heading: "Lifecycle",
+    boundaries: {
+      readModel: "Ranking read model",
+      economicEvidenceWrites: "Economic evidence writes",
+    },
+  },
+} as const;
+
+const boundaryStateCopy = {
+  not_verified: "Not verified",
+  fixture_verified: "Fixture verified",
+  connected_verified: "Connected verified",
+  failed: "Failed",
+} as const;
+
 export function ReadinessWorkspace({
   assessmentId,
   assessedAt,
@@ -141,6 +173,61 @@ export function ReadinessWorkspace({
           </ul>
         )}
       </section>
+
+      {readiness === null ? null : (
+        <section aria-labelledby="readiness-module-boundaries">
+          <h2
+            className="text-xl font-semibold"
+            id="readiness-module-boundaries"
+          >
+            Commissioning module boundaries
+          </h2>
+          <p className="mt-2 max-w-4xl leading-7 text-[var(--muted)]">
+            Fixture verification records code and CI evidence. Only bounded
+            connected owner-data acceptance can mark a boundary connected.
+          </p>
+          <ul className="mt-4 grid gap-4 xl:grid-cols-3">
+            {Object.entries(moduleBoundaryLabels).map(
+              ([moduleCode, module]) => {
+                const states =
+                  readiness.moduleBoundaries[
+                    moduleCode as keyof typeof readiness.moduleBoundaries
+                  ];
+                return (
+                  <li
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+                    key={moduleCode}
+                  >
+                    <h3 className="font-semibold">{module.heading}</h3>
+                    <dl className="mt-3 space-y-3">
+                      {Object.entries(module.boundaries).map(
+                        ([boundaryCode, boundaryLabel]) => {
+                          const state = states[
+                            boundaryCode as keyof typeof states
+                          ] as keyof typeof boundaryStateCopy;
+                          return (
+                            <div
+                              className="flex items-start justify-between gap-3 text-sm"
+                              key={boundaryCode}
+                            >
+                              <dt className="text-[var(--muted)]">
+                                {boundaryLabel}
+                              </dt>
+                              <dd className="text-right font-semibold text-[var(--warning)]">
+                                {boundaryStateCopy[state]}
+                              </dd>
+                            </div>
+                          );
+                        },
+                      )}
+                    </dl>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

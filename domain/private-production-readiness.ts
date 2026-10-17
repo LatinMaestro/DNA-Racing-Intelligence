@@ -1,5 +1,23 @@
 export type ReadinessEvidenceState = "passed" | "not_run" | "failed";
 export type ReviewGateEvidenceState = "accepted" | "not_accepted" | "blocked";
+export type CommissioningBoundaryEvidenceState =
+  "not_verified" | "fixture_verified" | "connected_verified" | "failed";
+
+export type CommissioningModuleBoundaries = Readonly<{
+  vaultPerformance: Readonly<{
+    readModel: CommissioningBoundaryEvidenceState;
+    economicEvidenceWrites: CommissioningBoundaryEvidenceState;
+  }>;
+  openRace: Readonly<{
+    readModel: CommissioningBoundaryEvidenceState;
+    fieldLock: CommissioningBoundaryEvidenceState;
+    postLockObservation: CommissioningBoundaryEvidenceState;
+  }>;
+  lifecycle: Readonly<{
+    readModel: CommissioningBoundaryEvidenceState;
+    economicEvidenceWrites: CommissioningBoundaryEvidenceState;
+  }>;
+}>;
 
 export type PrivateProductionReadinessInput = {
   assessmentId: string;
@@ -21,6 +39,7 @@ export type PrivateProductionReadinessInput = {
   performanceCapacity: ReadinessEvidenceState;
   securityPrivacy: ReadinessEvidenceState;
   accessibilityResponsive: ReadinessEvidenceState;
+  moduleBoundaries?: CommissioningModuleBoundaries;
   migrations: "reversible_verified" | "not_verified" | "irreversible";
   knownLimitationsDocumented: boolean;
   productionDisabled: boolean;
@@ -42,6 +61,7 @@ export type ProductionReadinessCheck = {
     | "PERFORMANCE_CAPACITY"
     | "SECURITY_PRIVACY"
     | "ACCESSIBILITY_RESPONSIVE"
+    | "COMMISSIONING_MODULE_BOUNDARIES"
     | "MIGRATION_SAFETY"
     | "KNOWN_LIMITATIONS"
     | "PRODUCTION_FAIL_CLOSED"
@@ -58,10 +78,69 @@ export type PrivateProductionReadiness = {
     | "ready_for_gate_f_review"
     | "gate_f_approval_recorded";
   checks: readonly ProductionReadinessCheck[];
+  moduleBoundaries: CommissioningModuleBoundaries;
   activationAuthorized: false;
   productionMutationAllowed: false;
   gateFStatus: "client_only";
 };
+
+const unverifiedModuleBoundaries: CommissioningModuleBoundaries = {
+  vaultPerformance: {
+    readModel: "not_verified",
+    economicEvidenceWrites: "not_verified",
+  },
+  openRace: {
+    readModel: "not_verified",
+    fieldLock: "not_verified",
+    postLockObservation: "not_verified",
+  },
+  lifecycle: {
+    readModel: "not_verified",
+    economicEvidenceWrites: "not_verified",
+  },
+};
+
+const boundaryStates = [
+  "not_verified",
+  "fixture_verified",
+  "connected_verified",
+  "failed",
+] as const;
+
+function normalizeModuleBoundaries(
+  value: CommissioningModuleBoundaries | undefined,
+): CommissioningModuleBoundaries {
+  if (value === undefined) return unverifiedModuleBoundaries;
+  if (value === null || typeof value !== "object") {
+    throw new Error("Commissioning module-boundary evidence is invalid.");
+  }
+  const normalized: CommissioningModuleBoundaries = {
+    vaultPerformance: {
+      readModel: value.vaultPerformance?.readModel,
+      economicEvidenceWrites: value.vaultPerformance?.economicEvidenceWrites,
+    },
+    openRace: {
+      readModel: value.openRace?.readModel,
+      fieldLock: value.openRace?.fieldLock,
+      postLockObservation: value.openRace?.postLockObservation,
+    },
+    lifecycle: {
+      readModel: value.lifecycle?.readModel,
+      economicEvidenceWrites: value.lifecycle?.economicEvidenceWrites,
+    },
+  };
+  if (
+    Object.values(normalized).some(
+      (module) =>
+        module === null ||
+        typeof module !== "object" ||
+        Object.values(module).some((state) => !boundaryStates.includes(state)),
+    )
+  ) {
+    throw new Error("Commissioning module-boundary evidence is invalid.");
+  }
+  return normalized;
+}
 
 function check(
   code: ProductionReadinessCheck["code"],
@@ -140,6 +219,10 @@ export function assessPrivateProductionReadiness(
   ) {
     throw new Error("Operational readiness evidence state is invalid.");
   }
+  const moduleBoundaries = normalizeModuleBoundaries(input.moduleBoundaries);
+  const moduleBoundaryStates = Object.values(moduleBoundaries).flatMap(
+    (module) => Object.values(module),
+  );
   if (
     !["reversible_verified", "not_verified", "irreversible"].includes(
       input.migrations,
@@ -191,6 +274,15 @@ export function assessPrivateProductionReadiness(
       "ACCESSIBILITY_RESPONSIVE",
       input.accessibilityResponsive,
       "Applicable private workflows require accessibility and responsive evidence.",
+    ),
+    check(
+      "COMMISSIONING_MODULE_BOUNDARIES",
+      moduleBoundaryStates.some((state) => state === "failed")
+        ? "block"
+        : moduleBoundaryStates.every((state) => state === "connected_verified")
+          ? "pass"
+          : "review",
+      "Vault Performance, Open Race and Lifecycle boundaries remain review-required until each fixture-verified path also has bounded connected owner-data acceptance.",
     ),
     check(
       "MIGRATION_SAFETY",
@@ -250,6 +342,7 @@ export function assessPrivateProductionReadiness(
   return {
     status,
     checks,
+    moduleBoundaries,
     activationAuthorized: false,
     productionMutationAllowed: false,
     gateFStatus: "client_only",
