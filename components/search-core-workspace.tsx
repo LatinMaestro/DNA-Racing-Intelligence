@@ -1,3 +1,5 @@
+import { CorePerformanceComparison } from "@/components/core-performance-comparison";
+import { corePerformanceComparisonRows } from "@/lib/core-performance-comparison";
 import Link from "next/link";
 
 import {
@@ -524,6 +526,9 @@ export function SearchCoreWorkspace({
                   {state.performanceProfiles.length} exact-mode/distance
                   profiles
                 </p>
+                <CorePerformanceComparison
+                  rows={corePerformanceComparisonRows(profiles)}
+                />
                 {profiles.map((profile) => (
                   <PerformanceProfile
                     key={`${profile.mode}:${profile.distance}`}

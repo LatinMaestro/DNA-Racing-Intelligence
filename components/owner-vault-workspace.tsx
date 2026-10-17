@@ -56,6 +56,7 @@ export function OwnerVaultWorkspace({
               : "border-[var(--accent)] text-[var(--accent)]"
           }`}
           href="/vault"
+          aria-current={!catalogueMode ? "page" : undefined}
         >
           My cores
         </Link>
@@ -66,6 +67,7 @@ export function OwnerVaultWorkspace({
               : "border-[var(--border)] text-[var(--muted)]"
           }`}
           href="/vault?scope=catalogue"
+          aria-current={catalogueMode ? "page" : undefined}
         >
           Find core to add
         </Link>
@@ -204,61 +206,144 @@ export function OwnerVaultWorkspace({
               </p>
             </div>
           ) : (
-            <div className="mt-4 grid gap-4 xl:grid-cols-2">
-              {state.cores.map((core) => (
-                <article
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
-                  key={core.sourceCoreId}
+            <>
+              <details className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+                <summary className="cursor-pointer py-2 font-semibold">
+                  Compact roster · {state.cores.length} cores shown
+                </summary>
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  Returned records only; current filters still apply. Open a
+                  Core&apos;s controls below to review ownership or Maiden
+                  state.
+                </p>
+                <div
+                  className="mt-4 max-w-full overflow-x-auto rounded-lg border border-[var(--border)]"
+                  role="region"
+                  aria-label="Compact Vault roster"
+                  tabIndex={0}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {core.displayName}
-                      </h3>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        Core ID {core.sourceCoreId}
-                      </p>
+                  <table className="w-full text-left text-sm">
+                    <caption className="sr-only">
+                      Filtered Vault registry with Core identity and recorded
+                      Maiden eligibility
+                    </caption>
+                    <thead className="bg-[var(--surface)]">
+                      <tr>
+                        {[
+                          "Core",
+                          "Element",
+                          "Breed / class",
+                          "Sex",
+                          "F-number",
+                          "Recorded state",
+                        ].map((column) => (
+                          <th
+                            className="p-3 whitespace-nowrap"
+                            scope="col"
+                            key={column}
+                          >
+                            {column}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {state.cores.map((core) => (
+                        <tr
+                          className="border-t border-[var(--border)]"
+                          key={core.sourceCoreId}
+                        >
+                          <th
+                            scope="row"
+                            className="sticky left-0 bg-[var(--surface-raised)] p-3 text-left font-normal"
+                          >
+                            <a
+                              className="font-semibold text-[var(--accent)] underline underline-offset-4"
+                              href={`#vault-core-${encodeURIComponent(core.sourceCoreId)}`}
+                            >
+                              {core.displayName}
+                            </a>
+                            <p className="mt-1 text-xs text-[var(--muted)]">
+                              Core ID {core.sourceCoreId}
+                            </p>
+                          </th>
+                          <td className="p-3">{core.element}</td>
+                          <td className="p-3 whitespace-nowrap">
+                            {core.coreClass}
+                          </td>
+                          <td className="p-3">{optionLabel(core.sex)}</td>
+                          <td className="p-3">F{core.fNumber}</td>
+                          <td className="p-3">
+                            {core.inMyVault ? "In My Vault" : "Not in My Vault"}
+                            <p className="mt-1 text-xs text-[var(--muted)]">
+                              {core.meEligible
+                                ? "ME eligible"
+                                : "Not ME eligible"}
+                            </p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                {state.cores.map((core) => (
+                  <article
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+                    key={core.sourceCoreId}
+                    id={`vault-core-${core.sourceCoreId}`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {core.displayName}
+                        </h3>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          Core ID {core.sourceCoreId}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-semibold">
+                        {core.inMyVault ? "In My Vault" : "Not in My Vault"}
+                      </span>
                     </div>
-                    <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-semibold">
-                      {core.inMyVault ? "In My Vault" : "Not in My Vault"}
-                    </span>
-                  </div>
 
-                  <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                    <div>
-                      <dt className="text-[var(--muted)]">Element</dt>
-                      <dd className="mt-1 font-semibold">{core.element}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[var(--muted)]">Breed / class</dt>
-                      <dd className="mt-1 font-semibold">{core.coreClass}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-[var(--muted)]">Sex</dt>
-                      <dd className="mt-1 font-semibold">
-                        {optionLabel(core.sex)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[var(--muted)]">F-number</dt>
-                      <dd className="mt-1 font-semibold">F{core.fNumber}</dd>
-                    </div>
-                  </dl>
+                    <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+                      <div>
+                        <dt className="text-[var(--muted)]">Element</dt>
+                        <dd className="mt-1 font-semibold">{core.element}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--muted)]">Breed / class</dt>
+                        <dd className="mt-1 font-semibold">{core.coreClass}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--muted)]">Sex</dt>
+                        <dd className="mt-1 font-semibold">
+                          {optionLabel(core.sex)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--muted)]">F-number</dt>
+                        <dd className="mt-1 font-semibold">F{core.fNumber}</dd>
+                      </div>
+                    </dl>
 
-                  <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
-                    <Link
-                      className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
-                      href={`/search-core?q=${encodeURIComponent(
-                        core.sourceCoreId,
-                      )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
-                    >
-                      View race evidence
-                    </Link>
-                    <OwnerVaultMutationForm core={core} />
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+                      <Link
+                        className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
+                        href={`/search-core?q=${encodeURIComponent(
+                          core.sourceCoreId,
+                        )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                      >
+                        View race evidence
+                      </Link>
+                      <OwnerVaultMutationForm core={core} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
         </section>
       )}

@@ -1,3 +1,5 @@
+import { CorePerformanceComparison } from "@/components/core-performance-comparison";
+import { corePerformanceComparisonRows } from "@/lib/core-performance-comparison";
 import Link from "next/link";
 
 import {
@@ -518,7 +520,12 @@ export function CoreIntelligenceWorkspace({
               </p>
             </EmptyEvidence>
           ) : (
-            <NormalEvidence profiles={filteredProfiles} />
+            <>
+              <CorePerformanceComparison
+                rows={corePerformanceComparisonRows(filteredProfiles)}
+              />
+              <NormalEvidence profiles={filteredProfiles} />
+            </>
           )}
         </section>
       ) : (
