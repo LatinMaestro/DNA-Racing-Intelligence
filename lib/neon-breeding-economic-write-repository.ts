@@ -462,11 +462,10 @@ export function createNeonBreedingEconomicPersistence(
         return result.rows.map((value) => {
           const row = object(value);
           if (row.record_kind !== "evidence") fail();
-          const stored = storedRecord(
-            row,
-            evidenceRecord,
-            (record) => ({ input: record.input, assets: record.assets }),
-          );
+          const stored = storedRecord(row, evidenceRecord, (record) => ({
+            input: record.input,
+            assets: record.assets,
+          }));
           if (stored.record.input.breedingEventId !== eventId) fail();
           return stored;
         });
@@ -493,4 +492,3 @@ export function neonBreedingEconomicPersistenceFromEnvironment(
     runtimeRole,
   });
 }
-
