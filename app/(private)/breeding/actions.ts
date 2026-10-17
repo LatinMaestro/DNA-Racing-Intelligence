@@ -160,7 +160,11 @@ function costBasisConfiguration(
     assets: input.assets,
     confirmedOwnedCoreIds: input.confirmedOwnedCoreIds,
     completedBreedingEvents: [
-      { breedingEventId: input.breedingEventId, occurredAt, status: "completed" },
+      {
+        breedingEventId: input.breedingEventId,
+        occurredAt,
+        status: "completed",
+      },
     ],
     confirmedCosts,
     confirmedRefunds,
@@ -394,4 +398,3 @@ export async function submitOffspringCostBasisFormAction(
 ) {
   return assignOffspringCostBasisFormAction(formData);
 }
-
