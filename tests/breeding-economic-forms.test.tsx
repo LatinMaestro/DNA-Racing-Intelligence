@@ -57,7 +57,7 @@ describe("breeding economic forms", () => {
     const html = renderToStaticMarkup(<BreedingEconomicForms status="ready" />);
 
     expect(html).toContain("Breeding economics ready");
-    expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(0);
-    expect(html.match(/<button[^>]*disabled/g)).toHaveLength(0);
+    expect(html.match(/<fieldset[^>]*disabled/g) ?? []).toHaveLength(0);
+    expect(html.match(/<button[^>]*disabled/g) ?? []).toHaveLength(0);
   });
 });
