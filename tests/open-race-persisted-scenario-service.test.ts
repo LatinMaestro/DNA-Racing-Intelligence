@@ -108,6 +108,8 @@ function source(): AcceptedOpenRaceScenarioEvidence {
     raceImportVersion: "race-import-v7",
     vaultSnapshotVersion: "vault-v4",
     historicalAggregateVersion: "aggregate-v5",
+    historyGenerationVersion: "history-generation-v3",
+    historySourceIdentitySha256: "a".repeat(64),
     evidenceCutoff: "2026-10-16T00:00:00.000Z",
     modelVersion: "empirical-pairwise-v1",
     context: {
@@ -232,6 +234,12 @@ describe("persisted Open Race candidate scenario integration", () => {
       status: "unavailable",
       reason: "EXACT_CONTEXT_UNAVAILABLE",
     });
+    expect(() =>
+      composePersistedOpenRaceCandidateScenario("owner-1", session(), {
+        ...source(),
+        historySourceIdentitySha256: "invalid",
+      }),
+    ).toThrow("history source identity is invalid");
   });
 
   it("does not substitute a different Core's history or truncate missing evidence", () => {

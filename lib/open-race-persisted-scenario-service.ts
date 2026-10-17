@@ -8,6 +8,8 @@ import type {
 } from "@/domain/race-probability-baseline";
 import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
+const SHA_256 = /^[a-f0-9]{64}$/u;
+
 type CoreHistory = Readonly<{
   coreId: string;
   observations: readonly EmpiricalRaceTimeObservation[];
@@ -27,6 +29,8 @@ export type AcceptedOpenRaceScenarioEvidence = Readonly<{
   raceImportVersion: string;
   vaultSnapshotVersion: string;
   historicalAggregateVersion: string;
+  historyGenerationVersion: string;
+  historySourceIdentitySha256: string;
   evidenceCutoff: string;
   modelVersion: string;
   context: ExactRaceProbabilityContext | null;
@@ -110,6 +114,12 @@ export function composePersistedOpenRaceCandidateScenario(
   if (accepted.authenticatedOwnerId !== authenticatedOwnerId) {
     throw new Error("Open Race scenario source owner mismatch.");
   }
+  if (
+    accepted.historyGenerationVersion.trim() === "" ||
+    !SHA_256.test(accepted.historySourceIdentitySha256)
+  ) {
+    throw new Error("Open Race scenario history source identity is invalid.");
+  }
 
   const bindings = session.bindings;
   if (
@@ -190,6 +200,8 @@ export function composePersistedOpenRaceCandidateScenario(
       bindings.fieldVersion,
       bindings.rankingVersion,
       bindings.historicalAggregateVersion,
+      accepted.historyGenerationVersion,
+      accepted.historySourceIdentitySha256,
       accepted.modelVersion,
     ]),
     modelVersion: accepted.modelVersion,
