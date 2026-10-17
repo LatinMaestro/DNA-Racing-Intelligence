@@ -111,6 +111,18 @@ function SessionCard({
             {label(session.field.freshness)}
           </dd>
         </div>
+        <div>
+          <dt className="text-[var(--muted)]">Probability context</dt>
+          <dd className="mt-1 font-semibold">
+            {session.field.probabilityContext === null
+              ? "Unavailable — exact-context estimates withheld"
+              : `${label(session.field.probabilityContext.competition)} · ${
+                  session.field.probabilityContext.element.status === "known"
+                    ? `Element ${session.field.probabilityContext.element.value}`
+                    : `Element ${label(session.field.probabilityContext.element.status)}`
+                }`}
+          </dd>
+        </div>
       </dl>
 
       <p className="mt-3 text-xs text-[var(--muted)]">

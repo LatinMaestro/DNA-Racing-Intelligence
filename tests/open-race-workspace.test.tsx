@@ -168,7 +168,24 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Pending Authoritative Import");
     expect(html).toContain("Frozen pre-entry ranking unchanged");
     expect(html).toContain("Historical aggregates aggregate-v4");
+    expect(html).toContain("Probability context");
+    expect(html).toContain("Normal · Element Unknown");
     expect(html).not.toContain("Enter race");
+  });
+
+  it("labels legacy sessions without exact probability context as unavailable", () => {
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[
+          {
+            ...session,
+            field: { ...session.field, probabilityContext: null },
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("Unavailable — exact-context estimates withheld");
   });
 
   it("offers evidence-only field lock confirmation for an accepted provisional session", () => {
