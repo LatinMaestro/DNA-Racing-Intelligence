@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import type { BreedingEconomicEvidenceInput } from "@/domain/breeding-economic-evidence";
 import type { OffspringCostBasisInput } from "@/domain/offspring-cost-basis";
 import {
@@ -17,6 +18,7 @@ import {
   runEconomicFormAction,
   unavailableEconomicFormActionCapability,
 } from "@/lib/economic-form-action-service";
+import { neonBreedingEconomicPersistenceFromEnvironment } from "@/lib/neon-breeding-economic-write-repository";
 
 type OffspringCostBasisRequest = Omit<
   OffspringCostBasisInput,
@@ -38,6 +40,18 @@ function configuredOwnerId(): string | null {
 
 function serverNow(): string {
   return new Date().toISOString();
+}
+
+function breedingPersistence() {
+  return neonBreedingEconomicPersistenceFromEnvironment({
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  });
+}
+
+function isConfiguredOwner(ownerId: string | null): ownerId is string {
+  return ownerId !== null && ownerId === configuredOwnerId();
 }
 
 export async function recordBreedingEconomicEvidenceAction(
@@ -81,11 +95,72 @@ export async function assignOffspringCostBasisAction(
 export async function recordBreedingEconomicEvidenceFormAction(
   formData: FormData,
 ) {
+  const ownerId = await authenticatedOwnerId();
+  const persistence = breedingPersistence();
+  if (!isConfiguredOwner(ownerId) || persistence.status !== "ready") {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseBreedingEconomicEvidenceFormData,
+    });
+  }
+  let context: Awaited<ReturnType<typeof persistence.loadContextByOwner>>;
+  try {
+    context = await persistence.loadContextByOwner(ownerId);
+  } catch {
+    return runEconomicFormAction({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: configuredOwnerId(),
+      formData,
+      capability: unavailableEconomicFormActionCapability,
+      parse: parseBreedingEconomicEvidenceFormData,
+    });
+  }
+  const now = new Date();
   return runEconomicFormAction({
-    authenticatedOwnerId: await authenticatedOwnerId(),
+    authenticatedOwnerId: ownerId,
     configuredOwnerId: configuredOwnerId(),
     formData,
-    capability: unavailableEconomicFormActionCapability,
+    capability: {
+      status: "ready" as const,
+      configuration: {
+        assets: context.assetRegistry.assets.map(({ code, kind }) => ({
+          code,
+          kind,
+        })),
+        confirmedOwnedCoreIds: [],
+        completedBreedingEvents: [],
+        confirmedCosts: [],
+        confirmedRefunds: [],
+        createDurableId: (kind: string) => `${kind}:${randomUUID()}`,
+        now: () => now,
+      },
+      execute: async (
+        verifiedOwnerId: string,
+        evidence: BreedingEconomicEvidenceInput,
+      ) => {
+        const result = await recordBreedingEconomicEvidence({
+          authenticatedOwnerId: verifiedOwnerId,
+          configuredOwnerId: configuredOwnerId(),
+          repository: persistence.repository,
+          assetRegistry: context.assetRegistry,
+          serverNow: now.toISOString(),
+          evidence,
+          expectedAssetRegistryVersion: context.assetRegistry.version,
+          expectedEconomicVersion: context.economicVersion,
+        });
+        if (
+          result.status === "recorded" ||
+          result.status === "replayed" ||
+          result.status === "held"
+        ) {
+          return { status: result.status } as const;
+        }
+        throw new Error("Breeding economic evidence was not recorded.");
+      },
+    },
     parse: parseBreedingEconomicEvidenceFormData,
   });
 }
@@ -98,4 +173,13 @@ export async function assignOffspringCostBasisFormAction(formData: FormData) {
     capability: unavailableEconomicFormActionCapability,
     parse: parseOffspringCostBasisFormData,
   });
+}
+
+export async function submitBreedingEconomicEvidenceFormAction(
+  _previous: Awaited<
+    ReturnType<typeof recordBreedingEconomicEvidenceFormAction>
+  > | null,
+  formData: FormData,
+) {
+  return recordBreedingEconomicEvidenceFormAction(formData);
 }
