@@ -57,9 +57,7 @@ type UnavailableReason = Extract<
   { status: "unavailable" }
 >["reason"];
 
-function unavailable(
-  reason: UnavailableReason,
-): PersistedOpenRaceScenarioView {
+function unavailable(reason: UnavailableReason): PersistedOpenRaceScenarioView {
   return { status: "unavailable", reason, scenario: null };
 }
 
