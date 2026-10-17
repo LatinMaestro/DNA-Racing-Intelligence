@@ -1005,4 +1005,3 @@ jobs:
           "DO \$\$ BEGIN IF EXISTS (
           SELECT 1 FROM pg_namespace WHERE nspname = 'dna'
           ) THEN RAISE EXCEPTION 'dna schema still exists'; END IF; END \$\$;"
-
