@@ -30,11 +30,14 @@ export type FreezeRacePredictionSnapshotInput = Readonly<{
     enteredCoreIds: readonly string[];
   }>;
   sources: Readonly<{
+    sessionVersion: string;
+    eligibilityVersion: string;
     raceImportVersion: string;
+    vaultSnapshotVersion: string;
     historicalAggregateVersion: string;
     historyGenerationVersion: string;
     historySourceIdentitySha256: string;
-    fieldSourceVersion: string;
+    lockVersion: string;
   }>;
   predictions: readonly RacePredictionValue[];
 }>;
@@ -261,9 +264,18 @@ export function freezeRacePredictionSnapshot(
   }
 
   const sources = {
+    sessionVersion: required(input.sources.sessionVersion, "Session version"),
+    eligibilityVersion: required(
+      input.sources.eligibilityVersion,
+      "Eligibility version",
+    ),
     raceImportVersion: required(
       input.sources.raceImportVersion,
       "Race import version",
+    ),
+    vaultSnapshotVersion: required(
+      input.sources.vaultSnapshotVersion,
+      "Vault snapshot version",
     ),
     historicalAggregateVersion: required(
       input.sources.historicalAggregateVersion,
@@ -277,10 +289,7 @@ export function freezeRacePredictionSnapshot(
       input.sources.historySourceIdentitySha256,
       "History source identity",
     ),
-    fieldSourceVersion: required(
-      input.sources.fieldSourceVersion,
-      "Field source version",
-    ),
+    lockVersion: required(input.sources.lockVersion, "Lock version"),
   };
   if (!SHA_256.test(sources.historySourceIdentitySha256)) {
     throw new Error(

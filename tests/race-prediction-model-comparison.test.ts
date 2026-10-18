@@ -82,11 +82,14 @@ function evaluation({
           enteredCoreIds,
         },
         sources: {
+          sessionVersion: "session-v1",
+          eligibilityVersion: "eligibility-v1",
           raceImportVersion: "race-import-v1",
+          vaultSnapshotVersion: "vault-v1",
           historicalAggregateVersion: "aggregate-v1",
           historyGenerationVersion: "history-generation-v1",
           historySourceIdentitySha256: "a".repeat(64),
-          fieldSourceVersion: "field-source-v1",
+          lockVersion: "lock-v1",
         },
         predictions,
       });

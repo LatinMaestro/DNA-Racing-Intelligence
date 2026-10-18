@@ -443,6 +443,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.up.sql
       - name: Run Breeding economic event evidence read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.smoke.sql
+      - name: Apply Open Race prediction snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.up.sql
+      - name: Run Open Race prediction snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.smoke.sql
+      - name: Reverse Open Race prediction snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.down.sql
+      - name: Verify Open Race prediction snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.removal.sql
       - name: Reverse Breeding economic event evidence read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0138_breeding_economic_event_evidence_read.down.sql
       - name: Verify Breeding economic event evidence read removal
