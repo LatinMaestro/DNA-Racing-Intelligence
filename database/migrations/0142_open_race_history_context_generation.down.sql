@@ -1,0 +1,11 @@
+BEGIN;
+DROP FUNCTION dna.read_open_race_history_contexts(uuid,text,text[],integer);
+DROP FUNCTION dna.read_active_open_race_history_context_pointer(uuid);
+DROP FUNCTION dna.publish_open_race_history_context_generation(uuid,text,text,timestamptz);
+DROP FUNCTION dna.stage_open_race_history_context_rows(uuid,text,text,integer,jsonb);
+DROP FUNCTION dna.begin_open_race_history_context_generation(uuid,text,text,text);
+DROP TABLE dna.open_race_history_context_generation_active;
+DROP INDEX dna.open_race_history_context_event_read_idx;
+DROP TABLE dna.open_race_history_context_generation_row;
+DROP TABLE dna.open_race_history_context_generation;
+COMMIT;

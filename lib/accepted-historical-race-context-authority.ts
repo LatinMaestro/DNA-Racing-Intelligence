@@ -104,18 +104,17 @@ function samePointer(
 export function acceptedHistoricalRaceContextRowSha256(
   row: AcceptedHistoricalRaceContext,
 ): string {
+  const canonical = {
+    eventId: text(row.eventId),
+    competition: row.competition,
+    element: {
+      status: row.element.status,
+      value: row.element.value,
+    },
+    evidenceSha256: sha256(row.evidenceSha256),
+  };
   return createHash("sha256")
-    .update(
-      JSON.stringify([
-        1,
-        text(row.eventId),
-        row.competition,
-        row.element.status,
-        row.element.value,
-        sha256(row.evidenceSha256),
-      ]),
-      "utf8",
-    )
+    .update(JSON.stringify(canonical), "utf8")
     .digest("hex");
 }
 
