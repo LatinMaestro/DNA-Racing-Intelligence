@@ -238,13 +238,14 @@ export function createSelectedCoreOpenRaceAcceptedHistoryBoundary(
           contexts.has(eventId) ||
           !eventIds.includes(eventId) ||
           (value.competition !== "normal" && value.competition !== "esports") ||
-          (value.element.status !== "known" &&
-            value.element.status !== "unknown") ||
+          !["known", "not_applicable", "unknown"].includes(
+            value.element.status,
+          ) ||
           !HASH.test(value.evidenceSha256) ||
           (value.element.status === "known" &&
             (typeof value.element.value !== "string" ||
               value.element.value.trim() === "")) ||
-          (value.element.status === "unknown" && value.element.value !== null)
+          (value.element.status !== "known" && value.element.value !== null)
         )
           fail();
         contexts.set(eventId, value);

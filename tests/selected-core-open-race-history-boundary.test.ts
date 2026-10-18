@@ -236,6 +236,30 @@ describe("selected-Core accepted Open Race history boundary", () => {
     expect(source?.rows.map(({ eventId }) => eventId)).toEqual(["event-2"]);
   });
 
+  it("preserves explicitly accepted element-not-applicable context", async () => {
+    const accepted = harness({
+      contexts: contextSet().contexts.map((value) => ({
+        ...value,
+        element: { status: "not_applicable" as const, value: null },
+      })),
+    });
+    const source = await accepted.boundary.loadExactContextHistoryByOwner(
+      "owner-1",
+      {
+        ...accepted.request,
+        context: {
+          ...accepted.request.context,
+          element: { status: "not_applicable", value: null },
+        },
+      },
+    );
+    expect(source?.coverage).toMatchObject({
+      state: "accepted",
+      exactContextVerified: true,
+      totalMatchingRows: 2,
+    });
+  });
+
   it("preserves partial classification as incomplete instead of inventing context", async () => {
     const partial = contextSet();
     const source = await harness({

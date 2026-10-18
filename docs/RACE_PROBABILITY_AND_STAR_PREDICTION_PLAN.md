@@ -80,6 +80,17 @@ binding remain required before composing the complete
 `OpenRaceAcceptedHistoryReadBoundary`. No provider client, UI activation,
 probability formula or source publication is created by this join.
 
+`lib/accepted-historical-race-context-authority.ts` now validates a bounded
+owner-scoped read from an immutable published competition/element context
+repository. It requires the active history generation, observation digest and
+historical aggregate version to agree before and after the read; verifies every
+stored row digest; rejects truncation, cross-owner access and publication
+drift; and preserves explicit `known`, `not_applicable` and `unknown` element
+states. It performs no tag parsing or classification inference. A persisted
+repository/publication implementation and connected Preview acceptance remain
+required before this authority can make historical probability evidence
+available.
+
 ## Dependency-ordered implementation slices
 
 | Slice                                           | Concrete development task                                                                                                                                                                                                            | Acceptance / dependency                                                                                                                                                                                                                                                                                                                  |
