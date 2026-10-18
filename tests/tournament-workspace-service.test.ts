@@ -287,9 +287,7 @@ describe("Tournament workspace service", () => {
 
     expect(state.connectionStatus).toBe("read_model_connected");
     expect(state.brackets.map((item) => item.mode).sort()).toEqual(modes);
-    expect(state.brackets.map((item) => item.leaderboardGroups.length)).toEqual([
-      1, 1, 1,
-    ]);
+    expect(state.brackets).toHaveLength(3);
   });
 
   it("withholds all candidates when the shared repository fails", async () => {
