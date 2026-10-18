@@ -311,10 +311,12 @@ BEGIN
   IF p_context_source_identity_sha256 IS NULL OR p_context_source_identity_sha256 !~ '^[a-f0-9]{64}$'
     OR p_event_ids IS NULL OR array_ndims(p_event_ids) IS DISTINCT FROM 1
     OR cardinality(p_event_ids) NOT BETWEEN 1 AND 10000
-    OR (SELECT count(DISTINCT event_id) FROM unnest(p_event_ids) event_id) <> cardinality(p_event_ids)
-    OR EXISTS (SELECT 1 FROM unnest(p_event_ids) event_id WHERE event_id IS NULL
-      OR event_id <> btrim(event_id) OR octet_length(event_id) NOT BETWEEN 1 AND 512
-      OR event_id ~ '[[:cntrl:]]')
+    OR (SELECT count(DISTINCT requested.value)
+      FROM unnest(p_event_ids) AS requested(value)) <> cardinality(p_event_ids)
+    OR EXISTS (SELECT 1 FROM unnest(p_event_ids) AS requested(value)
+      WHERE requested.value IS NULL OR requested.value <> btrim(requested.value)
+      OR octet_length(requested.value) NOT BETWEEN 1 AND 512
+      OR requested.value ~ '[[:cntrl:]]')
     OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 10001
   THEN RAISE EXCEPTION 'historical Race context read authority is invalid'; END IF;
   RETURN QUERY SELECT row.ordinal, row.event_id, row.row_sha256, row.payload
