@@ -14,6 +14,8 @@ export type OpenRaceFieldLockInput = Readonly<{
   gateCount: number;
   availableGates: number;
   enteredCoreIds: readonly string[];
+  /** Legacy locks may omit schedule and remain unavailable for prediction freeze. */
+  eventStartsAt?: string | null;
   /** Legacy locks may omit identity and normalize to unavailable. */
   eventIdentity?: OpenRaceEventIdentity | null;
   selectedOwnedCoreId: string;
@@ -31,6 +33,7 @@ export type OpenRaceFieldLockResult = Readonly<{
   lockedAt: string;
   gateCount: number;
   enteredCoreIds: readonly string[];
+  eventStartsAt: string | null;
   eventIdentity: OpenRaceEventIdentity;
   selectedOwnedCoreId: string;
   provisionalRecommendedCoreId: string | null;
@@ -66,8 +69,21 @@ function positiveSafeInteger(value: number, label: string): number {
 }
 
 function rejectPostLockEvidence(value: object): void {
+  const forbidden = new Set([
+    "gold",
+    "blue",
+    "star",
+    "stars",
+    "finish",
+    "winner",
+    "prize",
+    "result",
+  ]);
   const forbiddenKey = Object.keys(value).find((key) =>
-    /(gold|blue|star|finish|winner|prize|result)/i.test(key),
+    key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .split(/[^A-Za-z0-9]+/)
+      .some((token) => forbidden.has(token.toLowerCase())),
   );
   if (forbiddenKey !== undefined) {
     throw new Error(
@@ -95,11 +111,21 @@ export function lockOpenRaceField(
     "Ranking evaluation time",
   );
   const lockedAt = timestamp(input.lockedAt, "Lock time");
+  const eventStartsAt =
+    input.eventStartsAt == null
+      ? null
+      : timestamp(input.eventStartsAt, "Event start time");
   if (Date.parse(rankingEvaluatedAt) < Date.parse(fieldCapturedAt)) {
     throw new Error("Pre-entry ranking cannot predate field capture.");
   }
   if (Date.parse(lockedAt) < Date.parse(rankingEvaluatedAt)) {
     throw new Error("Field lock cannot predate the pre-entry ranking.");
+  }
+  if (
+    eventStartsAt !== null &&
+    Date.parse(lockedAt) >= Date.parse(eventStartsAt)
+  ) {
+    throw new Error("Field lock must occur before the event starts.");
   }
   if (input.fieldStage !== "forming") {
     throw new Error("Only a forming field can transition to field lock.");
@@ -178,6 +204,7 @@ export function lockOpenRaceField(
     lockedAt,
     gateCount,
     enteredCoreIds,
+    eventStartsAt,
     eventIdentity,
     selectedOwnedCoreId,
     provisionalRecommendedCoreId,

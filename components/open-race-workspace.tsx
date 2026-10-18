@@ -131,6 +131,13 @@ function SessionCard({
               : "Unavailable — prediction reconciliation withheld"}
           </dd>
         </div>
+        <div>
+          <dt className="text-[var(--muted)]">Scheduled event time</dt>
+          <dd className="mt-1 font-semibold">
+            {session.field.eventStartsAt ??
+              "Unavailable — prediction freeze withheld"}
+          </dd>
+        </div>
       </dl>
 
       <p className="mt-3 text-xs text-[var(--muted)]">

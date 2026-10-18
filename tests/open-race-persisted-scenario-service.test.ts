@@ -37,6 +37,7 @@ function session(): OpenRaceWorkspaceSession {
       },
       gateCount: 4,
       availableGates: 3,
+      eventStartsAt: "2026-10-17T12:00:00.000Z",
       eventIdentity: { status: "confirmed", eventId: "game-event-101" },
       entryFee: null,
       opponentCoreIds: ["entered-a"],

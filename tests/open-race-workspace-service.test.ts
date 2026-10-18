@@ -41,6 +41,7 @@ const evidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     probabilityContext: {
       mode: "bike",
@@ -129,6 +130,7 @@ const evidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 0,
     enteredCoreIds: ["owned-a", ...opponents],
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     selectedOwnedCoreId: "owned-a",
     provisionalRecommendedCoreId: "owned-a",
@@ -341,6 +343,13 @@ describe("Open Race workspace service", () => {
         lock: {
           ...evidence.lock!,
           eventIdentity: { status: "confirmed", eventId: "different-event" },
+        },
+      },
+      {
+        ...evidence,
+        lock: {
+          ...evidence.lock!,
+          eventStartsAt: "2026-07-24T00:00:01.000Z",
         },
       },
       {
