@@ -20,6 +20,8 @@ export type TournamentCandidateRepository =
 export type TournamentWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type TournamentWorkspacePageState = Readonly<{
@@ -30,6 +32,12 @@ export type TournamentWorkspacePageState = Readonly<{
 
 export const unavailableTournamentCandidateRepository: TournamentCandidateRepository =
   Object.freeze({ status: "not_configured" });
+
+function withheldEvidence(
+  connectionStatus: "read_failed" | "integrity_failed",
+): TournamentWorkspacePageState {
+  return { brackets: [], lastImportedAt: null, connectionStatus };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -190,42 +198,58 @@ export async function loadTournamentWorkspacePageState(
     throw new Error("Tournament repository is invalid.");
   }
 
-  const evidence =
-    await input.repository.listCandidateEvidenceByOwner(authenticatedOwnerId);
-  if (
-    typeof evidence !== "object" ||
-    evidence === null ||
-    !Array.isArray(evidence.brackets)
-  ) {
-    throw new Error("Tournament evidence is invalid.");
-  }
-  const lastImportedAt = canonicalTimestamp(
-    evidence.lastImportedAt,
-    "Tournament import timestamp",
-  );
-  if (lastImportedAt !== null && Date.parse(lastImportedAt) > now.getTime()) {
-    throw new Error("Tournament import timestamp cannot be in the future.");
+  let evidence: Readonly<{
+    brackets: readonly TournamentCandidateRankingInput[];
+    lastImportedAt: string | null;
+  }>;
+  try {
+    evidence =
+      await input.repository.listCandidateEvidenceByOwner(authenticatedOwnerId);
+  } catch {
+    // Withhold the entire owner-scoped snapshot, including partial results.
+    // Repository errors must never be exposed through the owner-facing page.
+    return withheldEvidence("read_failed");
   }
 
-  const brackets = evidence.brackets.map((bracket) =>
-    rankTournamentCandidates(normalizeBracket(bracket, lastImportedAt, now)),
-  );
-  const bracketKeys = brackets.map(({ tournamentId, bracketId }) =>
-    JSON.stringify([tournamentId, bracketId]),
-  );
-  if (new Set(bracketKeys).size !== bracketKeys.length) {
-    throw new Error("Tournament bracket evidence must be unique.");
-  }
-  assertConsistentLabels(brackets);
+  try {
+    if (
+      typeof evidence !== "object" ||
+      evidence === null ||
+      !Array.isArray(evidence.brackets)
+    ) {
+      throw new Error("Tournament evidence is invalid.");
+    }
+    const lastImportedAt = canonicalTimestamp(
+      evidence.lastImportedAt,
+      "Tournament import timestamp",
+    );
+    if (lastImportedAt !== null && Date.parse(lastImportedAt) > now.getTime()) {
+      throw new Error("Tournament import timestamp cannot be in the future.");
+    }
 
-  return {
-    brackets: brackets.sort(
-      (left, right) =>
-        left.tournamentLabel.localeCompare(right.tournamentLabel) ||
-        left.splitLabel.localeCompare(right.splitLabel) ||
-        left.bracketId.localeCompare(right.bracketId),
-    ),
-    lastImportedAt,
-    connectionStatus: "read_model_connected",
-  };
+    const brackets = evidence.brackets.map((bracket) =>
+      rankTournamentCandidates(normalizeBracket(bracket, lastImportedAt, now)),
+    );
+    const bracketKeys = brackets.map(({ tournamentId, bracketId }) =>
+      JSON.stringify([tournamentId, bracketId]),
+    );
+    if (new Set(bracketKeys).size !== bracketKeys.length) {
+      throw new Error("Tournament bracket evidence must be unique.");
+    }
+    assertConsistentLabels(brackets);
+
+    return {
+      brackets: brackets.sort(
+        (left, right) =>
+          left.tournamentLabel.localeCompare(right.tournamentLabel) ||
+          left.splitLabel.localeCompare(right.splitLabel) ||
+          left.bracketId.localeCompare(right.bracketId),
+      ),
+      lastImportedAt,
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    // Invalid or mixed-version evidence is not a partly usable leaderboard.
+    return withheldEvidence("integrity_failed");
+  }
 }

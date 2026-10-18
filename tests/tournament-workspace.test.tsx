@@ -38,6 +38,30 @@ describe("Tournament workspace", () => {
     expect(html).not.toContain("/search-core?");
   });
 
+  it("renders safe failure states without fake rankings", () => {
+    const states = [
+      ["read_failed", "Tournament evidence temporarily unavailable"],
+      ["integrity_failed", "Tournament evidence failed validation"],
+    ] as const;
+
+    for (const [status, heading] of states) {
+      const html = renderToStaticMarkup(
+        <TournamentWorkspace
+          brackets={[]}
+          connectionStatus={status}
+          lastImportedAt={null}
+        />,
+      );
+
+      expect(html).toContain(heading);
+      expect(html).toContain("No accepted tournament evidence");
+      expect(html).toContain("Tournament entry unavailable");
+      expect(html).not.toContain("View Core profile");
+      expect(html).not.toContain("private database");
+      expect(html).not.toContain("Recommended entry");
+    }
+  });
+
   it("renders split and group labels, version binding, ties and Maiden preservation", () => {
     const common = {
       leaderboardGroupId: "synthetic-group",
