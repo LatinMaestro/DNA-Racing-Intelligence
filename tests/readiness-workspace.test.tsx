@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import { ReadinessWorkspace } from "@/components/readiness-workspace";
 import { assessPrivateProductionReadiness } from "@/domain/private-production-readiness";
+import type { TournamentHorseScreeningState } from "@/lib/tournament-horse-screening-service";
+
+const unavailableHorseScreeningState: TournamentHorseScreeningState = {
+  connectionStatus: "snapshot_unavailable",
+  snapshot: null,
+};
 
 const readiness = assessPrivateProductionReadiness({
   assessmentId: "synthetic-readiness",
@@ -61,6 +67,7 @@ describe("Readiness workspace", () => {
         evidenceCurrentThrough={null}
         evidenceFreshness={null}
         exactHeadSha={null}
+        horseScreeningState={unavailableHorseScreeningState}
         readiness={null}
       />,
     );
@@ -79,6 +86,7 @@ describe("Readiness workspace", () => {
         evidenceCurrentThrough="2026-07-23T00:00:00.000Z"
         evidenceFreshness="current"
         exactHeadSha={"a".repeat(40)}
+        horseScreeningState={unavailableHorseScreeningState}
         readiness={readiness}
       />,
     );
@@ -91,5 +99,87 @@ describe("Readiness workspace", () => {
     expect(html).toContain("Fixture verified");
     expect(html).toContain("Review Required");
     expect(html).not.toContain("Enable Production");
+  });
+
+  it.each([
+    ["identity_not_connected", "Identity not connected"],
+    ["persistence_not_configured", "Persistence not configured"],
+    ["snapshot_unavailable", "Not published"],
+    ["snapshot_read_failed", "Read failed"],
+    ["snapshot_invalid", "Integrity failed"],
+  ] as const)(
+    "renders the %s Horse publication state",
+    (connectionStatus, copy) => {
+      const html = renderToStaticMarkup(
+        <ReadinessWorkspace
+          assessmentId={null}
+          assessedAt={null}
+          assessmentVersion={null}
+          connectionStatus="read_model_connected"
+          evidenceCurrentThrough={null}
+          evidenceFreshness={null}
+          exactHeadSha={null}
+          horseScreeningState={{ connectionStatus, snapshot: null }}
+          readiness={null}
+        />,
+      );
+      expect(html).toContain("Horse screening publication");
+      expect(html).toContain(copy);
+    },
+  );
+
+  it("renders compact connected Horse publication evidence", () => {
+    const html = renderToStaticMarkup(
+      <ReadinessWorkspace
+        assessmentId={null}
+        assessedAt={null}
+        assessmentVersion={null}
+        connectionStatus="read_model_connected"
+        evidenceCurrentThrough={null}
+        evidenceFreshness={null}
+        exactHeadSha={null}
+        horseScreeningState={{
+          connectionStatus: "snapshot_connected",
+          snapshot: {
+            snapshotVersion: "b".repeat(64),
+            sourceSnapshotVersion: "accepted-source-v1",
+            modelVersion: "horse-1v1-exact-distance-transfer-v2",
+            evidenceCutoff: "2026-10-18T00:00:00.000Z",
+            publishedAt: "2026-10-18T01:00:00.000Z",
+            candidates: [
+              {
+                coreId: "horse-1",
+                name: "Synthetic Horse",
+                element: "Fire",
+                distanceMetres: 1000,
+                status: "available",
+                disposition: "screened_candidate",
+                expectedFieldPWinMillionths: 600_000,
+                topTenPercentStressPWinMillionths: 500_000,
+                projectedFieldOutperformanceMillionths: 100_000,
+                projectedTopTenPercentOutperformanceMillionths: 0,
+                candidateSampleCount: 10,
+                candidateDirectOneVOneSampleCount: 10,
+                fieldOpponentCoreCount: 2,
+                stressOpponentCoreCount: 1,
+                evidenceBasis: "same_mode_exact_distance_all_accepted_races",
+                formatTransferStatus: "direct",
+                provenOneVOneSpecialist: false,
+                analyticalStatus: "experimental",
+                decisionUseAllowed: false,
+                economicStatus: "unavailable",
+                economicReason: "CONFIRMED_FEE_PRIZE_RULE_NOT_SUPPLIED",
+                reasons: ["Synthetic fixture"],
+              },
+            ],
+          },
+        }}
+        readiness={null}
+      />,
+    );
+    expect(html).toContain("Connected");
+    expect(html).toContain("accepted-source-v1");
+    expect(html).toContain("2026-10-18T00:00:00.000Z");
+    expect(html).not.toContain("Synthetic Horse");
   });
 });

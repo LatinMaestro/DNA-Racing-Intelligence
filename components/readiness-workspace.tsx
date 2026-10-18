@@ -1,5 +1,6 @@
 import type { PrivateProductionReadiness } from "@/domain/private-production-readiness";
 import type { ReadinessWorkspaceConnectionStatus } from "@/lib/readiness-workspace-service";
+import type { TournamentHorseScreeningState } from "@/lib/tournament-horse-screening-service";
 
 const connectionCopy: Record<
   ReadinessWorkspaceConnectionStatus,
@@ -64,6 +65,39 @@ const boundaryStateCopy = {
   failed: "Failed",
 } as const;
 
+const horseScreeningStatusCopy = {
+  identity_not_connected: {
+    label: "Identity not connected",
+    detail:
+      "Owner identity must be verified before private Horse screening publication evidence can be checked.",
+  },
+  persistence_not_configured: {
+    label: "Persistence not configured",
+    detail:
+      "The compact private Horse screening snapshot repository is not configured.",
+  },
+  snapshot_unavailable: {
+    label: "Not published",
+    detail:
+      "No accepted Horse screening snapshot is active. Missing evidence remains unavailable.",
+  },
+  snapshot_read_failed: {
+    label: "Read failed",
+    detail:
+      "The active Horse screening snapshot could not be read. No cached or inferred replacement is accepted.",
+  },
+  snapshot_invalid: {
+    label: "Integrity failed",
+    detail:
+      "The active Horse screening snapshot failed integrity checks. Rankings remain withheld until a valid last-good snapshot is published.",
+  },
+  snapshot_connected: {
+    label: "Connected",
+    detail:
+      "A compact owner-scoped Horse screening snapshot passed publication integrity checks.",
+  },
+} as const;
+
 export function ReadinessWorkspace({
   assessmentId,
   assessedAt,
@@ -73,6 +107,7 @@ export function ReadinessWorkspace({
   evidenceFreshness,
   readiness,
   connectionStatus,
+  horseScreeningState,
 }: Readonly<{
   assessmentId: string | null;
   assessedAt: string | null;
@@ -82,8 +117,11 @@ export function ReadinessWorkspace({
   evidenceFreshness: "current" | "ageing" | "stale" | null;
   readiness: PrivateProductionReadiness | null;
   connectionStatus: ReadinessWorkspaceConnectionStatus;
+  horseScreeningState: TournamentHorseScreeningState;
 }>) {
   const connection = connectionCopy[connectionStatus];
+  const horseScreeningStatus =
+    horseScreeningStatusCopy[horseScreeningState.connectionStatus];
 
   return (
     <div className="space-y-8">
@@ -118,6 +156,59 @@ export function ReadinessWorkspace({
         >
           Production activation unavailable
         </button>
+      </section>
+
+      <section
+        aria-labelledby="readiness-horse-screening"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              className="text-xl font-semibold"
+              id="readiness-horse-screening"
+            >
+              Horse screening publication
+            </h2>
+            <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
+              {horseScreeningStatus.detail}
+            </p>
+          </div>
+          <span className="rounded-full border border-[var(--warning)]/60 px-3 py-1 text-xs font-semibold text-[var(--warning)]">
+            {horseScreeningStatus.label}
+          </span>
+        </div>
+        {horseScreeningState.snapshot === null ? null : (
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <dt className="text-[var(--muted)]">Candidates</dt>
+              <dd className="mt-1 font-semibold">
+                {horseScreeningState.snapshot.candidates.length.toLocaleString(
+                  "en-AU",
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Evidence current through</dt>
+              <dd className="mt-1 font-semibold">
+                {horseScreeningState.snapshot.evidenceCutoff}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Published</dt>
+              <dd className="mt-1 font-semibold">
+                {horseScreeningState.snapshot.publishedAt}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Model / source version</dt>
+              <dd className="mt-1 break-all font-semibold">
+                {horseScreeningState.snapshot.modelVersion} ·{" "}
+                {horseScreeningState.snapshot.sourceSnapshotVersion}
+              </dd>
+            </div>
+          </dl>
+        )}
       </section>
 
       <section aria-labelledby="readiness-checks">
