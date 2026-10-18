@@ -2,6 +2,7 @@ import {
   evaluateHistoricalRacePredictions,
   type HistoricalEvaluationPartition,
   type HistoricalPredictionEvaluation,
+  type HistoricalPredictionEvaluationInput,
 } from "@/domain/race-prediction-historical-evaluation";
 import type { RacePredictionReconciliation } from "@/domain/race-prediction-reconciliation";
 import type { FrozenRacePredictionSnapshot } from "@/domain/race-prediction-snapshot";
@@ -20,6 +21,12 @@ export type PersistedHistoricalEvaluationRepository = Pick<
   OpenRacePredictionRepository,
   "listSnapshotsByOwner" | "listReconciliationsByOwner"
 >;
+
+export type PersistedHistoricalEvaluationEvidence = Readonly<{
+  ownerId: string;
+  snapshots: readonly FrozenRacePredictionSnapshot[];
+  reconciliations: readonly RacePredictionReconciliation[];
+}>;
 
 export type EvaluatePersistedHistoricalPredictionsInput = Readonly<{
   ownerId: string;
@@ -74,36 +81,35 @@ function validatePersistedSnapshot(snapshot: FrozenRacePredictionSnapshot) {
   }
 }
 
-export async function evaluatePersistedHistoricalRacePredictions(
-  repository: PersistedHistoricalEvaluationRepository,
+export function bindPersistedHistoricalRacePredictionEvaluation(
+  evidence: PersistedHistoricalEvaluationEvidence,
   input: EvaluatePersistedHistoricalPredictionsInput,
-): Promise<HistoricalPredictionEvaluation> {
+): HistoricalPredictionEvaluationInput {
   const ownerId = required(input.ownerId, "Owner ID");
+  if (required(evidence.ownerId, "Evidence owner ID") !== ownerId) {
+    throw new Error("Persisted historical evaluation owner does not match.");
+  }
   if (input.cases.length === 0) {
     throw new Error("Persisted historical evaluation cases are required.");
   }
 
-  const [snapshots, reconciliations] = await Promise.all([
-    repository.listSnapshotsByOwner(ownerId),
-    repository.listReconciliationsByOwner(ownerId),
-  ]);
   const snapshotsById = uniqueById(
-    snapshots,
+    evidence.snapshots,
     ({ snapshotId }) => snapshotId,
     "Persisted snapshot",
   );
   const reconciliationsById = uniqueById(
-    reconciliations,
+    evidence.reconciliations,
     reconciliationKey,
     "Persisted reconciliation revision",
   );
   uniqueById(
-    reconciliations,
+    evidence.reconciliations,
     ({ snapshotId, revision }) => `${snapshotId}\u0000${revision}`,
     "Persisted snapshot reconciliation revision",
   );
   const latestRevisionBySnapshot = new Map<string, number>();
-  for (const reconciliation of reconciliations) {
+  for (const reconciliation of evidence.reconciliations) {
     latestRevisionBySnapshot.set(
       reconciliation.snapshotId,
       Math.max(
@@ -179,10 +185,34 @@ export async function evaluatePersistedHistoricalRacePredictions(
     };
   });
 
-  return evaluateHistoricalRacePredictions({
+  return {
     evaluationId: input.evaluationId,
     modelVersion: input.modelVersion,
     evaluationKind: "point_in_time",
     observations,
-  });
+  };
+}
+
+export async function loadPersistedHistoricalRacePredictionEvaluation(
+  repository: PersistedHistoricalEvaluationRepository,
+  input: EvaluatePersistedHistoricalPredictionsInput,
+): Promise<HistoricalPredictionEvaluationInput> {
+  const ownerId = required(input.ownerId, "Owner ID");
+  const [snapshots, reconciliations] = await Promise.all([
+    repository.listSnapshotsByOwner(ownerId),
+    repository.listReconciliationsByOwner(ownerId),
+  ]);
+  return bindPersistedHistoricalRacePredictionEvaluation(
+    { ownerId, snapshots, reconciliations },
+    input,
+  );
+}
+
+export async function evaluatePersistedHistoricalRacePredictions(
+  repository: PersistedHistoricalEvaluationRepository,
+  input: EvaluatePersistedHistoricalPredictionsInput,
+): Promise<HistoricalPredictionEvaluation> {
+  return evaluateHistoricalRacePredictions(
+    await loadPersistedHistoricalRacePredictionEvaluation(repository, input),
+  );
 }

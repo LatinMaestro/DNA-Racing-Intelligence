@@ -9,6 +9,7 @@ import {
   type FrozenRacePredictionSnapshot,
 } from "@/domain/race-prediction-snapshot";
 import {
+  bindPersistedHistoricalRacePredictionEvaluation,
   evaluatePersistedHistoricalRacePredictions,
   type PersistedHistoricalEvaluationCase,
 } from "@/lib/race-prediction-historical-evaluation-service";
@@ -261,5 +262,24 @@ describe("persisted historical race prediction evaluation", () => {
         },
       ),
     ).rejects.toThrow("snapshot reconciliation revision");
+  });
+
+  it("rejects evidence loaded for another owner", () => {
+    const { rows, cases } = fixture();
+    expect(() =>
+      bindPersistedHistoricalRacePredictionEvaluation(
+        {
+          ownerId: "user-other",
+          snapshots: rows.map(({ snapshot }) => snapshot),
+          reconciliations: rows.map(({ reconciliation }) => reconciliation),
+        },
+        {
+          ownerId: "user-owner",
+          evaluationId: "evaluation-owner-mismatch",
+          modelVersion: MODEL_VERSION,
+          cases,
+        },
+      ),
+    ).toThrow("owner does not match");
   });
 });
