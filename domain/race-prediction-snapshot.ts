@@ -32,6 +32,8 @@ export type FreezeRacePredictionSnapshotInput = Readonly<{
   sources: Readonly<{
     raceImportVersion: string;
     historicalAggregateVersion: string;
+    historyGenerationVersion: string;
+    historySourceIdentitySha256: string;
     fieldSourceVersion: string;
   }>;
   predictions: readonly RacePredictionValue[];
@@ -74,6 +76,8 @@ const EVIDENCE_STATUSES: readonly RacePredictionEvidenceStatus[] = [
   "unavailable",
   "not_applicable",
 ];
+
+const SHA_256 = /^[a-f0-9]{64}$/u;
 
 function required(value: string, label: string): string {
   const normalized = value.trim();
@@ -265,11 +269,24 @@ export function freezeRacePredictionSnapshot(
       input.sources.historicalAggregateVersion,
       "Historical aggregate version",
     ),
+    historyGenerationVersion: required(
+      input.sources.historyGenerationVersion,
+      "History generation version",
+    ),
+    historySourceIdentitySha256: required(
+      input.sources.historySourceIdentitySha256,
+      "History source identity",
+    ),
     fieldSourceVersion: required(
       input.sources.fieldSourceVersion,
       "Field source version",
     ),
   };
+  if (!SHA_256.test(sources.historySourceIdentitySha256)) {
+    throw new Error(
+      "History source identity must be a lowercase SHA-256 digest.",
+    );
+  }
   const predictions = input.predictions.map((prediction) =>
     normalizePrediction(prediction, enteredCoreIds, context.gateCount),
   );

@@ -31,6 +31,8 @@ function input(
     sources: {
       raceImportVersion: "race-import-generation-12",
       historicalAggregateVersion: "aggregate-generation-7",
+      historyGenerationVersion: "history-generation-5",
+      historySourceIdentitySha256: "a".repeat(64),
       fieldSourceVersion: "field-source-version-3",
     },
     predictions: [
@@ -78,6 +80,8 @@ describe("frozen race prediction snapshot", () => {
       sources: {
         raceImportVersion: "race-import-generation-12",
         historicalAggregateVersion: "aggregate-generation-7",
+        historyGenerationVersion: "history-generation-5",
+        historySourceIdentitySha256: "a".repeat(64),
         fieldSourceVersion: "field-source-version-3",
       },
       frozen: true,
@@ -100,6 +104,19 @@ describe("frozen race prediction snapshot", () => {
         input({ predictedAt: "2026-10-17T05:00:00Z" }),
       ),
     ).toThrow("must be frozen before the event starts");
+  });
+
+  it("requires an immutable accepted history source identity", () => {
+    expect(() =>
+      freezeRacePredictionSnapshot(
+        input({
+          sources: {
+            ...input().sources,
+            historySourceIdentitySha256: "invalid",
+          },
+        }),
+      ),
+    ).toThrow("lowercase SHA-256 digest");
   });
 
   it("requires a complete unique field captured before prediction", () => {
