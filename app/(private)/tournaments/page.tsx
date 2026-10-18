@@ -7,9 +7,12 @@ import {
   TournamentConfigurationForm,
 } from "@/components/tournament-configuration-form";
 import { Season12TournamentSchedule } from "@/components/season-12-tournament-schedule";
+import { TournamentHorseScreeningPanel } from "@/components/tournament-horse-screening-panel";
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
+import { neonTournamentHorseScreeningRepositoryFromEnvironment } from "@/lib/neon-tournament-horse-screening-repository";
+import { loadTournamentHorseScreeningState } from "@/lib/tournament-horse-screening-service";
 import { loadTournamentWorkspacePageState } from "@/lib/tournament-workspace-service";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +36,15 @@ export default async function TournamentsPage() {
       neonTournamentConfigurationRepositoryFromEnvironment(databaseEnvironment),
     now: new Date(),
   });
+  const horseScreeningState = await loadTournamentHorseScreeningState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository:
+      neonTournamentHorseScreeningRepositoryFromEnvironment(
+        databaseEnvironment,
+      ),
+    now: new Date(),
+  });
 
   return (
     <div className="space-y-8">
@@ -47,6 +59,7 @@ export default async function TournamentsPage() {
         brackets={state.brackets}
         connectionStatus={state.connectionStatus}
       />
+      <TournamentHorseScreeningPanel state={horseScreeningState} />
       <TournamentWorkspace
         brackets={state.brackets}
         connectionStatus={state.connectionStatus}
