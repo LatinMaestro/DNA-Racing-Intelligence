@@ -1,4 +1,5 @@
 import {
+  calculateEmpiricalPairwiseElapsedTimeOutperformance,
   calculatePairwiseRaceProbability,
   type EmpiricalRaceTimeObservation,
 } from "@/domain/race-probability-baseline";
@@ -11,7 +12,10 @@ export type HorseOneVOneCoreEvidence = Readonly<{
   owned: boolean;
   element: string;
   distanceMetres: (typeof horseOneVOneTournamentDistances)[number];
-  observations: readonly EmpiricalRaceTimeObservation[];
+  /** Every accepted Horse observation at this exact distance, across formats. */
+  distanceObservations: readonly EmpiricalRaceTimeObservation[];
+  /** The exact 1v1/two-gate subset, retained as a separate direct-evidence lane. */
+  directOneVOneObservations: readonly EmpiricalRaceTimeObservation[];
 }>;
 
 export type HorseOneVOneScreeningGroup = Readonly<{
@@ -29,19 +33,31 @@ export type HorseOneVOneCandidateScreening = Readonly<{
   element: string;
   distanceMetres: number;
   status: "available" | "unavailable" | "review_required";
-  disposition: "screened_candidate" | "best_shot" | "evidence_unavailable";
+  disposition:
+    | "screened_candidate"
+    | "inferred_candidate"
+    | "best_shot"
+    | "evidence_unavailable";
   expectedFieldPWinMillionths: number | null;
   topTenPercentStressPWinMillionths: number | null;
+  projectedFieldOutperformanceMillionths: number | null;
+  projectedTopTenPercentOutperformanceMillionths: number | null;
   candidateSampleCount: number;
+  candidateDirectOneVOneSampleCount: number;
   fieldOpponentCoreCount: number;
   stressOpponentCoreCount: number;
+  evidenceBasis: "same_mode_exact_distance_all_accepted_races";
+  formatTransferStatus: "direct" | "inference_only" | "unavailable";
+  provenOneVOneSpecialist: false;
+  analyticalStatus: "experimental";
+  decisionUseAllowed: false;
   economicStatus: "unavailable";
   economicReason: "CONFIRMED_FEE_PRIZE_RULE_NOT_SUPPLIED";
   reasons: readonly string[];
 }>;
 
 export type HorseOneVOneScreeningResult = Readonly<{
-  modelVersion: "horse-1v1-empirical-pairwise-v1";
+  modelVersion: "horse-1v1-exact-distance-transfer-v2";
   evidenceCutoff: string;
   candidates: readonly HorseOneVOneCandidateScreening[];
 }>;
@@ -71,18 +87,21 @@ function average(values: readonly number[]): number {
   );
 }
 
+type PoolEvaluation = Readonly<{
+  status: "available" | "unavailable" | "review_required";
+  probability: number | null;
+  reasons: readonly string[];
+}>;
+
 function evaluatePool(
   input: Readonly<{
     candidate: HorseOneVOneCoreEvidence;
     opponents: readonly HorseOneVOneCoreEvidence[];
     evidenceCutoff: string;
     poolLabel: string;
+    evidenceLane: "distance_transfer" | "direct_one_v_one";
   }>,
-): Readonly<{
-  status: "available" | "unavailable" | "review_required";
-  probability: number | null;
-  reasons: readonly string[];
-}> {
+): PoolEvaluation {
   if (input.opponents.length === 0) {
     return {
       status: "unavailable",
@@ -90,8 +109,21 @@ function evaluatePool(
       reasons: [`${input.poolLabel}_OPPONENT_POOL_EMPTY`],
     };
   }
-  const results = input.opponents.map((opponent) =>
-    calculatePairwiseRaceProbability({
+  const prefix =
+    input.evidenceLane === "distance_transfer"
+      ? "DISTANCE_TRANSFER"
+      : "DIRECT_1V1";
+  const results = input.opponents.map((opponent) => {
+    if (input.evidenceLane === "distance_transfer") {
+      return calculateEmpiricalPairwiseElapsedTimeOutperformance({
+        evidenceCutoff: input.evidenceCutoff,
+        candidateCoreId: input.candidate.coreId,
+        opponentCoreId: opponent.coreId,
+        candidateObservations: input.candidate.distanceObservations,
+        opponentObservations: opponent.distanceObservations,
+      });
+    }
+    const direct = calculatePairwiseRaceProbability({
       baselineId: `horse-1v1:${input.candidate.element}:${input.candidate.distanceMetres}`,
       modelVersion: "horse-1v1-empirical-pairwise-v1",
       evidenceCutoff: input.evidenceCutoff,
@@ -105,11 +137,21 @@ function evaluatePool(
       },
       candidateCoreId: input.candidate.coreId,
       opponentCoreId: opponent.coreId,
-      candidateObservations: input.candidate.observations,
-      opponentObservations: opponent.observations,
-    }),
-  );
-  const reasons = [...new Set(results.flatMap((result) => result.reasons))];
+      candidateObservations: input.candidate.directOneVOneObservations,
+      opponentObservations: opponent.directOneVOneObservations,
+    });
+    return {
+      ...direct,
+      outperformanceMillionths: direct.pWinMillionths,
+    };
+  });
+  const reasons = [
+    ...new Set(
+      results.flatMap((result) =>
+        result.reasons.map((reason) => `${prefix}_${reason}`),
+      ),
+    ),
+  ];
   if (results.some((result) => result.status === "unavailable")) {
     return { status: "unavailable", probability: null, reasons };
   }
@@ -120,14 +162,37 @@ function evaluatePool(
     status: "available",
     probability: average(
       results.map((result) => {
-        if (result.pWinMillionths === null) {
-          throw new Error("Available pairwise probability is missing.");
+        if (result.outperformanceMillionths === null) {
+          throw new Error("Available pairwise comparison is missing.");
         }
-        return result.pWinMillionths;
+        return result.outperformanceMillionths;
       }),
     ),
     reasons,
   };
+}
+
+function validateDirectSubset(core: HorseOneVOneCoreEvidence): void {
+  const distanceEvents = new Map(
+    core.distanceObservations.map((observation) => [
+      observation.eventId,
+      observation,
+    ]),
+  );
+  if (
+    core.directOneVOneObservations.some((observation) => {
+      const accepted = distanceEvents.get(observation.eventId);
+      return (
+        accepted === undefined ||
+        accepted.eventAt !== observation.eventAt ||
+        accepted.elapsedTimeMilliseconds !== observation.elapsedTimeMilliseconds
+      );
+    })
+  ) {
+    throw new Error(
+      "Horse direct 1v1 evidence must be a subset of exact-distance evidence.",
+    );
+  }
 }
 
 export function screenHorseOneVOneTournamentCandidates(
@@ -151,8 +216,9 @@ export function screenHorseOneVOneTournamentCandidates(
       throw new Error("Horse 1v1 distance must be 1000, 1400 or 2200 metres.");
     }
     const groupKey = `${element}\u0000${group.distanceMetres}`;
-    if (groupKeys.has(groupKey))
+    if (groupKeys.has(groupKey)) {
       throw new Error("Horse 1v1 group is duplicated.");
+    }
     groupKeys.add(groupKey);
 
     const evidenceById = new Map<string, HorseOneVOneCoreEvidence>();
@@ -165,6 +231,7 @@ export function screenHorseOneVOneTournamentCandidates(
       ) {
         throw new Error("Horse 1v1 evidence does not match its exact group.");
       }
+      validateDirectSubset(core);
       evidenceById.set(coreId, core);
     }
     const fieldIds = uniqueIds(
@@ -187,30 +254,73 @@ export function screenHorseOneVOneTournamentCandidates(
     for (const candidate of [...group.evidence]
       .filter((core) => core.owned)
       .sort((left, right) => left.coreId.localeCompare(right.coreId))) {
-      const field = evaluatePool({
+      const fieldOpponents = resolvePool(fieldIds, candidate.coreId);
+      const stressOpponents = resolvePool(stressIds, candidate.coreId);
+      const transferField = evaluatePool({
         candidate,
-        opponents: resolvePool(fieldIds, candidate.coreId),
+        opponents: fieldOpponents,
         evidenceCutoff: evidenceCutoff.toISOString(),
         poolLabel: "FIELD",
+        evidenceLane: "distance_transfer",
       });
-      const stress = evaluatePool({
+      const transferStress = evaluatePool({
         candidate,
-        opponents: resolvePool(stressIds, candidate.coreId),
+        opponents: stressOpponents,
         evidenceCutoff: evidenceCutoff.toISOString(),
         poolLabel: "STRESS",
+        evidenceLane: "distance_transfer",
       });
-      const reasons = [...new Set([...field.reasons, ...stress.reasons])];
+      const directField = evaluatePool({
+        candidate,
+        opponents: fieldOpponents,
+        evidenceCutoff: evidenceCutoff.toISOString(),
+        poolLabel: "FIELD",
+        evidenceLane: "direct_one_v_one",
+      });
+      const directStress = evaluatePool({
+        candidate,
+        opponents: stressOpponents,
+        evidenceCutoff: evidenceCutoff.toISOString(),
+        poolLabel: "STRESS",
+        evidenceLane: "direct_one_v_one",
+      });
+      const reasons = [
+        ...new Set([
+          ...transferField.reasons,
+          ...transferStress.reasons,
+          ...directField.reasons,
+          ...directStress.reasons,
+        ]),
+      ];
       if (group.opponentPoolStatus !== "confirmed") {
         reasons.push("OPPONENT_POOL_REVIEW_REQUIRED");
       }
-      const status =
-        field.status === "unavailable" || stress.status === "unavailable"
-          ? "unavailable"
-          : field.status === "review_required" ||
-              stress.status === "review_required" ||
-              group.opponentPoolStatus !== "confirmed"
-            ? "review_required"
-            : "available";
+
+      const directAvailable =
+        directField.status === "available" &&
+        directStress.status === "available" &&
+        group.opponentPoolStatus === "confirmed";
+      const transferAvailable =
+        transferField.status === "available" &&
+        transferStress.status === "available" &&
+        group.opponentPoolStatus === "confirmed";
+      const status = directAvailable
+        ? "available"
+        : transferAvailable
+          ? "review_required"
+          : "unavailable";
+      const formatTransferStatus = directAvailable
+        ? "direct"
+        : transferAvailable
+          ? "inference_only"
+          : "unavailable";
+      const directFieldProbability = directAvailable
+        ? directField.probability
+        : null;
+      const transferFieldProbability = transferAvailable
+        ? transferField.probability
+        : null;
+
       candidates.push({
         coreId: candidate.coreId,
         name: required(candidate.name, "Core name"),
@@ -218,19 +328,33 @@ export function screenHorseOneVOneTournamentCandidates(
         distanceMetres: group.distanceMetres,
         status,
         disposition:
-          status !== "available" || field.probability === null
-            ? "evidence_unavailable"
-            : field.probability >= SCREENING_THRESHOLD_MILLIONTHS
+          directAvailable && directFieldProbability !== null
+            ? directFieldProbability >= SCREENING_THRESHOLD_MILLIONTHS
               ? "screened_candidate"
-              : "best_shot",
-        expectedFieldPWinMillionths:
-          status === "available" ? field.probability : null,
-        topTenPercentStressPWinMillionths:
-          status === "available" ? stress.probability : null,
-        candidateSampleCount: candidate.observations.length,
-        fieldOpponentCoreCount: resolvePool(fieldIds, candidate.coreId).length,
-        stressOpponentCoreCount: resolvePool(stressIds, candidate.coreId)
-          .length,
+              : "best_shot"
+            : transferAvailable && transferFieldProbability !== null
+              ? transferFieldProbability >= SCREENING_THRESHOLD_MILLIONTHS
+                ? "inferred_candidate"
+                : "best_shot"
+              : "evidence_unavailable",
+        expectedFieldPWinMillionths: directFieldProbability,
+        topTenPercentStressPWinMillionths: directAvailable
+          ? directStress.probability
+          : null,
+        projectedFieldOutperformanceMillionths: transferFieldProbability,
+        projectedTopTenPercentOutperformanceMillionths: transferAvailable
+          ? transferStress.probability
+          : null,
+        candidateSampleCount: candidate.distanceObservations.length,
+        candidateDirectOneVOneSampleCount:
+          candidate.directOneVOneObservations.length,
+        fieldOpponentCoreCount: fieldOpponents.length,
+        stressOpponentCoreCount: stressOpponents.length,
+        evidenceBasis: "same_mode_exact_distance_all_accepted_races",
+        formatTransferStatus,
+        provenOneVOneSpecialist: false,
+        analyticalStatus: "experimental",
+        decisionUseAllowed: false,
         economicStatus: "unavailable",
         economicReason: "CONFIRMED_FEE_PRIZE_RULE_NOT_SUPPLIED",
         reasons,
@@ -239,16 +363,16 @@ export function screenHorseOneVOneTournamentCandidates(
   }
 
   return {
-    modelVersion: "horse-1v1-empirical-pairwise-v1",
+    modelVersion: "horse-1v1-exact-distance-transfer-v2",
     evidenceCutoff: evidenceCutoff.toISOString(),
     candidates: candidates.sort(
       (left, right) =>
         left.element.localeCompare(right.element) ||
         left.distanceMetres - right.distanceMetres ||
+        (right.projectedFieldOutperformanceMillionths ?? -1) -
+          (left.projectedFieldOutperformanceMillionths ?? -1) ||
         (right.expectedFieldPWinMillionths ?? -1) -
           (left.expectedFieldPWinMillionths ?? -1) ||
-        (right.topTenPercentStressPWinMillionths ?? -1) -
-          (left.topTenPercentStressPWinMillionths ?? -1) ||
         left.coreId.localeCompare(right.coreId),
     ),
   };

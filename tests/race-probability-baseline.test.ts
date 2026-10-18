@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateEmpiricalPairwiseElapsedTimeOutperformance,
   calculatePairwiseRaceProbability,
   type EmpiricalRaceTimeObservation,
   type PairwiseRaceProbabilityInput,
@@ -47,6 +48,26 @@ function input(
 }
 
 describe("independent empirical pairwise race probability baseline", () => {
+  it("exposes the same elapsed-time comparison without claiming an exact format context", () => {
+    const baseline = input();
+    expect(
+      calculateEmpiricalPairwiseElapsedTimeOutperformance({
+        evidenceCutoff: baseline.evidenceCutoff,
+        candidateCoreId: baseline.candidateCoreId,
+        opponentCoreId: baseline.opponentCoreId,
+        candidateObservations: baseline.candidateObservations,
+        opponentObservations: baseline.opponentObservations,
+      }),
+    ).toMatchObject({
+      status: "available",
+      outperformanceMillionths: 500_000,
+      candidateSampleCount: 10,
+      opponentSampleCount: 10,
+      outcomePairCount: 100,
+      probabilityBasis: "empirical_cartesian_pairwise_elapsed_time",
+    });
+  });
+
   it("uses every exact-context outcome and reports the auditable pair counts", () => {
     expect(calculatePairwiseRaceProbability(input())).toMatchObject({
       status: "available",
