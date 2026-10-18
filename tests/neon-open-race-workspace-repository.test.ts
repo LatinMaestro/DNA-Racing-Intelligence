@@ -37,6 +37,7 @@ const evidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "event-1" },
     probabilityContext: {
       mode: "horse",
@@ -154,6 +155,7 @@ const lockedEvidence: OpenRaceWorkspaceEvidence = {
     gateCount: 4,
     availableGates: 0,
     enteredCoreIds: ["owned-a", "opponent-a", "opponent-b", "opponent-c"],
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "event-1" },
     selectedOwnedCoreId: "owned-a",
     provisionalRecommendedCoreId: "owned-a",
@@ -345,6 +347,7 @@ describe("compact Neon Open Race workspace dependency", () => {
     expect(envelope.evidence.ranking).toEqual(rankedEvidence.ranking);
     expect(envelope.evidence.lock).toMatchObject({
       requestId: rankedEvidence.field.requestId,
+      eventStartsAt: rankedEvidence.field.eventStartsAt,
       selectedOwnedCoreId: "owned-a",
       userConfirmedCommittedEntry: true,
       raceSetToRun: true,

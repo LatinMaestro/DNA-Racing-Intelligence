@@ -17,6 +17,7 @@ const session = {
     gateCount: 4,
     availableGates: 1,
     raceFormat: "Synthetic",
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     probabilityContext: {
       mode: "bike",
@@ -81,6 +82,7 @@ const session = {
     lockedAt: "2026-07-20T02:02:00.000Z",
     gateCount: 4,
     enteredCoreIds: ["owned:a", "opponent-a", "opponent-b", "opponent-c"],
+    eventStartsAt: "2026-07-24T00:00:00.000Z",
     eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     selectedOwnedCoreId: "owned:a",
     provisionalRecommendedCoreId: "owned:a",
@@ -174,6 +176,8 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Normal · Element Unknown");
     expect(html).toContain("Game event identity");
     expect(html).toContain("game-event-101");
+    expect(html).toContain("Scheduled event time");
+    expect(html).toContain("2026-07-24T00:00:00.000Z");
     expect(html).not.toContain("Enter race");
   });
 
@@ -208,6 +212,21 @@ describe("Open Race workspace", () => {
       />,
     );
     expect(html).toContain("Unavailable — prediction reconciliation withheld");
+  });
+
+  it("withholds prediction freeze when the legacy schedule is unavailable", () => {
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        sessions={[
+          {
+            ...session,
+            field: { ...session.field, eventStartsAt: null },
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("Unavailable — prediction freeze withheld");
   });
 
   it("offers evidence-only field lock confirmation for an accepted provisional session", () => {

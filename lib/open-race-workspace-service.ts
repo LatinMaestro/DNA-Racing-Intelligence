@@ -402,6 +402,11 @@ export function composeOpenRaceWorkspaceSession(
       "Open Race field lock must preserve the exact game event identity.",
     );
   }
+  if (lock.eventStartsAt !== field.eventStartsAt) {
+    throw new Error(
+      "Open Race field lock must preserve the exact scheduled event time.",
+    );
+  }
 
   if (evidence.observation === null) {
     if (evidence.comparison !== null) {

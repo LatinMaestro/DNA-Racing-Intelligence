@@ -459,6 +459,7 @@ export function createNeonOpenRaceWorkspaceRepository(
             input.selectedOwnedCoreId,
             ...composed.field.opponentCoreIds,
           ],
+          eventStartsAt: composed.field.eventStartsAt,
           eventIdentity: composed.field.eventIdentity,
           selectedOwnedCoreId: input.selectedOwnedCoreId,
           provisionalRecommendedCoreId:

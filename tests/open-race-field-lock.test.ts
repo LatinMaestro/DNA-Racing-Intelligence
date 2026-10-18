@@ -19,6 +19,7 @@ function input(
     gateCount: 4,
     availableGates: 0,
     enteredCoreIds: ["owned-1", "opponent-1", "opponent-2", "opponent-3"],
+    eventStartsAt: "2026-07-23T11:00:00Z",
     eventIdentity: { status: "confirmed", eventId: "event-1" },
     selectedOwnedCoreId: "owned-1",
     provisionalRecommendedCoreId: "owned-1",
@@ -41,6 +42,7 @@ describe("Open Race field lock", () => {
       coreSwitchAllowed: false,
       raceEntryAllowed: false,
       currentRaceStarsCaptured: false,
+      eventStartsAt: "2026-07-23T11:00:00.000Z",
       eventIdentity: { status: "confirmed", eventId: "event-1" },
     });
   });
@@ -52,6 +54,19 @@ describe("Open Race field lock", () => {
       status: "unavailable",
       eventId: null,
     });
+  });
+
+  it("keeps legacy schedule unavailable and rejects a post-start lock", () => {
+    const { eventStartsAt, ...legacy } = input();
+    expect(eventStartsAt).toBe("2026-07-23T11:00:00Z");
+    expect(lockOpenRaceField(legacy).eventStartsAt).toBeNull();
+    expect(() =>
+      lockOpenRaceField(
+        input({
+          lockedAt: "2026-07-23T11:00:00.000Z",
+        }),
+      ),
+    ).toThrow("must occur before the event starts");
   });
 
   it("preserves a user-selected alternative without rewriting history", () => {

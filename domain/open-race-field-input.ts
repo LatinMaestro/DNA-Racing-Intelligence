@@ -32,6 +32,8 @@ export type OpenRaceFieldInput = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  /** Legacy/manual snapshots may not contain an authoritative scheduled time. */
+  eventStartsAt?: string | null;
   /**
    * Legacy/manual snapshots may not contain an authoritative game event ID.
    * Never substitute requestId: prediction/result reconciliation requires a
@@ -58,6 +60,7 @@ export type OpenRaceFieldResult = Readonly<{
   gateCount: number;
   availableGates: number;
   raceFormat: string;
+  eventStartsAt: string | null;
   eventIdentity: OpenRaceEventIdentity;
   probabilityContext: ExactRaceProbabilityContext | null;
   entryFee: OpenRaceFieldInput["entryFee"];
@@ -129,8 +132,12 @@ export function normalizeOpenRaceEventIdentity(
 }
 
 function rejectCurrentRaceStars(value: object, label: string): void {
+  const forbidden = new Set(["gold", "blue", "star", "stars"]);
   const forbiddenKey = Object.keys(value).find((key) =>
-    /(gold|blue|star)/i.test(key),
+    key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .split(/[^A-Za-z0-9]+/)
+      .some((token) => forbidden.has(token.toLowerCase())),
   );
   if (forbiddenKey !== undefined) {
     throw new Error(
@@ -225,6 +232,16 @@ export function validateOpenRaceField(
           asset: required(input.entryFee.asset, "Entry fee asset"),
         };
   const raceFormat = required(input.raceFormat, "Race format");
+  const eventStartsAt =
+    input.eventStartsAt == null
+      ? null
+      : timestamp(input.eventStartsAt, "Event start time");
+  if (
+    eventStartsAt !== null &&
+    Date.parse(eventStartsAt) <= Date.parse(capturedAt)
+  ) {
+    throw new Error("Open Race event start must follow field capture.");
+  }
   const eventIdentity = normalizeOpenRaceEventIdentity(input.eventIdentity);
   // Snapshots created before exact probability context was introduced remain
   // readable, but cannot be used by the exact-context history boundary.
@@ -296,6 +313,7 @@ export function validateOpenRaceField(
     gateCount,
     availableGates,
     raceFormat,
+    eventStartsAt,
     eventIdentity,
     probabilityContext,
     entryFee,

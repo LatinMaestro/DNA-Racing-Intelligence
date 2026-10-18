@@ -19,6 +19,7 @@ function input(
     gateCount: 6,
     availableGates: 2,
     raceFormat: "standard",
+    eventStartsAt: "2026-07-23T11:00:00Z",
     eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     probabilityContext: {
       mode: "car",
@@ -56,6 +57,7 @@ describe("Open Race field input", () => {
       currentRaceStarsAccepted: false,
       historicalSnapshotOnly: true,
       liveGameConnection: false,
+      eventStartsAt: "2026-07-23T11:00:00.000Z",
       eventIdentity: { status: "confirmed", eventId: "game-event-101" },
     });
     expect(result.opponentCoreIds).toEqual([
@@ -89,6 +91,23 @@ describe("Open Race field input", () => {
     expect(
       validateOpenRaceField(input({ eventIdentity: null })).eventIdentity,
     ).toEqual({ status: "unavailable", eventId: null });
+  });
+
+  it("normalizes an authoritative schedule and keeps legacy schedule unavailable", () => {
+    expect(validateOpenRaceField(input()).eventStartsAt).toBe(
+      "2026-07-23T11:00:00.000Z",
+    );
+    const legacy = { ...input() };
+    delete legacy.eventStartsAt;
+    expect(validateOpenRaceField(legacy).eventStartsAt).toBeNull();
+  });
+
+  it("rejects an event start at or before field capture", () => {
+    expect(() =>
+      validateOpenRaceField(
+        input({ eventStartsAt: "2026-07-23T10:00:00.000Z" }),
+      ),
+    ).toThrow("event start must follow field capture");
   });
 
   it("rejects malformed or contradictory event identity", () => {
