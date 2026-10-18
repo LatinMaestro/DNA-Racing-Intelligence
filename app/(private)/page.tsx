@@ -1,3 +1,4 @@
+import { DashboardReadinessStatus } from "@/components/dashboard-readiness-status";
 import { FreshnessStatus } from "@/components/freshness-status";
 import { OwnerVaultStatus } from "@/components/owner-vault-status";
 import { WorkspaceShortcuts } from "@/components/workspace-shortcuts";
@@ -7,9 +8,11 @@ import type {
   SourceImportStatus,
 } from "@/domain/import-workflow";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { loadDashboardReadinessPageState } from "@/lib/dashboard-readiness-service";
 import { loadDashboardFreshnessPageState } from "@/lib/dashboard-freshness-service";
 import { importBatchRepositoryFromEnvironment } from "@/lib/neon-import-batch-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { neonReadinessAssessmentRepositoryFromEnvironment } from "@/lib/neon-readiness-assessment-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +49,12 @@ export default async function DashboardPage() {
     },
   });
   const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID ?? null;
+  const now = new Date();
+  const databaseEnvironment = {
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  };
   const [vaultState, freshnessState] = await Promise.all([
     loadOwnerVaultCataloguePageState({
       authenticatedOwnerId,
@@ -64,9 +73,19 @@ export default async function DashboardPage() {
         databaseUrl: process.env.DATABASE_URL,
         databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
       }),
-      now: new Date(),
+      now,
     }),
   ]);
+  const readinessState = await loadDashboardReadinessPageState({
+    authenticatedOwnerId,
+    configuredOwnerId,
+    repository: neonReadinessAssessmentRepositoryFromEnvironment({
+      ...databaseEnvironment,
+      authenticatedOwnerId,
+    }),
+    expectedHeadSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    now,
+  });
 
   return (
     <div className="space-y-8">
@@ -102,6 +121,7 @@ export default async function DashboardPage() {
           status={sourceStatus(freshnessState.workspace, "current_arena")}
         />
       </div>
+      <DashboardReadinessStatus state={readinessState} />
       <section
         aria-labelledby="readiness-heading"
         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6"
