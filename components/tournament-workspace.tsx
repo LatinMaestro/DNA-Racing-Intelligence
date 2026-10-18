@@ -17,6 +17,16 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact private tournament repository is not configured. No raw race history is scanned on this page.",
   },
+  read_failed: {
+    heading: "Tournament evidence temporarily unavailable",
+    detail:
+      "The owner-scoped tournament read could not be completed. All candidate rankings and rule editing are withheld until the repository is available; no cached or inferred replacements are shown.",
+  },
+  integrity_failed: {
+    heading: "Tournament evidence failed validation",
+    detail:
+      "Saved tournament rules or candidate evidence failed validation. All candidate rankings and rule editing remain unavailable until the accepted snapshot is repaired; no partial results are shown.",
+  },
   read_model_connected: {
     heading: "Historical tournament evidence connected",
     detail:
