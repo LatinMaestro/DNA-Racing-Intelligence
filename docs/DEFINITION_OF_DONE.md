@@ -96,6 +96,10 @@ A phase or feature is complete only when all applicable items pass.
 - Star-profile and field-quality aggregates are precomputed or otherwise efficiently served.
 - Imported-data pages are tested for freshness and non-live wording.
 - Open Race stage transitions and observation reconciliation are tested.
+- Open Race field-lock and observation forms disable repeated submission while
+  saving, announce confirmed or unconfirmed outcomes accessibly, and require
+  reloading the session before retrying an uncertain write. Provider exceptions
+  never appear in form feedback.
 - Accessibility and responsive behaviour are checked.
 - Private primary navigation identifies the current module visibly and with `aria-current="page"` for exact or nested module routes, without marking unrelated routes as current.
 - Failed private pages offer a generic accessible recovery view without revealing exception messages, digests or stacks, and warn that interrupted writes may still have completed.

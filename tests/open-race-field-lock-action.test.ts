@@ -18,6 +18,8 @@ vi.mock("next/cache", () => ({ revalidatePath: cache.revalidatePath }));
 
 import {
   lockOpenRaceSessionAction,
+  lockOpenRaceSessionFormAction,
+  recordOpenRaceObservationFormAction,
   recordOpenRaceObservationAction,
 } from "../app/(private)/open-race/actions";
 
@@ -165,4 +167,72 @@ describe("Open Race observation Server Action", () => {
       "Open Race star observation is incomplete.",
     );
   });
+});
+
+describe("Open Race form feedback boundaries", () => {
+  it.each([
+    ["lock", lockOpenRaceSessionFormAction, confirmedForm],
+    ["observation", recordOpenRaceObservationFormAction, observationForm],
+  ] as const)(
+    "keeps %s failures private and unconfirmed",
+    async (_name, action, form) => {
+      vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+      session.ownerId.mockRejectedValueOnce(
+        new Error("secret-provider-host and stack"),
+      );
+      expect(await action("idle", form())).toBe("unconfirmed");
+      expect(persistence.factory).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [lockOpenRaceSessionFormAction, confirmedForm],
+    [recordOpenRaceObservationFormAction, observationForm],
+  ] as const)(
+    "retains owner denial even with forged previous success",
+    async (action, form) => {
+      vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+      session.ownerId.mockResolvedValueOnce("other-owner");
+      expect(await action("confirmed", form())).toBe("unconfirmed");
+      expect(persistence.factory).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not claim success when refresh fails after a completed write", async () => {
+    vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+    session.ownerId.mockResolvedValueOnce("owner-1");
+    const write = vi.fn(async () => ({ status: "published" as const }));
+    persistence.factory.mockReturnValueOnce({
+      status: "ready",
+      lockSessionByOwner: write,
+    });
+    cache.revalidatePath.mockImplementationOnce(() => {
+      throw new Error("private-cache-error");
+    });
+    expect(await lockOpenRaceSessionFormAction("idle", confirmedForm())).toBe(
+      "unconfirmed",
+    );
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [lockOpenRaceSessionFormAction, confirmedForm, "lockSessionByOwner"],
+    [
+      recordOpenRaceObservationFormAction,
+      observationForm,
+      "recordObservationByOwner",
+    ],
+  ] as const)(
+    "confirms only an accepted write and refreshed page",
+    async (action, form, method) => {
+      vi.stubEnv("AUTHORIZED_CLERK_USER_ID", "owner-1");
+      session.ownerId.mockResolvedValueOnce("owner-1");
+      persistence.factory.mockReturnValueOnce({
+        status: "ready",
+        [method]: vi.fn(async () => ({ status: "published" as const })),
+      });
+      expect(await action("idle", form())).toBe("confirmed");
+      expect(cache.revalidatePath).toHaveBeenCalledWith("/open-race");
+    },
+  );
 });
