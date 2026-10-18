@@ -12,7 +12,9 @@ const HASH = /^[a-f0-9]{64}$/u;
 const ERROR = "Tournament Horse screening materialization unavailable.";
 
 export const TOURNAMENT_HORSE_SCREENING_MAXIMUM_GROUPS = 96;
-export const TOURNAMENT_HORSE_SCREENING_MAXIMUM_CORES = 64;
+// The accepted owner Vault currently contains 195 Cores. Keep the read bounded
+// while allowing the whole Vault plus a compact confirmed opponent pool.
+export const TOURNAMENT_HORSE_SCREENING_MAXIMUM_CORES = 512;
 export const TOURNAMENT_HORSE_SCREENING_MAXIMUM_OBSERVATIONS = 10_000;
 export const TOURNAMENT_HORSE_SCREENING_MAXIMUM_PAYLOAD_BYTES = 1_048_576;
 
