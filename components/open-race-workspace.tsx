@@ -8,6 +8,10 @@ import type {
   OpenRaceWorkspaceConnectionStatus,
   OpenRaceWorkspaceSession,
 } from "@/lib/open-race-workspace-service";
+import type {
+  OpenRacePredictionPageState,
+  OpenRaceSessionPredictionEvidence,
+} from "@/lib/open-race-prediction-page-service";
 
 const connectionCopy: Record<
   OpenRaceWorkspaceConnectionStatus,
@@ -50,6 +54,35 @@ function timestamp(value: string): string {
   }).format(parsed);
 }
 
+function probability(value: number | null): string {
+  return value === null ? "Unavailable" : (value / 10_000).toFixed(2) + "%";
+}
+
+function predictionTarget(value: string): string {
+  if (value === "yellow_star") return "Yellow star (source: gold_star)";
+  if (value === "blue_star") return "Blue star";
+  return label(value);
+}
+
+function unavailablePredictionReason(
+  evidence: OpenRaceSessionPredictionEvidence | undefined,
+  connectionStatus: OpenRacePredictionPageState["connectionStatus"],
+): string {
+  if (connectionStatus === "identity_not_connected") {
+    return "Owner identity is not connected.";
+  }
+  if (connectionStatus === "persistence_not_configured") {
+    return "Private prediction persistence is not configured.";
+  }
+  if (evidence?.reason === "FIELD_NOT_LOCKED") {
+    return "Predictions are frozen only after the complete field is locked.";
+  }
+  if (evidence?.reason === "EVENT_IDENTITY_UNAVAILABLE") {
+    return "The authoritative event identity is unavailable.";
+  }
+  return "No frozen prediction exists for this exact field and source version.";
+}
+
 function CoreHistoryLink({
   coreId,
   children,
@@ -68,7 +101,13 @@ function CoreHistoryLink({
 
 function SessionCard({
   session,
-}: Readonly<{ session: OpenRaceWorkspaceSession }>) {
+  predictionConnectionStatus,
+  predictionEvidence,
+}: Readonly<{
+  session: OpenRaceWorkspaceSession;
+  predictionConnectionStatus: OpenRacePredictionPageState["connectionStatus"];
+  predictionEvidence: OpenRaceSessionPredictionEvidence | undefined;
+}>) {
   return (
     <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -231,6 +270,75 @@ function SessionCard({
           </section>
         </div>
       )}
+
+      <section className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <h4 className="font-semibold">Frozen probability and star evidence</h4>
+        {predictionEvidence?.status !== "available" ? (
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            {unavailablePredictionReason(
+              predictionEvidence,
+              predictionConnectionStatus,
+            )}{" "}
+            Missing evidence remains unavailable and is not estimated by the
+            page.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-4">
+            {predictionEvidence.items.map(
+              ({ snapshot, latestReconciliation }) => (
+                <article
+                  className="rounded-lg border border-[var(--border)] p-3"
+                  key={snapshot.snapshotId}
+                >
+                  <div className="flex flex-wrap justify-between gap-2 text-sm">
+                    <p className="font-semibold">
+                      Model {snapshot.modelVersion}
+                    </p>
+                    <p className="text-[var(--muted)]">
+                      Frozen {timestamp(snapshot.predictedAt)}
+                    </p>
+                  </div>
+                  <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                    {snapshot.predictions.map((prediction) => (
+                      <div key={prediction.coreId + ":" + prediction.target}>
+                        <dt className="text-[var(--muted)]">
+                          {predictionTarget(prediction.target)}
+                        </dt>
+                        <dd className="mt-1 font-semibold">
+                          {prediction.status === "available"
+                            ? probability(prediction.probabilityMillionths)
+                            : label(prediction.status)}
+                        </dd>
+                        <dd className="text-xs text-[var(--muted)]">
+                          Core {prediction.coreId} · Evidence{" "}
+                          {label(prediction.evidenceStatus)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="mt-3 text-xs text-[var(--muted)]">
+                    {latestReconciliation === null
+                      ? "Accepted result pending; frozen values remain unchanged."
+                      : "Accepted result " +
+                        label(latestReconciliation.recordStatus) +
+                        " · revision " +
+                        latestReconciliation.revision +
+                        " · outcome " +
+                        label(latestReconciliation.outcomeStatus) +
+                        " · stars " +
+                        label(latestReconciliation.starDataStatus) +
+                        "."}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Model and source versions are evidence only. No automatic
+                    promotion, race entry or game action is allowed.
+                  </p>
+                </article>
+              ),
+            )}
+          </div>
+        )}
+      </section>
 
       {session.stage === "provisional_selection" && session.ranking !== null ? (
         <form
@@ -406,9 +514,13 @@ function SessionCard({
 export function OpenRaceWorkspace({
   sessions,
   connectionStatus,
+  predictionConnectionStatus = "persistence_not_configured",
+  predictionEvidence = [],
 }: Readonly<{
   sessions: readonly OpenRaceWorkspaceSession[];
   connectionStatus: OpenRaceWorkspaceConnectionStatus;
+  predictionConnectionStatus?: OpenRacePredictionPageState["connectionStatus"];
+  predictionEvidence?: readonly OpenRaceSessionPredictionEvidence[];
 }>) {
   const connection = connectionCopy[connectionStatus];
 
@@ -473,7 +585,14 @@ export function OpenRaceWorkspace({
         ) : (
           <div className="mt-4 space-y-4">
             {sessions.map((session) => (
-              <SessionCard key={session.field.requestId} session={session} />
+              <SessionCard
+                key={session.field.requestId}
+                predictionConnectionStatus={predictionConnectionStatus}
+                predictionEvidence={predictionEvidence.find(
+                  ({ requestId }) => requestId === session.field.requestId,
+                )}
+                session={session}
+              />
             ))}
           </div>
         )}
