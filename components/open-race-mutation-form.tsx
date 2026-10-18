@@ -26,12 +26,13 @@ export function OpenRaceMutationFeedback({
             : "Diagnostic observation saved. It remains separate from accepted race results."
           : "Save could not be confirmed. A write might have completed. Reload and check the session before trying again."}
       </p>
-      <a
+      <button
         className="font-semibold text-[var(--accent)] underline"
-        href="/open-race"
+        onClick={() => window.location.reload()}
+        type="button"
       >
         Reload and review session
-      </a>
+      </button>
     </div>
   );
 }

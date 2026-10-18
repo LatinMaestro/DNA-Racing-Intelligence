@@ -55,7 +55,7 @@ describe("Open Race write recovery", () => {
     expect(html).toContain('<fieldset disabled=""');
     expect(html).toContain('role="alert"');
     expect(html).toContain("A write might have completed");
-    expect(html).toContain('href="/open-race"');
+    expect(html).toContain('type="button"');
     expect(html).not.toContain("saved.");
   });
 
