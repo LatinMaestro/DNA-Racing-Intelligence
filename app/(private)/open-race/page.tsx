@@ -1,6 +1,8 @@
 import { OpenRaceWorkspace } from "@/components/open-race-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { neonOpenRacePredictionRepositoryFromEnvironment } from "@/lib/neon-open-race-prediction-repository";
 import { neonOpenRaceWorkspaceRepositoryFromEnvironment } from "@/lib/neon-open-race-workspace-repository";
+import { loadOpenRacePredictionPageState } from "@/lib/open-race-prediction-page-service";
 import { loadOpenRaceWorkspacePageState } from "@/lib/open-race-workspace-service";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +25,23 @@ export default async function OpenRacePage() {
     }),
     now: new Date(),
   });
+  const predictionState = await loadOpenRacePredictionPageState({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    repository: neonOpenRacePredictionRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      authenticatedOwnerId,
+    }),
+    sessions: state.sessions,
+  });
 
   return (
     <OpenRaceWorkspace
       connectionStatus={state.connectionStatus}
+      predictionConnectionStatus={predictionState.connectionStatus}
+      predictionEvidence={predictionState.evidence}
       sessions={state.sessions}
     />
   );

@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { OpenRaceWorkspace } from "@/components/open-race-workspace";
+import { applyRacePredictionReconciliation } from "@/domain/race-prediction-reconciliation";
+import { freezeRacePredictionSnapshot } from "@/domain/race-prediction-snapshot";
 import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
 const session = {
@@ -140,6 +142,88 @@ const session = {
   gateCPassed: false,
 } as unknown as OpenRaceWorkspaceSession;
 
+const snapshot = freezeRacePredictionSnapshot({
+  snapshotId: "snapshot-ui-1",
+  eventId: "game-event-101",
+  predictedAt: "2026-07-20T02:02:30.000Z",
+  eventStartsAt: "2026-07-24T00:00:00.000Z",
+  evidenceCutoff: "2026-07-20T00:00:00.000Z",
+  modelVersion: "model-ui-v1",
+  context: session.field.probabilityContext!,
+  field: {
+    fieldVersion: "field-v1",
+    fieldCapturedAt: "2026-07-20T02:00:00.000Z",
+    enteredCoreIds: ["owned:a", "opponent-a", "opponent-b", "opponent-c"],
+  },
+  sources: {
+    sessionVersion: "session-v1",
+    eligibilityVersion: "eligibility-v1",
+    raceImportVersion: "race-import-v7",
+    vaultSnapshotVersion: "vault-v3",
+    historicalAggregateVersion: "aggregate-v4",
+    historyGenerationVersion: "history-v1",
+    historySourceIdentitySha256: "b".repeat(64),
+    lockVersion: "lock-v1",
+  },
+  predictions: [
+    {
+      coreId: "owned:a",
+      target: "win",
+      status: "available",
+      probabilityMillionths: 625_000,
+      evidenceStatus: "complete",
+      calculationId: "win-ui-1",
+    },
+    {
+      coreId: "owned:a",
+      target: "place",
+      status: "unavailable",
+      probabilityMillionths: null,
+      evidenceStatus: "insufficient",
+      calculationId: null,
+    },
+    {
+      coreId: "owned:a",
+      target: "blue_star",
+      status: "review_required",
+      probabilityMillionths: null,
+      evidenceStatus: "partial",
+      calculationId: null,
+    },
+    {
+      coreId: "owned:a",
+      target: "yellow_star",
+      status: "unavailable",
+      probabilityMillionths: null,
+      evidenceStatus: "unavailable",
+      calculationId: null,
+    },
+  ],
+});
+
+const reconciliation = applyRacePredictionReconciliation({
+  reconciliationId: "reconciliation-ui-1",
+  snapshot,
+  acceptedResult: {
+    eventId: "game-event-101",
+    sourceEvidenceId: "accepted-result-ui-1",
+    sourceVersion: "race-import-v8",
+    acceptedAt: "2026-07-24T00:06:00.000Z",
+    eventCompletedAt: "2026-07-24T00:05:00.000Z",
+    outcomeStatus: "complete",
+    starDataStatus: "complete",
+    entries: snapshot.field.enteredCoreIds.map((coreId, index) => ({
+      coreId,
+      finishPosition: index + 1,
+      goldStar: index === 0,
+      blueStar: index === 0,
+    })),
+  },
+  revision: 0,
+  correctsSourceEvidenceId: null,
+  previous: null,
+}).reconciliation;
+
 describe("Open Race workspace", () => {
   it("renders fail-closed identity and empty evidence states", () => {
     const html = renderToStaticMarkup(
@@ -179,6 +263,33 @@ describe("Open Race workspace", () => {
     expect(html).toContain("Scheduled event time");
     expect(html).toContain("2026-07-24T00:00:00.000Z");
     expect(html).not.toContain("Enter race");
+  });
+
+  it("renders frozen prediction targets and accepted reconciliation separately", () => {
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        predictionConnectionStatus="read_model_connected"
+        predictionEvidence={[
+          {
+            requestId: "synthetic-request",
+            status: "available",
+            reason: null,
+            items: [{ snapshot, latestReconciliation: reconciliation }],
+          },
+        ]}
+        sessions={[session]}
+      />,
+    );
+    expect(html).toContain("Frozen probability and star evidence");
+    expect(html).toContain("Model model-ui-v1");
+    expect(html).toContain("62.50%");
+    expect(html).toContain("Yellow star (source: gold_star)");
+    expect(html).toContain("Blue star");
+    expect(html).toContain(
+      "Accepted result Reconciled · revision 0 · outcome Complete · stars Complete.",
+    );
+    expect(html).toContain("No automatic promotion, race entry or game action");
   });
 
   it("labels legacy sessions without exact probability context as unavailable", () => {
