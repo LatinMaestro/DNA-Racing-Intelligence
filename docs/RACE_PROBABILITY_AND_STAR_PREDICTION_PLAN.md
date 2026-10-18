@@ -46,6 +46,26 @@ metrics; it does not fit or generate a probability model. Existing tournament
 ranking likewise does not implement the full owner-approved probability/EV
 method. Extend accepted methods rather than creating competing formulas.
 
+### Bounded accepted-history retrieval prerequisite
+
+Migration `0141` and `readSelectedCoreRows` in
+`lib/neon-active-dna-core-race-history-generation.ts` provide an indexed,
+owner-isolated read of existing compact results for a pinned generation/digest
+and 1–64 explicit Core IDs. The caller sets a 1–10,000 row ceiling; one extra
+sentinel row detects overflow and no partial sample is returned. The adapter
+checks least privilege, generation identity, ordered row identity and checksums
+inside a read-only transaction with a statement timeout. Legacy copied Race
+payloads are withheld. No Race metadata, ranking or mathematical rule is added.
+
+This is a retrieval prerequisite, not a complete exact-context reader or
+commissioned prediction. The next adapter must join the existing immutable
+canonical Race authority, verify mode/distance/competition/format/gates/element,
+cutoff and accepted aggregate/coverage bindings, and use the existing
+`OpenRaceAcceptedHistoryReadBoundary` source-drift check. Missing authority must
+stay unavailable. Apply the index/function migration to Preview only after the
+existing cost, migration and lock-safety gates; fixture/CI validation alone does
+not authorise connected acceptance or claim that the migration is deployed.
+
 ## Dependency-ordered implementation slices
 
 | Slice                                           | Concrete development task                                                                                                                                                                                                            | Acceptance / dependency                                                                                                                                                                                                                                                                                                                  |

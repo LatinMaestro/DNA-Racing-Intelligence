@@ -82,6 +82,23 @@ export type ActiveDnaCoreRaceHistoryGenerationReadRepository = Readonly<{
   ): Promise<readonly ActiveDnaCoreRaceHistoryGenerationRow[]>;
 }>;
 
+export type SelectedDnaCoreRaceHistoryReadRepository = Readonly<{
+  readSelectedCoreRows(
+    ownerId: string,
+    input: Readonly<{
+      generationId: string;
+      observationSetSha256: string;
+      coreIds: readonly string[];
+      maximumRows: number;
+    }>,
+  ): Promise<
+    Readonly<{
+      status: "ready" | "truncated" | "source_changed";
+      rows: readonly ActiveDnaCoreRaceHistoryGenerationRow[];
+    }>
+  >;
+}>;
+
 function record(value: unknown, field: string): DbRow {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${field} must be a database record`);
@@ -333,7 +350,8 @@ export function createNeonActiveDnaCoreRaceHistoryGenerationReadRepository(input
   ownerId: string;
   runtimeRole: string;
   sessionFactory?: NeonImportPersistenceSessionFactory;
-}): ActiveDnaCoreRaceHistoryGenerationReadRepository {
+}): ActiveDnaCoreRaceHistoryGenerationReadRepository &
+  SelectedDnaCoreRaceHistoryReadRepository {
   const databaseUrl = input.databaseUrl.trim();
   if (databaseUrl === "") throw new Error("databaseUrl is required");
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
@@ -394,6 +412,111 @@ export function createNeonActiveDnaCoreRaceHistoryGenerationReadRepository(input
           : parseGeneration(
               record(result.rows[0], "Core history active generation"),
             );
+      });
+    },
+    async readSelectedCoreRows(requestOwnerId, selection) {
+      const generationId = sha256(selection.generationId, "generationId");
+      const observationSetSha256 = sha256(
+        selection.observationSetSha256,
+        "observationSetSha256",
+      );
+      const coreIds = selection.coreIds;
+      if (
+        !Array.isArray(coreIds) ||
+        coreIds.length < 1 ||
+        coreIds.length > 64 ||
+        new Set(coreIds).size !== coreIds.length ||
+        coreIds.some(
+          (value) =>
+            typeof value !== "string" ||
+            value.length > 512 ||
+            ownerId(value) !== value,
+        ) ||
+        !Number.isSafeInteger(selection.maximumRows) ||
+        selection.maximumRows < 1 ||
+        selection.maximumRows > 10_000
+      ) {
+        throw new Error("Selected Core history read bound is invalid");
+      }
+      const requestedCoreIds = Object.freeze([...coreIds]);
+      const maximumRows = selection.maximumRows;
+      return transaction(requestOwnerId, async (client) => {
+        await client.query("SET LOCAL statement_timeout = '5s'");
+        const privilege = await client.query(
+          "SELECT has_function_privilege(session_user, 'dna.read_selected_dna_core_race_history_rows(uuid,character,character,text[],integer)', 'EXECUTE') AS allowed",
+        );
+        if (
+          privilege.rows.length !== 1 ||
+          record(privilege.rows[0], "Selected Core history privilege")
+            .allowed !== true
+        ) {
+          throw new Error(
+            "Selected Core history read privilege is unavailable",
+          );
+        }
+        const source = await client.query(READ_GENERATION_SQL, [
+          databaseOwnerId,
+        ]);
+        if (source.rows.length > 1)
+          throw new Error("Core history active generation is ambiguous");
+        const generation =
+          source.rows.length === 0
+            ? null
+            : parseGeneration(
+                record(source.rows[0], "Core history active generation"),
+              );
+        if (
+          generation?.generationId !== generationId ||
+          generation.observationSetSha256 !== observationSetSha256
+        ) {
+          return { status: "source_changed" as const, rows: [] };
+        }
+        const result = await client.query(
+          "SELECT * FROM dna.read_selected_dna_core_race_history_rows($1::uuid,$2::character(64),$3::character(64),$4::text[],$5::integer)",
+          [
+            databaseOwnerId,
+            generationId,
+            observationSetSha256,
+            requestedCoreIds,
+            maximumRows + 1,
+          ],
+        );
+        if (result.rows.length > maximumRows + 1)
+          throw new Error("Selected Core history read exceeded its bound");
+        const seen = new Set<string>();
+        let previousOrdinal = -1;
+        const rows = result.rows.map((value) => {
+          const row = record(value, "Selected Core history row");
+          const parsedPayload = payload(row.payload);
+          const naturalKey = text(row.natural_key, "naturalKey");
+          const rowSha256 = sha256(row.row_sha256, "rowSha256");
+          const ordinal = count(row.ordinal, "ordinal");
+          if (
+            row.generation_id !== generationId ||
+            ordinal <= previousOrdinal ||
+            ordinal >= generation.observationCount ||
+            seen.has(naturalKey) ||
+            parsedPayload.sourceType !== "core_race_history_outcome" ||
+            !requestedCoreIds.includes(parsedPayload.sourceCoreId) ||
+            parsedPayload.naturalKey !== naturalKey ||
+            naturalKey !==
+              `core-result:${parsedPayload.sourceCoreId}:${parsedPayload.sourceRaceId}` ||
+            dnaOpenLabRawEvidenceSha256(parsedPayload) !== rowSha256
+          )
+            throw new Error("Selected Core history row integrity is invalid");
+          previousOrdinal = ordinal;
+          seen.add(naturalKey);
+          return Object.freeze({
+            generationId,
+            ordinal,
+            naturalKey,
+            rowSha256,
+            payload: parsedPayload,
+          });
+        });
+        return rows.length > maximumRows
+          ? { status: "truncated" as const, rows: [] }
+          : { status: "ready" as const, rows: Object.freeze(rows) };
       });
     },
     readActiveRows(requestOwnerId, afterOrdinal, limit) {

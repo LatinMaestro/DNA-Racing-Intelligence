@@ -451,6 +451,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.up.sql
       - name: Run Open Race prediction reconciliation smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.smoke.sql
+      - name: Apply selected Core history read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0141_core_history_selected_core_read.up.sql
+      - name: Run selected Core history read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0141_core_history_selected_core_read.smoke.sql
+      - name: Reverse selected Core history read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0141_core_history_selected_core_read.down.sql
+      - name: Verify selected Core history read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0141_core_history_selected_core_read.removal.sql
       - name: Reverse Open Race prediction reconciliation migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.down.sql
       - name: Verify Open Race prediction reconciliation removal

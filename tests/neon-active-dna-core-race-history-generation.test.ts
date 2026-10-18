@@ -116,6 +116,7 @@ function harness(rows: readonly (readonly unknown[])[]) {
       );
       if (
         normalized.startsWith("BEGIN ISOLATION LEVEL") ||
+        normalized.startsWith("SET LOCAL") ||
         normalized === "COMMIT" ||
         normalized === "ROLLBACK"
       ) {
@@ -130,6 +131,8 @@ function harness(rows: readonly (readonly unknown[])[]) {
   return {
     events,
     query,
+    sessionFactory,
+    close,
     repository: createNeonActiveDnaCoreRaceHistoryGenerationReadRepository({
       databaseUrl: "postgresql://private.example/dna",
       databaseOwnerId,
@@ -247,5 +250,205 @@ describe("active DNA Core race history generation reads", () => {
       test.repository.readActiveGeneration("another_owner"),
     ).rejects.toThrow("owner access denied");
     expect(test.events.at(-1)).toBe("ROLLBACK");
+  });
+});
+
+const selection = {
+  generationId,
+  observationSetSha256: "e".repeat(64),
+  coreIds: ["101"],
+  maximumRows: 1,
+};
+
+function selectedRow(overrides: Record<string, unknown> = {}) {
+  const value = { ...compactPayload(), naturalKey: "core-result:101:race-1" };
+  return {
+    generation_id: generationId,
+    ordinal: 0,
+    natural_key: value.naturalKey,
+    row_sha256: dnaOpenLabRawEvidenceSha256(value),
+    payload: value,
+    ...overrides,
+  };
+}
+
+function selectedHarness(rows: readonly unknown[]) {
+  return harness([
+    [{ owner_scope: databaseOwnerId }],
+    [isolation()],
+    [{ allowed: true }],
+    [generationRow()],
+    rows,
+  ]);
+}
+
+describe("generation-pinned selected Core result reads", () => {
+  it("uses an owner-scoped bounded function and verifies compact result integrity", async () => {
+    const test = selectedHarness([selectedRow()]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).resolves.toMatchObject({
+      status: "ready",
+      rows: [{ generationId, payload: { sourceCoreId: "101" } }],
+    });
+    expect(test.query).toHaveBeenCalledWith(
+      expect.stringContaining("dna.read_selected_dna_core_race_history_rows"),
+      [
+        databaseOwnerId,
+        generationId,
+        selection.observationSetSha256,
+        ["101"],
+        2,
+      ],
+    );
+    expect(test.events).toContain("SET LOCAL statement_timeout = '5s'");
+    expect(test.events.at(-1)).toBe("COMMIT");
+    expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { maximumRows: 0 },
+    { maximumRows: 10001 },
+    { maximumRows: 1.5 },
+    { coreIds: [] },
+    { coreIds: ["101", "101"] },
+    { coreIds: Array.from({ length: 65 }, (_, i) => String(i)) },
+    { coreIds: [" 101"] },
+    { coreIds: ["101\n"] },
+    { generationId: "bad" },
+    { observationSetSha256: "bad" },
+  ])(
+    "rejects invalid selection before opening a connection: %j",
+    async (invalid) => {
+      const test = selectedHarness([]);
+      await expect(
+        test.repository.readSelectedCoreRows(ownerId, {
+          ...selection,
+          ...invalid,
+        }),
+      ).rejects.toThrow();
+      expect(test.sessionFactory).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects cross-owner access before opening a connection", async () => {
+    const test = selectedHarness([]);
+    await expect(
+      test.repository.readSelectedCoreRows("other-owner", selection),
+    ).rejects.toThrow("owner access denied");
+    expect(test.sessionFactory).not.toHaveBeenCalled();
+  });
+
+  it.each(
+    [
+      [],
+      [{ ...generationRow(), generation_id: "f".repeat(64) }],
+      [{ ...generationRow(), observation_set_sha256: "f".repeat(64) }],
+    ].map((source) => ({ source })),
+  )(
+    "withholds rows when accepted source identity changes",
+    async ({ source }) => {
+      const test = harness([
+        [{ owner_scope: databaseOwnerId }],
+        [isolation()],
+        [{ allowed: true }],
+        source,
+      ]);
+      await expect(
+        test.repository.readSelectedCoreRows(ownerId, selection),
+      ).resolves.toEqual({ status: "source_changed", rows: [] });
+      expect(
+        test.query.mock.calls.some(([sql]) =>
+          sql.includes("SELECT * FROM dna.read_selected"),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it("returns empty ready evidence without claiming any race-context coverage", async () => {
+    const test = selectedHarness([]);
+    expect(
+      await test.repository.readSelectedCoreRows(ownerId, selection),
+    ).toEqual({ status: "ready", rows: [] });
+  });
+
+  it.each([
+    { generation_id: "f".repeat(64) },
+    { ordinal: 1 },
+    { row_sha256: "f".repeat(64) },
+    { natural_key: "other-result" },
+    { payload: payload(), row_sha256: dnaOpenLabRawEvidenceSha256(payload()) },
+  ])("rejects drifted or legacy row evidence", async (invalid) => {
+    const test = selectedHarness([selectedRow(invalid)]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).rejects.toThrow("row integrity");
+    expect(test.events.at(-1)).toBe("ROLLBACK");
+    expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a correctly hashed row belonging to an unrequested Core", async () => {
+    const value = {
+      ...compactPayload(),
+      sourceCoreId: "102",
+      naturalKey: "core-result:102:race-1",
+    };
+    const test = selectedHarness([
+      selectedRow({
+        payload: value,
+        natural_key: value.naturalKey,
+        row_sha256: dnaOpenLabRawEvidenceSha256(value),
+      }),
+    ]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).rejects.toThrow("row integrity");
+  });
+
+  it("withholds all rows on a sentinel overflow rather than returning a truncated sample", async () => {
+    const value = {
+      ...compactPayload(),
+      sourceRaceId: "race-2",
+      naturalKey: "core-result:101:race-2",
+    };
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ allowed: true }],
+      [
+        {
+          ...generationRow(),
+          observation_count: 2,
+          input_result_count: 2,
+          exact_distance_confirmed_count: 2,
+          accepted_published_cell_count: 2,
+        },
+      ],
+      [
+        selectedRow(),
+        selectedRow({
+          ordinal: 1,
+          payload: value,
+          natural_key: value.naturalKey,
+          row_sha256: dnaOpenLabRawEvidenceSha256(value),
+        }),
+      ],
+    ]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).resolves.toEqual({ status: "truncated", rows: [] });
+  });
+
+  it("fails closed without the function grant and releases its transaction", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ allowed: false }],
+    ]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).rejects.toThrow("privilege is unavailable");
+    expect(test.events.at(-1)).toBe("ROLLBACK");
+    expect(test.close).toHaveBeenCalledOnce();
   });
 });
