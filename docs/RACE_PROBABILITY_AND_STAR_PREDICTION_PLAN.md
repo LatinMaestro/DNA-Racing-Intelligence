@@ -86,10 +86,19 @@ repository. It requires the active history generation, observation digest and
 historical aggregate version to agree before and after the read; verifies every
 stored row digest; rejects truncation, cross-owner access and publication
 drift; and preserves explicit `known`, `not_applicable` and `unknown` element
-states. It performs no tag parsing or classification inference. A persisted
-repository/publication implementation and connected Preview acceptance remain
-required before this authority can make historical probability evidence
-available.
+states. It performs no tag parsing or classification inference. A connected
+Preview publication and acceptance test remain required before this authority
+can make historical probability evidence available.
+
+Migration `0142_open_race_history_context_generation` and
+`lib/neon-accepted-historical-race-context-repository.ts` now provide the
+persisted forced-owner publication boundary. Complete generations are staged in
+bounded batches, bound to the active immutable Core-history generation and
+historical aggregate version, then atomically replace the active pointer only
+after row-count and row-set digest validation. Runtime access is function-only;
+cross-owner access and direct table access fail closed, and an incomplete next
+generation preserves last-good. This is fixture-tested persistence, not a
+connected Preview publication or acceptance result.
 
 ## Dependency-ordered implementation slices
 
