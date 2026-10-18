@@ -99,6 +99,28 @@ describe("Tournament Horse screening panel", () => {
     expect(html).not.toContain("Meets direct 50% screen");
   });
 
+  it.each([
+    [
+      "snapshot_read_failed" as const,
+      "private Horse screening snapshot could not be read",
+    ],
+    [
+      "snapshot_invalid" as const,
+      "published Horse screening snapshot failed integrity checks",
+    ],
+  ])("renders the %s state without leaking a ranking", (status, copy) => {
+    const html = renderToStaticMarkup(
+      <TournamentHorseScreeningPanel
+        state={{ connectionStatus: status, snapshot: null }}
+      />,
+    );
+
+    expect(html).toContain(copy);
+    expect(html).toContain("Experimental · decision disabled");
+    expect(html).not.toContain("Group screening rank");
+    expect(html).not.toContain("private database detail");
+  });
+
   it("groups every published candidate by element and distance with stable ranks and evidence states", () => {
     const html = renderToStaticMarkup(
       <TournamentHorseScreeningPanel state={connectedState()} />,

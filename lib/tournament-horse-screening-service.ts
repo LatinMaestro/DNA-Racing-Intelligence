@@ -1,14 +1,18 @@
 import type { HorseOneVOneCandidateScreening } from "@/domain/horse-one-v-one-tournament-screening";
 
+type StoredTournamentHorseScreeningSnapshot = Readonly<{
+  snapshotVersion: string;
+  payloadJson: string;
+  publishedAt: string;
+}>;
+
 export type TournamentHorseScreeningRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
-      readActiveByOwner: (ownerId: string) => Promise<Readonly<{
-        snapshotVersion: string;
-        payloadJson: string;
-        publishedAt: string;
-      }> | null>;
+      readActiveByOwner: (
+        ownerId: string,
+      ) => Promise<StoredTournamentHorseScreeningSnapshot | null>;
     }>;
 
 export type TournamentHorseScreeningSnapshot = Readonly<{
@@ -25,7 +29,9 @@ export type TournamentHorseScreeningState =
       connectionStatus:
         | "identity_not_connected"
         | "persistence_not_configured"
-        | "snapshot_unavailable";
+        | "snapshot_unavailable"
+        | "snapshot_read_failed"
+        | "snapshot_invalid";
       snapshot: null;
     }>
   | Readonly<{
@@ -189,32 +195,10 @@ function normalizedIdentity(value: string | null): string | null {
   return normalized === "" ? null : normalized;
 }
 
-export async function loadTournamentHorseScreeningState(
-  input: Readonly<{
-    authenticatedOwnerId: string | null;
-    configuredOwnerId: string | null;
-    repository: TournamentHorseScreeningRepository;
-    now: Date;
-  }>,
-): Promise<TournamentHorseScreeningState> {
-  const authenticatedOwnerId = normalizedIdentity(input.authenticatedOwnerId);
-  const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
-  if (authenticatedOwnerId === null || configuredOwnerId === null) {
-    return { connectionStatus: "identity_not_connected", snapshot: null };
-  }
-  if (authenticatedOwnerId !== configuredOwnerId) {
-    throw new Error("Tournament Horse screening access denied.");
-  }
-  if (!(input.now instanceof Date) || Number.isNaN(input.now.getTime())) {
-    throw new Error("Tournament Horse screening now must be valid.");
-  }
-  if (input.repository.status === "not_configured") {
-    return { connectionStatus: "persistence_not_configured", snapshot: null };
-  }
-  const stored = await input.repository.readActiveByOwner(authenticatedOwnerId);
-  if (stored === null) {
-    return { connectionStatus: "snapshot_unavailable", snapshot: null };
-  }
+function validatedSnapshot(
+  stored: StoredTournamentHorseScreeningSnapshot,
+  now: Date,
+): TournamentHorseScreeningSnapshot {
   if (!/^[a-f0-9]{64}$/.test(stored.snapshotVersion)) {
     throw new Error("Horse screening snapshot version is invalid.");
   }
@@ -222,7 +206,7 @@ export async function loadTournamentHorseScreeningState(
     stored.publishedAt,
     "Horse screening publication time",
   );
-  if (Date.parse(publishedAt) > input.now.getTime()) {
+  if (Date.parse(publishedAt) > now.getTime()) {
     throw new Error("Horse screening publication cannot be in the future.");
   }
   let parsed: unknown;
@@ -257,17 +241,55 @@ export async function loadTournamentHorseScreeningState(
     throw new Error("Horse screening candidates must be unique.");
   }
   return {
-    connectionStatus: "snapshot_connected",
-    snapshot: {
-      snapshotVersion: stored.snapshotVersion,
-      sourceSnapshotVersion: text(
-        payload.sourceSnapshotVersion,
-        "Horse screening source snapshot version",
-      ),
-      modelVersion,
-      evidenceCutoff,
-      publishedAt,
-      candidates,
-    },
+    snapshotVersion: stored.snapshotVersion,
+    sourceSnapshotVersion: text(
+      payload.sourceSnapshotVersion,
+      "Horse screening source snapshot version",
+    ),
+    modelVersion,
+    evidenceCutoff,
+    publishedAt,
+    candidates,
   };
+}
+
+export async function loadTournamentHorseScreeningState(
+  input: Readonly<{
+    authenticatedOwnerId: string | null;
+    configuredOwnerId: string | null;
+    repository: TournamentHorseScreeningRepository;
+    now: Date;
+  }>,
+): Promise<TournamentHorseScreeningState> {
+  const authenticatedOwnerId = normalizedIdentity(input.authenticatedOwnerId);
+  const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
+  if (authenticatedOwnerId === null || configuredOwnerId === null) {
+    return { connectionStatus: "identity_not_connected", snapshot: null };
+  }
+  if (authenticatedOwnerId !== configuredOwnerId) {
+    throw new Error("Tournament Horse screening access denied.");
+  }
+  if (!(input.now instanceof Date) || Number.isNaN(input.now.getTime())) {
+    throw new Error("Tournament Horse screening now must be valid.");
+  }
+  if (input.repository.status === "not_configured") {
+    return { connectionStatus: "persistence_not_configured", snapshot: null };
+  }
+  let stored: StoredTournamentHorseScreeningSnapshot | null;
+  try {
+    stored = await input.repository.readActiveByOwner(authenticatedOwnerId);
+  } catch {
+    return { connectionStatus: "snapshot_read_failed", snapshot: null };
+  }
+  if (stored === null) {
+    return { connectionStatus: "snapshot_unavailable", snapshot: null };
+  }
+  try {
+    return {
+      connectionStatus: "snapshot_connected",
+      snapshot: validatedSnapshot(stored, input.now),
+    };
+  } catch {
+    return { connectionStatus: "snapshot_invalid", snapshot: null };
+  }
 }

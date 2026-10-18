@@ -106,7 +106,24 @@ describe("Tournament Horse screening service", () => {
     });
   });
 
-  it("rejects owner mismatch, future evidence and weakened decision boundaries", async () => {
+  it("keeps a repository failure explicit without exposing its error", async () => {
+    await expect(
+      loadTournamentHorseScreeningState({
+        ...input,
+        repository: {
+          status: "ready",
+          readActiveByOwner: async () => {
+            throw new Error("private database detail");
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      connectionStatus: "snapshot_read_failed",
+      snapshot: null,
+    });
+  });
+
+  it("rejects owner mismatch and fails closed for invalid published evidence", async () => {
     await expect(
       loadTournamentHorseScreeningState({
         ...input,
@@ -121,7 +138,10 @@ describe("Tournament Horse screening service", () => {
           payload({ evidenceCutoff: "2026-10-18T12:30:00.000Z" }),
         ),
       }),
-    ).rejects.toThrow("cannot follow publication");
+    ).resolves.toEqual({
+      connectionStatus: "snapshot_invalid",
+      snapshot: null,
+    });
     await expect(
       loadTournamentHorseScreeningState({
         ...input,
@@ -129,6 +149,9 @@ describe("Tournament Horse screening service", () => {
           payload({ candidates: [{ ...candidate, decisionUseAllowed: true }] }),
         ),
       }),
-    ).rejects.toThrow("decision boundary");
+    ).resolves.toEqual({
+      connectionStatus: "snapshot_invalid",
+      snapshot: null,
+    });
   });
 });

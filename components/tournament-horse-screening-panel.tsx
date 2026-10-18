@@ -9,6 +9,10 @@ const statusCopy = {
     "The private Horse screening snapshot repository is not configured.",
   snapshot_unavailable:
     "No accepted Horse 1v1 screening snapshot has been published. Missing evidence remains unavailable.",
+  snapshot_read_failed:
+    "The private Horse screening snapshot could not be read. No cached or inferred replacement is shown.",
+  snapshot_invalid:
+    "The published Horse screening snapshot failed integrity checks. No ranking is shown until a valid last-good snapshot is published.",
 } as const;
 
 function percentage(value: number | null): string {
