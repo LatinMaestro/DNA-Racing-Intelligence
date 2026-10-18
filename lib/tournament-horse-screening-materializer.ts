@@ -244,6 +244,11 @@ export async function materializeTournamentHorseScreeningSnapshot(
       !HASH.test(expectedActiveSnapshotVersion)
     )
       fail();
+    // The immutable row stores publishedAt outside the content-addressed body.
+    // Re-publishing the same body with a later timestamp would conflict with
+    // that immutable row, so an already-active digest is explicitly unchanged.
+    if (expectedActiveSnapshotVersion === snapshotVersion)
+      return { status: "unchanged" };
 
     const status = await input.publication.publishCandidate({
       databaseOwnerId: input.databaseOwnerId,
