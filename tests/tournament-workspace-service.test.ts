@@ -267,7 +267,7 @@ describe("Tournament workspace service", () => {
     }
   });
 
-  it("keeps all three racing modes available under the same configured review boundary", async () => {
+  it("keeps Bike, Car and Horse in one review", async () => {
     const modes = ["bike", "car", "horse"] as const;
     const brackets = modes.map((mode) =>
       bracket({
@@ -287,11 +287,12 @@ describe("Tournament workspace service", () => {
 
     expect(state.connectionStatus).toBe("read_model_connected");
     expect(state.brackets.map((item) => item.mode).sort()).toEqual(modes);
-    expect(state.brackets.every((item) => item.leaderboardGroups.length === 1))
-      .toBe(true);
+    expect(state.brackets.map((item) => item.leaderboardGroups.length)).toEqual([
+      1, 1, 1,
+    ]);
   });
 
-  it("withholds all candidates on an owner-scoped repository failure without exposing details", async () => {
+  it("withholds all candidates when the shared repository fails", async () => {
     const listCandidateEvidenceByOwner = vi.fn(async () => {
       throw new Error("private database connection detail");
     });
@@ -311,7 +312,7 @@ describe("Tournament workspace service", () => {
     expect(JSON.stringify(state)).not.toContain("private database");
   });
 
-  it("withholds the entire multi-mode result when one bracket contains invalid evidence", async () => {
+  it("withholds every mode when one bracket is invalid", async () => {
     const modes = ["bike", "car", "horse"] as const;
     const brackets = modes.map((mode) =>
       bracket({
