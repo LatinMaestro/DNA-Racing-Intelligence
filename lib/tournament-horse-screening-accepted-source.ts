@@ -310,23 +310,27 @@ function buildCoreEvidence(
  */
 export function createTournamentHorseScreeningAcceptedSourceBoundary(input: {
   databaseOwnerId: string;
+  authenticatedOwnerId?: string;
   repositories: TournamentHorseAcceptedSourceRepositories;
 }): TournamentHorseScreeningAcceptedSourceBoundary {
   const configuredOwnerId = text(input.databaseOwnerId);
   if (!UUID.test(configuredOwnerId)) fail();
+  const authenticatedOwnerId = text(
+    input.authenticatedOwnerId ?? configuredOwnerId,
+  );
 
   async function currentIdentity(ownerId: string): Promise<string | null> {
     if (text(ownerId) !== configuredOwnerId) fail();
     const [rosterVersion, historyPointer, opponentPoolVersion] =
       await Promise.all([
         input.repositories.roster.readAcceptedHorseRosterVersionByOwner(
-          ownerId,
+          authenticatedOwnerId,
         ),
         input.repositories.history.readAcceptedHorseHistoryPointerByOwner(
-          ownerId,
+          authenticatedOwnerId,
         ),
         input.repositories.opponentPools.readAcceptedHorseOpponentPoolVersionByOwner(
-          ownerId,
+          authenticatedOwnerId,
         ),
       ]);
     if (
@@ -349,9 +353,11 @@ export function createTournamentHorseScreeningAcceptedSourceBoundary(input: {
       try {
         if (text(ownerId) !== configuredOwnerId) fail();
         const [roster, pools] = await Promise.all([
-          input.repositories.roster.loadAcceptedHorseRosterByOwner(ownerId),
+          input.repositories.roster.loadAcceptedHorseRosterByOwner(
+            authenticatedOwnerId,
+          ),
           input.repositories.opponentPools.loadAcceptedHorseOpponentPoolsByOwner(
-            ownerId,
+            authenticatedOwnerId,
           ),
         ]);
         if (roster === null || pools === null) return null;
@@ -422,7 +428,7 @@ export function createTournamentHorseScreeningAcceptedSourceBoundary(input: {
         );
         const history =
           await input.repositories.history.loadAcceptedHorseHistoryByOwner(
-            ownerId,
+            authenticatedOwnerId,
             {
               coreIds: requestedCoreIds,
               distancesMetres: horseOneVOneTournamentDistances,
