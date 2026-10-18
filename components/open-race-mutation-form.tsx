@@ -10,6 +10,23 @@ import {
 type MutationState = "idle" | "confirmed" | "unconfirmed";
 type Operation = "lock" | "observation";
 
+export async function submitOpenRaceEvidence(
+  operation: Operation,
+  previousState: MutationState,
+  formData: FormData,
+): Promise<MutationState> {
+  try {
+    return await (
+      operation === "lock"
+        ? lockOpenRaceSessionFormAction
+        : recordOpenRaceObservationFormAction
+    )(previousState, formData);
+  } catch {
+    // The browser can lose the response after the server commits the write.
+    return "unconfirmed";
+  }
+}
+
 export function OpenRaceMutationFeedback({
   state,
   pending,
@@ -42,9 +59,8 @@ export function OpenRaceMutationForm({
   children,
 }: Readonly<{ operation: Operation; children: ReactNode }>) {
   const [state, formAction, pending] = useActionState(
-    operation === "lock"
-      ? lockOpenRaceSessionFormAction
-      : recordOpenRaceObservationFormAction,
+    (previousState: MutationState, formData: FormData) =>
+      submitOpenRaceEvidence(operation, previousState, formData),
     "idle" as MutationState,
   );
   return (

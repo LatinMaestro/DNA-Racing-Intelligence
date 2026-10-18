@@ -2,6 +2,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const actionState = vi.hoisted(() => ({ state: "idle", pending: false }));
+const actions = vi.hoisted(() => ({
+  lock: vi.fn(async (): Promise<"confirmed" | "unconfirmed"> => "confirmed"),
+  observation: vi.fn(
+    async (): Promise<"confirmed" | "unconfirmed"> => "confirmed",
+  ),
+}));
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useActionState: () => [
@@ -11,11 +17,14 @@ vi.mock("react", async (importOriginal) => ({
   ],
 }));
 vi.mock("@/app/(private)/open-race/actions", () => ({
-  lockOpenRaceSessionFormAction: async () => "confirmed",
-  recordOpenRaceObservationFormAction: async () => "confirmed",
+  lockOpenRaceSessionFormAction: actions.lock,
+  recordOpenRaceObservationFormAction: actions.observation,
 }));
 
-import { OpenRaceMutationForm } from "@/components/open-race-mutation-form";
+import {
+  OpenRaceMutationForm,
+  submitOpenRaceEvidence,
+} from "@/components/open-race-mutation-form";
 
 afterEach(() => {
   actionState.state = "idle";
@@ -71,6 +80,21 @@ describe("Open Race write recovery", () => {
       expect(html).toContain('role="status"');
       expect(html).toContain('<fieldset disabled=""');
       expect(html).toContain("Reload and review session");
+    },
+  );
+});
+
+describe("Open Race browser transport recovery", () => {
+  it.each(["lock", "observation"] as const)(
+    "does not retry %s when the server response is lost",
+    async (operation) => {
+      const action = operation === "lock" ? actions.lock : actions.observation;
+      action.mockClear();
+      action.mockRejectedValueOnce(new Error("synthetic transport failure"));
+      expect(
+        await submitOpenRaceEvidence(operation, "idle", new FormData()),
+      ).toBe("unconfirmed");
+      expect(action).toHaveBeenCalledTimes(1);
     },
   );
 });
