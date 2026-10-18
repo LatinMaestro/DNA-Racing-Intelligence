@@ -13,6 +13,7 @@ import {
 } from "@/lib/tournament-horse-screening-materializer";
 
 const owner = "11111111-1111-4111-8111-111111111111";
+const authenticatedOwner = "user_owner";
 const rosterVersion = "a".repeat(64);
 const historyVersion = "b".repeat(64);
 const observationVersion = "c".repeat(64);
@@ -115,6 +116,7 @@ function harness(change?: {
   return {
     boundary: createTournamentHorseScreeningAcceptedSourceBoundary({
       databaseOwnerId: owner,
+      authenticatedOwnerId: authenticatedOwner,
       repositories,
     }),
     loadAcceptedHorseHistoryByOwner,
@@ -158,11 +160,14 @@ describe("Tournament Horse screening accepted source", () => {
         expect.objectContaining({ coreId: "201", owned: false }),
       ]),
     );
-    expect(test.loadAcceptedHorseHistoryByOwner).toHaveBeenCalledWith(owner, {
-      coreIds: ["101", "201"],
-      distancesMetres: [1000, 1400, 2200],
-      maximumRows: 10_000,
-    });
+    expect(test.loadAcceptedHorseHistoryByOwner).toHaveBeenCalledWith(
+      authenticatedOwner,
+      {
+        coreIds: ["101", "201"],
+        distancesMetres: [1000, 1400, 2200],
+        maximumRows: 10_000,
+      },
+    );
     await expect(
       test.boundary.readAcceptedSourceIdentityByOwner(owner),
     ).resolves.toBe(source?.sourceSnapshotVersion);

@@ -41,6 +41,7 @@ export type SelectedCoreHistoryRaceSource = Readonly<{
     | "truncated"
     | "document_budget_exceeded";
   observations: readonly SelectedCoreHistoryRaceObservation[];
+  selectedOutcomeCount: number;
   generationId: string | null;
   observationSetSha256: string | null;
   evidenceCutoff: string | null;
@@ -77,6 +78,7 @@ function timestamp(value: unknown): string {
 function result(
   status: SelectedCoreHistoryRaceSource["status"],
   observations: readonly SelectedCoreHistoryRaceObservation[] = [],
+  selectedOutcomeCount = 0,
   source?: Readonly<{
     generationId: string;
     observationSetSha256: string;
@@ -86,6 +88,7 @@ function result(
   return Object.freeze({
     status,
     observations: Object.freeze([...observations]),
+    selectedOutcomeCount,
     generationId: source?.generationId ?? null,
     observationSetSha256: source?.observationSetSha256 ?? null,
     evidenceCutoff: source?.evidenceCutoff ?? null,
@@ -275,7 +278,7 @@ export async function readSelectedCoreHistoryRaceSource(
         dnaOpenLabRawEvidenceSha256(confirmed)
     )
       return result("source_changed");
-    return result("ready", observations, {
+    return result("ready", observations, selected.rows.length, {
       generationId: pinned.generationId,
       observationSetSha256: pinned.observationSetSha256,
       evidenceCutoff: cutoff,
