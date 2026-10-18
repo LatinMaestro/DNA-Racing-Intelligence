@@ -84,6 +84,8 @@ function evaluation({
         sources: {
           raceImportVersion: "race-import-v1",
           historicalAggregateVersion: "aggregate-v1",
+          historyGenerationVersion: "history-generation-v1",
+          historySourceIdentitySha256: "a".repeat(64),
           fieldSourceVersion: "field-source-v1",
         },
         predictions,
