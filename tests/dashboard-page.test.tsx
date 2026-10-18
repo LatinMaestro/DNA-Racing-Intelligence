@@ -10,6 +10,9 @@ describe("private dashboard operating status", () => {
     expect(markup).toContain("Private owner workspace");
     expect(markup).toContain("Protected Preview is not commissioned");
     expect(markup).toContain("Production remains unchanged");
+    expect(markup).toContain("Commissioning readiness");
+    expect(markup).toContain("Identity not connected");
+    expect(markup).toContain('href="/readiness"');
     expect(markup).toContain(
       "deployment stays gated by privacy, health, rollback and provider-capacity proof",
     );
