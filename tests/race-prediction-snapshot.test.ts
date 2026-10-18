@@ -29,11 +29,14 @@ function input(
       enteredCoreIds: ["core-a", "core-b"],
     },
     sources: {
+      sessionVersion: "session-v3",
+      eligibilityVersion: "eligibility-v2",
       raceImportVersion: "race-import-generation-12",
+      vaultSnapshotVersion: "vault-v4",
       historicalAggregateVersion: "aggregate-generation-7",
       historyGenerationVersion: "history-generation-5",
       historySourceIdentitySha256: "a".repeat(64),
-      fieldSourceVersion: "field-source-version-3",
+      lockVersion: "lock-version-3",
     },
     predictions: [
       {
@@ -78,11 +81,14 @@ describe("frozen race prediction snapshot", () => {
         enteredCoreIds: ["core-a", "core-b"],
       },
       sources: {
+        sessionVersion: "session-v3",
+        eligibilityVersion: "eligibility-v2",
         raceImportVersion: "race-import-generation-12",
+        vaultSnapshotVersion: "vault-v4",
         historicalAggregateVersion: "aggregate-generation-7",
         historyGenerationVersion: "history-generation-5",
         historySourceIdentitySha256: "a".repeat(64),
-        fieldSourceVersion: "field-source-version-3",
+        lockVersion: "lock-version-3",
       },
       frozen: true,
       predictionMutationAllowed: false,
