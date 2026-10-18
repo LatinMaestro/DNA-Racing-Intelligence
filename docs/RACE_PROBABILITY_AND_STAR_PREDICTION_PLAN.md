@@ -66,6 +66,20 @@ stay unavailable. Apply the index/function migration to Preview only after the
 existing cost, migration and lock-safety gates; fixture/CI validation alone does
 not authorise connected acceptance or claim that the migration is deployed.
 
+The selected-result composition in `lib/selected-core-history-race-source.ts`
+now joins exact immutable Race receipts in sequential batches of at most 20,
+with a caller-supplied unique-document budget checked before any object read.
+It verifies receipt hash/time, Race/Core membership, exact observable
+mode/distance/gates/format/event time, excludes events at or after the cutoff,
+and withholds the entire response on generation drift or invalid evidence.
+Competition and element remain explicitly unknown: current Core metadata and
+missing tags cannot establish historical classification. The service always
+returns `analyticalUseAllowed: false` and `exactContextVerified: false`.
+Accepted competition/element classification and aggregate/population coverage
+binding remain required before composing the complete
+`OpenRaceAcceptedHistoryReadBoundary`. No provider client, UI activation,
+probability formula or source publication is created by this join.
+
 ## Dependency-ordered implementation slices
 
 | Slice                                           | Concrete development task                                                                                                                                                                                                            | Acceptance / dependency                                                                                                                                                                                                                                                                                                                  |
