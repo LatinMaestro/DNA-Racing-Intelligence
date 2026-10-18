@@ -1,9 +1,6 @@
 import Link from "next/link";
 
-import {
-  lockOpenRaceSessionAction,
-  recordOpenRaceObservationAction,
-} from "@/app/(private)/open-race/actions";
+import { OpenRaceMutationForm } from "@/components/open-race-mutation-form";
 import type {
   OpenRaceWorkspaceConnectionStatus,
   OpenRaceWorkspaceSession,
@@ -233,10 +230,7 @@ function SessionCard({
       )}
 
       {session.stage === "provisional_selection" && session.ranking !== null ? (
-        <form
-          action={lockOpenRaceSessionAction}
-          className="mt-5 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4"
-        >
+        <OpenRaceMutationForm operation="lock">
           <h4 className="font-semibold">Confirm committed field lock</h4>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             This records evidence only. It does not enter a race, switch a Core,
@@ -285,20 +279,11 @@ function SessionCard({
               I confirm every gate is filled and the race is set to run.
             </span>
           </label>
-          <button
-            className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-            type="submit"
-          >
-            Record field lock
-          </button>
-        </form>
+        </OpenRaceMutationForm>
       ) : null}
 
       {session.stage === "locked_observation" && session.lock !== null ? (
-        <form
-          action={recordOpenRaceObservationAction}
-          className="mt-5 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4"
-        >
+        <OpenRaceMutationForm operation="observation">
           <h4 className="font-semibold">Record revealed stars</h4>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             Record the optional pre-run Gold and Blue display only after the
@@ -391,13 +376,7 @@ function SessionCard({
             />
             <span>I confirm these stars were revealed after field lock.</span>
           </label>
-          <button
-            className="mt-4 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-            type="submit"
-          >
-            Record diagnostic observation
-          </button>
-        </form>
+        </OpenRaceMutationForm>
       ) : null}
     </article>
   );

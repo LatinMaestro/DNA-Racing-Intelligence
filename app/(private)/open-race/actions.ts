@@ -153,3 +153,29 @@ export async function recordOpenRaceObservationAction(formData: FormData) {
   }
   revalidatePath("/open-race");
 }
+
+/** Form adapters retain server-side owner checks and never expose provider errors. */
+export async function lockOpenRaceSessionFormAction(
+  _previousState: "idle" | "confirmed" | "unconfirmed",
+  formData: FormData,
+): Promise<"confirmed" | "unconfirmed"> {
+  try {
+    await lockOpenRaceSessionAction(formData);
+    return "confirmed";
+  } catch {
+    // A persistence or revalidation failure can occur after commit. Do not retry.
+    return "unconfirmed";
+  }
+}
+
+export async function recordOpenRaceObservationFormAction(
+  _previousState: "idle" | "confirmed" | "unconfirmed",
+  formData: FormData,
+): Promise<"confirmed" | "unconfirmed"> {
+  try {
+    await recordOpenRaceObservationAction(formData);
+    return "confirmed";
+  } catch {
+    return "unconfirmed";
+  }
+}
