@@ -182,6 +182,19 @@ describe("Tournament Horse screening snapshot materializer", () => {
     );
   });
 
+  it("returns unchanged without conflicting with an immutable active row", async () => {
+    const first = harness();
+    await first.run();
+    const activeVersion =
+      first.publishCandidate.mock.calls[0]![0].snapshotVersion;
+    const repeated = harness();
+    repeated.readActiveSnapshotVersionByOwner.mockResolvedValueOnce(
+      activeVersion,
+    );
+    await expect(repeated.run()).resolves.toEqual({ status: "unchanged" });
+    expect(repeated.publishCandidate).not.toHaveBeenCalled();
+  });
+
   it("withholds incomplete accepted authority without publishing", async () => {
     const value = acceptedSource();
     const test = harness({
