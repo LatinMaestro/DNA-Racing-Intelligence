@@ -463,6 +463,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0143_tournament_horse_screening_snapshot.up.sql
       - name: Run Tournament Horse screening snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0143_tournament_horse_screening_snapshot.smoke.sql
+      - name: Apply Tournament Horse opponent pool snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.up.sql
+      - name: Run Tournament Horse opponent pool snapshot smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.smoke.sql
+      - name: Reverse Tournament Horse opponent pool snapshot migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.down.sql
+      - name: Verify Tournament Horse opponent pool snapshot removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.removal.sql
       - name: Reverse Tournament Horse screening snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0143_tournament_horse_screening_snapshot.down.sql
       - name: Verify Tournament Horse screening snapshot removal
