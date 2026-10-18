@@ -33,6 +33,31 @@ export type PairwiseRaceProbabilityReason =
   | "INSUFFICIENT_OPPONENT_SAMPLE"
   | "TIE_POLICY_UNRESOLVED";
 
+export type EmpiricalPairwiseElapsedTimeInput = Readonly<{
+  evidenceCutoff: string;
+  candidateCoreId: string;
+  opponentCoreId: string;
+  candidateObservations: readonly EmpiricalRaceTimeObservation[];
+  opponentObservations: readonly EmpiricalRaceTimeObservation[];
+}>;
+
+export type EmpiricalPairwiseElapsedTimeResult = Readonly<{
+  evidenceCutoff: string;
+  dataCurrentThrough: string | null;
+  candidateCoreId: string;
+  opponentCoreId: string;
+  status: "available" | "unavailable" | "review_required";
+  outperformanceMillionths: number | null;
+  candidateSampleCount: number;
+  opponentSampleCount: number;
+  outcomePairCount: number;
+  candidateWinPairCount: number;
+  candidateLossPairCount: number;
+  tiedPairCount: number;
+  reasons: readonly PairwiseRaceProbabilityReason[];
+  probabilityBasis: "empirical_cartesian_pairwise_elapsed_time";
+}>;
+
 export type PairwiseRaceProbabilityResult = Readonly<{
   baselineId: string;
   modelVersion: string;
@@ -165,8 +190,39 @@ export function calculatePairwiseRaceProbability(
 ): PairwiseRaceProbabilityResult {
   const baselineId = required(input.baselineId, "Baseline ID");
   const modelVersion = required(input.modelVersion, "Model version");
-  const evidenceCutoff = timestamp(input.evidenceCutoff, "Evidence cutoff");
   const context = normalizeExactRaceProbabilityContext(input.context);
+  const empirical = calculateEmpiricalPairwiseElapsedTimeOutperformance(input);
+
+  return {
+    baselineId,
+    modelVersion,
+    evidenceCutoff: empirical.evidenceCutoff,
+    dataCurrentThrough: empirical.dataCurrentThrough,
+    context,
+    candidateCoreId: empirical.candidateCoreId,
+    opponentCoreId: empirical.opponentCoreId,
+    status: empirical.status,
+    pWinMillionths: empirical.outperformanceMillionths,
+    candidateSampleCount: empirical.candidateSampleCount,
+    opponentSampleCount: empirical.opponentSampleCount,
+    outcomePairCount: empirical.outcomePairCount,
+    candidateWinPairCount: empirical.candidateWinPairCount,
+    candidateLossPairCount: empirical.candidateLossPairCount,
+    tiedPairCount: empirical.tiedPairCount,
+    reasons: empirical.reasons,
+    probabilityBasis: empirical.probabilityBasis,
+    uncertaintyStatus: "sample_counts_only",
+    calibrationStatus: "not_evaluated",
+    analyticalStatus: "experimental",
+    decisionUseAllowed: false,
+    economicUseAllowed: false,
+  };
+}
+
+export function calculateEmpiricalPairwiseElapsedTimeOutperformance(
+  input: EmpiricalPairwiseElapsedTimeInput,
+): EmpiricalPairwiseElapsedTimeResult {
+  const evidenceCutoff = timestamp(input.evidenceCutoff, "Evidence cutoff");
   const candidateCoreId = required(input.candidateCoreId, "Candidate Core ID");
   const opponentCoreId = required(input.opponentCoreId, "Opponent Core ID");
   if (candidateCoreId === opponentCoreId) {
@@ -225,15 +281,12 @@ export function calculatePairwiseRaceProbability(
     .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
 
   return {
-    baselineId,
-    modelVersion,
     evidenceCutoff,
     dataCurrentThrough: latestEvidenceAt ?? null,
-    context,
     candidateCoreId,
     opponentCoreId,
     status,
-    pWinMillionths:
+    outperformanceMillionths:
       status === "available"
         ? Math.round((candidateWinPairCount / outcomePairCount) * 1_000_000)
         : null,
@@ -245,10 +298,5 @@ export function calculatePairwiseRaceProbability(
     tiedPairCount,
     reasons,
     probabilityBasis: "empirical_cartesian_pairwise_elapsed_time",
-    uncertaintyStatus: "sample_counts_only",
-    calibrationStatus: "not_evaluated",
-    analyticalStatus: "experimental",
-    decisionUseAllowed: false,
-    economicUseAllowed: false,
   };
 }
