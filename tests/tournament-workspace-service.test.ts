@@ -232,7 +232,11 @@ describe("Tournament workspace service", () => {
           repository: item,
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        brackets: [],
+        lastImportedAt: null,
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 
@@ -255,8 +259,94 @@ describe("Tournament workspace service", () => {
           repository: repository(brackets),
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        brackets: [],
+        lastImportedAt: null,
+        connectionStatus: "integrity_failed",
+      });
     }
+  });
+
+  it("keeps all three racing modes available under the same configured review boundary", async () => {
+    const modes = ["bike", "car", "horse"] as const;
+    const brackets = modes.map((mode) =>
+      bracket({
+        tournamentId: `synthetic-${mode}`,
+        tournamentLabel: `Synthetic ${mode}`,
+        bracketId: `synthetic-${mode}-split`,
+        splitLabel: `Synthetic ${mode} split`,
+        mode,
+      }),
+    );
+    const state = await loadTournamentWorkspacePageState({
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: repository(brackets),
+      now,
+    });
+
+    expect(state.connectionStatus).toBe("read_model_connected");
+    expect(state.brackets.map((item) => item.mode).sort()).toEqual(modes);
+    expect(state.brackets.every((item) => item.leaderboardGroups.length === 1))
+      .toBe(true);
+  });
+
+  it("withholds all candidates on an owner-scoped repository failure without exposing details", async () => {
+    const listCandidateEvidenceByOwner = vi.fn(async () => {
+      throw new Error("private database connection detail");
+    });
+    const state = await loadTournamentWorkspacePageState({
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: { status: "ready", listCandidateEvidenceByOwner },
+      now,
+    });
+
+    expect(listCandidateEvidenceByOwner).toHaveBeenCalledWith("owner");
+    expect(state).toEqual({
+      brackets: [],
+      lastImportedAt: null,
+      connectionStatus: "read_failed",
+    });
+    expect(JSON.stringify(state)).not.toContain("private database");
+  });
+
+  it("withholds the entire multi-mode result when one bracket contains invalid evidence", async () => {
+    const modes = ["bike", "car", "horse"] as const;
+    const brackets = modes.map((mode) =>
+      bracket({
+        tournamentId: `synthetic-${mode}`,
+        tournamentLabel: `Synthetic ${mode}`,
+        bracketId: `synthetic-${mode}-split`,
+        splitLabel: `Synthetic ${mode} split`,
+        mode,
+      }),
+    );
+    const horse = brackets[2]!;
+    const state = await loadTournamentWorkspacePageState({
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: repository([
+        brackets[0]!,
+        brackets[1]!,
+        bracket({
+          ...horse,
+          candidates: [
+            {
+              ...horse.candidates[0]!,
+              dataCurrentThrough: "2026-07-29T00:00:00.000Z",
+            },
+          ],
+        }),
+      ]),
+      now,
+    });
+
+    expect(state).toEqual({
+      brackets: [],
+      lastImportedAt: null,
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it("rejects an unsupported repository state", async () => {
