@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { freezeRacePredictionSnapshot } from "@/domain/race-prediction-snapshot";
+import { applyRacePredictionReconciliation } from "@/domain/race-prediction-reconciliation";
 import type { NeonImportPersistenceClient } from "@/lib/neon-import-persistence-driver";
 import {
   createNeonOpenRacePredictionRepository,
@@ -74,11 +75,82 @@ function row(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function reconciliation() {
+  return applyRacePredictionReconciliation({
+    reconciliationId: "reconciliation-event-1",
+    snapshot: snapshot(),
+    acceptedResult: {
+      eventId: "event-1",
+      sourceEvidenceId: "accepted-event-1-v1",
+      sourceVersion: "race-import-v2",
+      acceptedAt: "2026-10-17T06:03:00.000Z",
+      eventCompletedAt: "2026-10-17T06:02:00.000Z",
+      outcomeStatus: "complete",
+      starDataStatus: "complete",
+      entries: [
+        {
+          coreId: "owned-1",
+          finishPosition: 1,
+          goldStar: true,
+          blueStar: true,
+        },
+        {
+          coreId: "opponent-1",
+          finishPosition: 2,
+          goldStar: false,
+          blueStar: false,
+        },
+        {
+          coreId: "opponent-2",
+          finishPosition: 3,
+          goldStar: false,
+          blueStar: false,
+        },
+        {
+          coreId: "opponent-3",
+          finishPosition: 4,
+          goldStar: false,
+          blueStar: false,
+        },
+      ],
+    },
+    revision: 0,
+    correctsSourceEvidenceId: null,
+    previous: null,
+  }).reconciliation;
+}
+
+const reconciliationPublishedAt = "2026-10-17T06:04:00.000Z";
+
+function reconciliationRow(overrides: Record<string, unknown> = {}) {
+  const value = reconciliation();
+  const json = JSON.stringify({
+    version: 1,
+    databaseOwnerId: owner,
+    publishedAt: reconciliationPublishedAt,
+    reconciliation: value,
+  });
+  return {
+    reconciliation_id: value.reconciliationId,
+    revision: value.revision,
+    snapshot_id: value.snapshotId,
+    event_id: value.eventId,
+    source_evidence_id: value.sourceEvidenceId,
+    accepted_at: value.acceptedAt,
+    published_at: reconciliationPublishedAt,
+    reconciliation_sha256: createHash("sha256").update(json).digest("hex"),
+    reconciliation_json: json,
+    ...overrides,
+  };
+}
+
 const isolation = {
   database_owner_id: owner,
   authenticated_owner_id: identity,
   row_security_enabled: true,
   force_row_security_enabled: true,
+  reconciliation_row_security_enabled: true,
+  reconciliation_force_row_security_enabled: true,
   session_user_name: "dna_app_runtime",
   current_user_name: "dna_app_runtime",
   runtime_is_superuser: false,
@@ -87,15 +159,20 @@ const isolation = {
   runtime_can_create_databases: false,
   runtime_is_neon_superuser_member: false,
   runtime_has_direct_table_access: false,
+  runtime_has_direct_reconciliation_access: false,
   runtime_can_read: true,
   runtime_can_publish: true,
+  runtime_can_read_reconciliations: true,
+  runtime_can_publish_reconciliations: true,
 };
 
 function harness(
   options: {
     rows?: unknown[];
+    reconciliationRows?: unknown[];
     isolation?: unknown[];
     publicationStatus?: string;
+    reconciliationPublicationStatus?: string;
     failOn?: string;
   } = {},
 ) {
@@ -108,8 +185,17 @@ function harness(
       return { rows: options.isolation ?? [isolation] };
     if (sql.includes("FROM dna.read_open_race_prediction_snapshots"))
       return { rows: options.rows ?? [row()] };
+    if (sql.includes("FROM dna.read_open_race_prediction_reconciliations"))
+      return { rows: options.reconciliationRows ?? [reconciliationRow()] };
     if (sql.includes("dna.publish_open_race_prediction_snapshot")) {
       return { rows: [{ status: options.publicationStatus ?? "published" }] };
+    }
+    if (sql.includes("dna.publish_open_race_prediction_reconciliation")) {
+      return {
+        rows: [
+          { status: options.reconciliationPublicationStatus ?? "published" },
+        ],
+      };
     }
     return { rows: [] };
   });
@@ -201,6 +287,53 @@ describe("private Neon Open Race prediction persistence", () => {
     expect(read?.[1]).toEqual([owner, 24]);
   });
 
+  it("appends an owner-bound reconciliation without changing its frozen snapshot", async () => {
+    const h = harness();
+    await expect(
+      h.repository.publishReconciliationByOwner(identity, {
+        expectedSnapshotSha256: "c".repeat(64),
+        publishedAt: reconciliationPublishedAt,
+        reconciliation: reconciliation(),
+      }),
+    ).resolves.toEqual({ status: "published" });
+    expect(h.query.mock.calls[0]?.[0]).toBe(
+      "BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+    );
+    const publication = h.query.mock.calls.find(([sql]) =>
+      sql.includes("SELECT dna.publish_open_race_prediction_reconciliation"),
+    );
+    expect(publication?.[1]?.slice(0, 3)).toEqual([
+      owner,
+      "c".repeat(64),
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    ]);
+    const envelope = JSON.parse(String(publication?.[1]?.[3])) as {
+      databaseOwnerId: string;
+      reconciliation: ReturnType<typeof reconciliation>;
+    };
+    expect(envelope.databaseOwnerId).toBe(owner);
+    expect(envelope.reconciliation).toMatchObject({
+      snapshotId: "prediction-event-1-v1",
+      frozenPredictionMutated: false,
+      historyUpdateAllowed: true,
+    });
+    expect(h.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
+  });
+
+  it("loads and verifies bounded append-only reconciliation history", async () => {
+    const h = harness();
+    await expect(
+      h.repository.listReconciliationsByOwner(identity),
+    ).resolves.toEqual([reconciliation()]);
+    expect(h.query.mock.calls[0]?.[0]).toBe(
+      "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    );
+    const read = h.query.mock.calls.find(([sql]) =>
+      sql.includes("FROM dna.read_open_race_prediction_reconciliations"),
+    );
+    expect(read?.[1]).toEqual([owner, 48]);
+  });
+
   it("denies another owner and unsafe runtime before prediction access", async () => {
     const h = harness();
     await expect(
@@ -218,6 +351,13 @@ describe("private Neon Open Race prediction persistence", () => {
         sql.includes("FROM dna.read_open_race_prediction_snapshots"),
       ),
     ).toBe(false);
+    await expect(
+      h.repository.publishReconciliationByOwner("user_other", {
+        expectedSnapshotSha256: "c".repeat(64),
+        publishedAt: reconciliationPublishedAt,
+        reconciliation: reconciliation(),
+      }),
+    ).rejects.toThrow(unavailable);
   });
 
   it("refuses to publish a forecast at or after the event start", async () => {
@@ -246,5 +386,13 @@ describe("private Neon Open Race prediction persistence", () => {
       failed.repository.listSnapshotsByOwner(identity),
     ).rejects.toThrow(unavailable);
     expect(failed.close).toHaveBeenCalledOnce();
+    const corruptReconciliation = harness({
+      reconciliationRows: [
+        reconciliationRow({ reconciliation_sha256: "d".repeat(64) }),
+      ],
+    });
+    await expect(
+      corruptReconciliation.repository.listReconciliationsByOwner(identity),
+    ).rejects.toThrow(unavailable);
   });
 });

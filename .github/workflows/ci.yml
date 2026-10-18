@@ -447,6 +447,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.up.sql
       - name: Run Open Race prediction snapshot smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.smoke.sql
+      - name: Apply Open Race prediction reconciliation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.up.sql
+      - name: Run Open Race prediction reconciliation smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.smoke.sql
+      - name: Reverse Open Race prediction reconciliation migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.down.sql
+      - name: Verify Open Race prediction reconciliation removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0140_open_race_prediction_reconciliation.removal.sql
       - name: Reverse Open Race prediction snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0139_open_race_prediction_snapshot.down.sql
       - name: Verify Open Race prediction snapshot removal
