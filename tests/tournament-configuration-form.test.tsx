@@ -72,7 +72,9 @@ describe("Multi-mode Tournament configuration editor", () => {
     },
   );
 
-  it("selects the exact saved Car event without replacing a different Bike or Horse split", () => {
+  it(
+    "selects the exact saved Car event without replacing a different Bike or Horse split",
+    () => {
     const brackets = [
       syntheticBracket("bike"),
       syntheticBracket("car"),
@@ -102,9 +104,12 @@ describe("Multi-mode Tournament configuration editor", () => {
     expect(html).toContain("New Bike split");
     expect(html).toContain("New Car split");
     expect(html).toContain("New Horse split");
-  });
+    },
+  );
 
-  it("creates a new Horse draft even when existing Bike and Car splits are present", () => {
+  it(
+    "creates a new Horse draft even when existing Bike and Car splits are present",
+    () => {
     const html = renderToStaticMarkup(
       <TournamentConfigurationForm
         brackets={[syntheticBracket("bike"), syntheticBracket("car")]}
@@ -118,9 +123,12 @@ describe("Multi-mode Tournament configuration editor", () => {
     expect(html).toContain("replace-with-horse-split-id");
     expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
     expect(html).toContain("The starter is review-only");
-  });
+    },
+  );
 
-  it("does not silently edit a different event when the selected split is absent", () => {
+  it(
+    "does not silently edit a different event when the selected split is absent",
+    () => {
     const html = renderToStaticMarkup(
       <TournamentConfigurationForm
         brackets={[syntheticBracket("bike")]}
@@ -136,9 +144,12 @@ describe("Multi-mode Tournament configuration editor", () => {
     expect(html).toContain("no longer exist");
     expect(html).toContain("<fieldset disabled=\"\"");
     expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
-  });
+    },
+  );
 
-  it("does not enable owner writes when the accepted repository is disconnected", () => {
+  it(
+    "does not enable owner writes when the accepted repository is disconnected",
+    () => {
     const html = renderToStaticMarkup(
       <TournamentConfigurationForm
         brackets={[]}
@@ -149,5 +160,6 @@ describe("Multi-mode Tournament configuration editor", () => {
     );
     expect(html).toContain("<fieldset disabled=\"\"");
     expect(html).toContain("Configuration editing stays disabled");
-  });
+    },
+  );
 });
