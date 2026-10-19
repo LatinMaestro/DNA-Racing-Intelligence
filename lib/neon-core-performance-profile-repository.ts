@@ -2,7 +2,10 @@ import type {
   CorePerformanceProfile,
   RaceMode,
 } from "@/domain/core-performance";
-import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import type {
+  CorePerformanceProfileRepository,
+  CorePerformancePublication,
+} from "./core-intelligence-workspace-service";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -53,6 +56,9 @@ const LIST_PROFILES_SQL = `
   SELECT *
   FROM dna.list_core_performance_profiles($1::uuid, $2::text, $3::integer)
 `;
+const READ_PUBLICATION_SQL = `
+  SELECT * FROM dna.read_core_performance_publication($1::uuid)
+`;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 
@@ -96,6 +102,18 @@ function timestamp(value: unknown, label: string): string {
   const parsed = value instanceof Date ? value : new Date(text(value, label));
   if (Number.isNaN(parsed.getTime())) throw new Error(`${label} is invalid.`);
   return parsed.toISOString();
+}
+
+function uuid(value: unknown, label: string): string {
+  const parsed = text(value, label);
+  if (!UUID_PATTERN.test(parsed)) throw new Error(`${label} is invalid.`);
+  return parsed;
+}
+
+function sha256(value: unknown, label: string): string {
+  const parsed = text(value, label);
+  if (!/^[a-f0-9]{64}$/.test(parsed)) throw new Error(`${label} is invalid.`);
+  return parsed;
 }
 
 function roundMetric(value: unknown, label: string): number {
@@ -283,6 +301,10 @@ export function createNeonCorePerformanceProfileRepository(
           selectedCoreId,
           selectedCoreId === null ? 5_000 : 250,
         ]);
+        const publicationResult = await session.client.query(
+          READ_PUBLICATION_SQL,
+          [owner],
+        );
         const profiles = result.rows.map(profile);
         const lastImportedAt =
           result.rows.length === 0
@@ -292,9 +314,52 @@ export function createNeonCorePerformanceProfileRepository(
                   .last_imported_at,
                 "last_imported_at",
               );
+        if (publicationResult.rows.length > 1) {
+          throw new Error("Core performance publication is ambiguous.");
+        }
+        const publication: CorePerformancePublication | null =
+          publicationResult.rows.length === 0
+            ? null
+            : (() => {
+                const row = record(
+                  publicationResult.rows[0],
+                  "Core performance publication",
+                );
+                const evidence: CorePerformancePublication = {
+                  refreshId: uuid(row.refresh_id, "refresh_id"),
+                  raceDatasetVersionId: uuid(
+                    row.race_dataset_version_id,
+                    "race_dataset_version_id",
+                  ),
+                  sourceVersionSetSha256: sha256(
+                    row.source_version_set_sha256,
+                    "source_version_set_sha256",
+                  ),
+                  payloadSha256: sha256(row.payload_sha256, "payload_sha256"),
+                  profileCount: integer(
+                    row.core_performance_profile_count,
+                    "core_performance_profile_count",
+                  ),
+                  refreshedAt: timestamp(row.refreshed_at, "refreshed_at"),
+                  publishedAt: timestamp(row.published_at, "published_at"),
+                };
+                if (
+                  evidence.profileCount < profiles.length ||
+                  Date.parse(evidence.publishedAt) <
+                    Date.parse(evidence.refreshedAt)
+                ) {
+                  throw new Error(
+                    "Core performance publication is inconsistent.",
+                  );
+                }
+                return evidence;
+              })();
+        if (profiles.length > 0 && publication === null) {
+          throw new Error("Core performance publication is unavailable.");
+        }
         await session.client.query("COMMIT");
         transactionStarted = false;
-        return { profiles, lastImportedAt };
+        return { profiles, lastImportedAt, publication };
       } catch (error) {
         if (transactionStarted) {
           await session.client.query("ROLLBACK").catch(() => undefined);

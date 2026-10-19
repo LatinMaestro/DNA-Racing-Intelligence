@@ -89,6 +89,15 @@ const profileRow = {
   star_profile: null,
   last_imported_at: "2026-08-11T02:00:00.000Z",
 };
+const publicationRow = {
+  refresh_id: "22222222-2222-4222-8222-222222222222",
+  race_dataset_version_id: "33333333-3333-4333-8333-333333333333",
+  source_version_set_sha256: "b".repeat(64),
+  payload_sha256: "c".repeat(64),
+  core_performance_profile_count: "1",
+  refreshed_at: "2026-08-11T02:00:00.000Z",
+  published_at: "2026-08-11T02:01:00.000Z",
+};
 
 describe("Neon Core Intelligence profile repository", () => {
   it("is unavailable until every database runtime setting exists", () => {
@@ -106,6 +115,7 @@ describe("Neon Core Intelligence profile repository", () => {
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
       [profileRow],
+      [publicationRow],
     ]);
     await expect(
       ready(test).listProfilesByOwner(clerkOwnerId),
@@ -130,6 +140,15 @@ describe("Neon Core Intelligence profile repository", () => {
         }),
       ],
       lastImportedAt: "2026-08-11T02:00:00.000Z",
+      publication: {
+        refreshId: "22222222-2222-4222-8222-222222222222",
+        raceDatasetVersionId: "33333333-3333-4333-8333-333333333333",
+        sourceVersionSetSha256: "b".repeat(64),
+        payloadSha256: "c".repeat(64),
+        profileCount: 1,
+        refreshedAt: "2026-08-11T02:00:00.000Z",
+        publishedAt: "2026-08-11T02:01:00.000Z",
+      },
     });
     const readCall = test.calls.find((call) =>
       call.statement.includes("dna.list_core_performance_profiles"),
@@ -143,6 +162,7 @@ describe("Neon Core Intelligence profile repository", () => {
       [{ owner_scope: databaseOwnerId }],
       [ownerEvidence()],
       [profileRow],
+      [publicationRow],
     ]);
     await ready(test).listProfilesByOwner(clerkOwnerId, "core-7");
     const readCall = test.calls.find((call) =>

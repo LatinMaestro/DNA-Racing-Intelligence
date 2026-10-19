@@ -64,6 +64,7 @@ export default async function CoreIntelligencePage({
       esportsLastSyncedAt={state.esportsLastSyncedAt}
       esportsProfiles={state.esportsProfiles}
       lastImportedAt={state.lastImportedAt}
+      publication={state.publication ?? null}
       profiles={state.profiles}
       selectedEvidenceView={evidenceView(params.evidence)}
       selectedMode={selectedMode(params.mode)}

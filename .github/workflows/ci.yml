@@ -475,6 +475,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.up.sql
       - name: Run Discovery benchmark publication read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.smoke.sql
+      - name: Apply Core performance publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.up.sql
+      - name: Run Core performance publication read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.smoke.sql
+      - name: Reverse Core performance publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.down.sql
+      - name: Verify Core performance publication read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.removal.sql
       - name: Reverse Discovery benchmark publication read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.down.sql
       - name: Verify Discovery benchmark publication read removal

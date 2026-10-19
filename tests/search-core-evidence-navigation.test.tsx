@@ -52,6 +52,15 @@ const state: SearchCorePageState = {
     },
   ],
   performanceLastImportedAt: "2026-10-02T00:00:00.000Z",
+  performancePublication: {
+    refreshId: "22222222-2222-4222-8222-222222222222",
+    raceDatasetVersionId: "33333333-3333-4333-8333-333333333333",
+    sourceVersionSetSha256: "b".repeat(64),
+    payloadSha256: "c".repeat(64),
+    profileCount: 2,
+    refreshedAt: "2026-10-02T00:00:00.000Z",
+    publishedAt: "2026-10-02T00:01:00.000Z",
+  },
   archiveHistoryStatus: "unavailable",
   archiveHistoryVersionCount: 0,
   archiveHistoryPartitionCount: 0,
@@ -72,6 +81,8 @@ describe("Core evidence navigation", () => {
     expect(html).toContain("Hypothesis only");
     expect(html).toContain("Stale");
     expect(html).toContain("Last imported");
+    expect(html).toContain("Accepted race dataset");
+    expect(html).toContain("33333333-3333-4333-8333-333333333333");
     expect(html).toContain("Distribution details");
     expect(html).toContain("Interquartile time range");
     expect(html).toContain("coverage is unknown, not zero");

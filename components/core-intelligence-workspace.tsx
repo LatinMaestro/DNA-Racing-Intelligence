@@ -11,6 +11,7 @@ import {
   type CorePerformanceProfile,
   type RaceMode,
 } from "@/domain/core-performance";
+import type { CorePerformancePublication } from "@/lib/core-intelligence-workspace-service";
 import type {
   CoreEsportsConnectionStatus,
   CoreIntelligenceConnectionStatus,
@@ -329,6 +330,7 @@ export function CoreIntelligenceWorkspace({
   profiles,
   lastImportedAt,
   connectionStatus,
+  publication = null,
   esportsProfiles = [],
   esportsLastSyncedAt = null,
   esportsConnectionStatus = "not_configured",
@@ -339,6 +341,7 @@ export function CoreIntelligenceWorkspace({
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
   connectionStatus: CoreIntelligenceConnectionStatus;
+  publication?: CorePerformancePublication | null;
   esportsProfiles?: readonly CoreEsportsPerformanceProfile[];
   esportsLastSyncedAt?: string | null;
   esportsConnectionStatus?: CoreEsportsConnectionStatus;
@@ -384,6 +387,26 @@ export function CoreIntelligenceWorkspace({
           </h2>
           <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
             {connection.detail}
+          </p>
+        </section>
+      ) : null}
+
+      {connectionStatus === "read_model_connected" && publication !== null ? (
+        <section
+          aria-labelledby="core-publication-heading"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+        >
+          <h2 className="text-lg font-semibold" id="core-publication-heading">
+            Accepted aggregate publication
+          </h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Race dataset {publication.raceDatasetVersionId} · refresh{" "}
+            {publication.refreshId}
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {publication.profileCount.toLocaleString("en-AU")} profiles ·
+            payload {publication.payloadSha256.slice(0, 12)}… · published{" "}
+            <Timestamp value={publication.publishedAt} />
           </p>
         </section>
       ) : null}
