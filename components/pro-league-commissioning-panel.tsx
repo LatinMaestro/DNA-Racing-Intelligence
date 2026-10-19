@@ -28,6 +28,14 @@ function number(value: number): string {
   return value.toLocaleString("en-AU");
 }
 
+function baselineStatus(
+  value: "not_started" | "in_progress" | "complete",
+): string {
+  if (value === "complete") return "Complete";
+  if (value === "in_progress") return "In progress";
+  return "Not started";
+}
+
 function watchReason(
   value: "performance_or_map_upgrade" | "coverage_option" | "development_watch",
 ): string {
@@ -155,6 +163,85 @@ export function ProLeagueCommissioningPanel({
           </p>
         </section>
       ) : null}
+
+      <section
+        aria-labelledby="pro-league-history-coverage"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+      >
+        <h2 className="text-lg font-semibold" id="pro-league-history-coverage">
+          Historical Race evidence
+        </h2>
+        {state.historyCoverage?.connectionStatus === "connected" ? (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Baseline
+                </p>
+                <p className="mt-2 font-semibold">
+                  {baselineStatus(state.historyCoverage.baselineStatus)}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  {state.historyCoverage.versionFingerprint === null
+                    ? "Version unavailable"
+                    : `Version ${state.historyCoverage.versionFingerprint}`}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Data current through
+                </p>
+                <p className="mt-2 font-semibold">
+                  {state.historyCoverage.dataCurrentThrough ?? "Unavailable"}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Accepted point-in-time historical boundary
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Receipt coverage
+                </p>
+                <p className="mt-2 font-semibold">
+                  {number(state.historyCoverage.receiptCount)} total
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  {state.historyCoverage.finishedRaceReceiptCount === null
+                    ? "Finished-race count unavailable"
+                    : `${number(state.historyCoverage.finishedRaceReceiptCount)} finished-race receipts`}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Retained evidence
+                </p>
+                <p className="mt-2 font-semibold">
+                  {number(state.historyCoverage.retainedR2Bytes)} bytes
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  {number(
+                    state.historyCoverage.omittedIdentityObservationCount,
+                  )}{" "}
+                  approved identity omission
+                  {state.historyCoverage.omittedIdentityObservationCount === 1
+                    ? ""
+                    : "s"}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              This is a read-only accepted historical baseline. Incremental
+              refresh is not connected, so the page does not claim coverage
+              after the displayed cutoff and has not triggered a refresh.
+            </p>
+          </>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            Historical baseline coverage is unavailable. The roster and map plan
+            must not be interpreted as covering unverified Race history.
+          </p>
+        )}
+      </section>
 
       <section
         aria-labelledby="pro-league-roster-health"
