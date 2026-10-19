@@ -71,6 +71,8 @@ const isolation = {
   authenticated_owner_id: authenticatedOwnerId,
   row_security_enabled: true,
   force_row_security_enabled: true,
+  source_row_security_enabled: true,
+  source_force_row_security_enabled: true,
   session_user_name: "dna_app_runtime",
   current_user_name: "dna_app_runtime",
   runtime_is_superuser: false,
@@ -79,6 +81,8 @@ const isolation = {
   runtime_can_create_databases: false,
   runtime_is_neon_superuser_member: false,
   runtime_has_direct_table_access: false,
+  runtime_has_direct_source_access: false,
+  runtime_can_read_accepted_identity: true,
 };
 
 function harness(
@@ -160,6 +164,9 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
     ).resolves.toMatchObject({
       connectionStatus: "read_model_connected",
       lastImportedAt: "2026-10-14T01:00:00.000Z",
+      sourceEvidenceSha256,
+      snapshotSha256: encoded.sha256,
+      materializedAt: now.toISOString(),
       allocation: {
         assignments: [{ candidateId: candidate.candidateId }],
         actionableRecommendationAllowed: false,
@@ -175,6 +182,9 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
       sql.includes("FROM dna.read_maiden_allocation"),
     );
     expect(reads).toHaveLength(1);
+    expect(reads[0]?.[0]).toContain(
+      "read_maiden_allocation_accepted_source_identity",
+    );
     expect(reads[0]?.[1]).toEqual([databaseOwnerId]);
     expect(test.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
     expect(test.close).toHaveBeenCalledOnce();
@@ -192,6 +202,9 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
     ).resolves.toEqual({
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "read_model_connected",
     });
     expect(test.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
@@ -235,6 +248,8 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
     { authenticated_owner_id: "other" },
     { row_security_enabled: false },
     { force_row_security_enabled: false },
+    { source_row_security_enabled: false },
+    { source_force_row_security_enabled: false },
     { session_user_name: "postgres" },
     { current_user_name: "postgres" },
     { runtime_is_superuser: true },
@@ -243,6 +258,8 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
     { runtime_can_create_databases: true },
     { runtime_is_neon_superuser_member: true },
     { runtime_has_direct_table_access: true },
+    { runtime_has_direct_source_access: true },
+    { runtime_can_read_accepted_identity: false },
     { runtime_is_superuser: "false" },
   ])(
     "denies invalid owner isolation before snapshot access %#",
@@ -294,7 +311,7 @@ describe("compact Neon Maiden allocation evidence dependency", () => {
     const test = harness({ clock: new Date("2026-11-15T00:00:00.000Z") });
     const result =
       await test.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId);
-    expect(result?.candidates[0]).toMatchObject({
+    expect(result?.evidence.candidates[0]).toMatchObject({
       projectedValueBasisPoints: 8_500,
       freshness: "stale",
     });

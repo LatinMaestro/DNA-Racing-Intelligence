@@ -29,6 +29,9 @@ export default async function MaidenPage() {
       allocation={state.allocation}
       connectionStatus={state.connectionStatus}
       lastImportedAt={state.lastImportedAt}
+      materializedAt={state.materializedAt}
+      snapshotSha256={state.snapshotSha256}
+      sourceEvidenceSha256={state.sourceEvidenceSha256}
     />
   );
 }

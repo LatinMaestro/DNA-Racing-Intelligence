@@ -12,13 +12,20 @@ export type MaidenAllocationRepository =
       status: "ready";
       loadAllocationEvidenceByOwner: (
         ownerId: string,
-      ) => Promise<MaidenAllocationEvidence | null>;
+      ) => Promise<MaidenAllocationEvidenceEnvelope | null>;
     }>;
 
 export type MaidenAllocationEvidence = Readonly<{
   brackets: readonly MaidenAllocationBracketInput[];
   candidates: readonly MaidenAllocationCandidateInput[];
   lastImportedAt: string | null;
+}>;
+
+export type MaidenAllocationEvidenceEnvelope = Readonly<{
+  evidence: MaidenAllocationEvidence;
+  sourceEvidenceSha256: string;
+  snapshotSha256: string;
+  materializedAt: string;
 }>;
 
 export type MaidenWorkspaceConnectionStatus =
@@ -29,6 +36,9 @@ export type MaidenWorkspaceConnectionStatus =
 export type MaidenWorkspacePageState = Readonly<{
   allocation: MaidenVaultAllocation | null;
   lastImportedAt: string | null;
+  sourceEvidenceSha256: string | null;
+  snapshotSha256: string | null;
+  materializedAt: string | null;
   connectionStatus: MaidenWorkspaceConnectionStatus;
 }>;
 
@@ -153,6 +163,9 @@ export async function loadMaidenWorkspacePageState(
     return {
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "identity_not_connected",
     };
   }
@@ -170,6 +183,9 @@ export async function loadMaidenWorkspacePageState(
     return {
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "persistence_not_configured",
     };
   }
@@ -183,10 +199,29 @@ export async function loadMaidenWorkspacePageState(
     return {
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "read_model_connected",
     };
   }
-  const evidence = normalizeMaidenAllocationEvidence(persistedEvidence, now);
+  if (
+    !/^[a-f0-9]{64}$/.test(persistedEvidence.sourceEvidenceSha256) ||
+    !/^[a-f0-9]{64}$/.test(persistedEvidence.snapshotSha256)
+  ) {
+    throw new Error("Maiden publication identity is invalid.");
+  }
+  const materializedAt = canonicalTimestamp(
+    persistedEvidence.materializedAt,
+    "Maiden materialization timestamp",
+  );
+  if (materializedAt === null || Date.parse(materializedAt) > now.getTime()) {
+    throw new Error("Maiden materialization timestamp is invalid.");
+  }
+  const evidence = normalizeMaidenAllocationEvidence(
+    persistedEvidence.evidence,
+    now,
+  );
 
   return {
     allocation:
@@ -197,6 +232,9 @@ export async function loadMaidenWorkspacePageState(
             evidence.candidates,
           ),
     lastImportedAt: evidence.lastImportedAt,
+    sourceEvidenceSha256: persistedEvidence.sourceEvidenceSha256,
+    snapshotSha256: persistedEvidence.snapshotSha256,
+    materializedAt,
     connectionStatus: "read_model_connected",
   };
 }
