@@ -28,6 +28,30 @@ function input(
     securityPrivacy: "passed",
     accessibilityResponsive: "passed",
     moduleBoundaries: {
+      dashboardReadiness: {
+        aggregateReadModel: "connected_verified",
+        freshnessUi: "connected_verified",
+      },
+      vaultCoreSearch: {
+        ownedCoreReadModel: "connected_verified",
+        exactFormatHistoryUi: "connected_verified",
+      },
+      tournament: {
+        allModeFormatReadModel: "connected_verified",
+        persistenceUi: "connected_verified",
+      },
+      maiden: {
+        acceptedSourceReadModel: "connected_verified",
+        allocationUi: "connected_verified",
+      },
+      discovery: {
+        acceptedSourceReadModel: "connected_verified",
+        rankingUi: "connected_verified",
+      },
+      breedingSplice: {
+        independentEvidenceReadModel: "connected_verified",
+        comparisonUi: "connected_verified",
+      },
       vaultPerformance: {
         readModel: "connected_verified",
         economicEvidenceWrites: "connected_verified",
@@ -40,6 +64,14 @@ function input(
       lifecycle: {
         readModel: "connected_verified",
         economicEvidenceWrites: "connected_verified",
+      },
+      proLeague: {
+        rosterReadModel: "connected_verified",
+        fullGateMapUi: "connected_verified",
+      },
+      importApi: {
+        acceptedDatasetReadModel: "connected_verified",
+        refreshRollback: "connected_verified",
       },
     },
     migrations: "reversible_verified",
@@ -148,6 +180,12 @@ describe("Phase 9 private Production readiness", () => {
     const readiness = assessPrivateProductionReadiness(legacy);
     expect(readiness.status).toBe("review_required");
     expect(readiness.moduleBoundaries.openRace.fieldLock).toBe("not_verified");
+    expect(readiness.moduleBoundaries.dashboardReadiness.freshnessUi).toBe(
+      "not_verified",
+    );
+    expect(readiness.moduleBoundaries.importApi.refreshRollback).toBe(
+      "not_verified",
+    );
   });
 
   it("keeps ageing or stale evidence review-required", () => {

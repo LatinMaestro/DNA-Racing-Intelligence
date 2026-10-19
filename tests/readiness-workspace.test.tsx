@@ -137,8 +137,17 @@ describe("Readiness workspace", () => {
     expect(html).toContain("Representative Private Import");
     expect(html).toContain("Commissioning module boundaries");
     expect(html).toContain("Vault Performance");
+    expect(html).toContain("Dashboard and Readiness");
+    expect(html).toContain("My Vault, Core Intelligence and Search");
+    expect(html).toContain("Tournament");
+    expect(html).toContain("Maiden");
+    expect(html).toContain("Discovery");
+    expect(html).toContain("Breeding and Splice");
+    expect(html).toContain("Bike Pro League and Esports");
+    expect(html).toContain("Import and API");
     expect(html).toContain("Field-lock publication");
     expect(html).toContain("Fixture verified");
+    expect(html).toContain("Not verified");
     expect(html).toContain("Review Required");
     expect(html).not.toContain("Enable Production");
   });

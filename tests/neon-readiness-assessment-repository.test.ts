@@ -187,6 +187,65 @@ describe("compact Neon readiness assessment dependency", () => {
     expect(test.close).toHaveBeenCalledOnce();
   });
 
+  it("accepts the complete website commissioning register", async () => {
+    const completeAssessment: PrivateProductionReadinessInput = {
+      ...assessment,
+      moduleBoundaries: {
+        dashboardReadiness: {
+          aggregateReadModel: "fixture_verified",
+          freshnessUi: "not_verified",
+        },
+        vaultCoreSearch: {
+          ownedCoreReadModel: "fixture_verified",
+          exactFormatHistoryUi: "not_verified",
+        },
+        tournament: {
+          allModeFormatReadModel: "fixture_verified",
+          persistenceUi: "not_verified",
+        },
+        maiden: {
+          acceptedSourceReadModel: "fixture_verified",
+          allocationUi: "not_verified",
+        },
+        discovery: {
+          acceptedSourceReadModel: "fixture_verified",
+          rankingUi: "not_verified",
+        },
+        breedingSplice: {
+          independentEvidenceReadModel: "fixture_verified",
+          comparisonUi: "not_verified",
+        },
+        ...assessment.moduleBoundaries!,
+        proLeague: {
+          rosterReadModel: "fixture_verified",
+          fullGateMapUi: "not_verified",
+        },
+        importApi: {
+          acceptedDatasetReadModel: "fixture_verified",
+          refreshRollback: "not_verified",
+        },
+      },
+    };
+    const snapshot = JSON.stringify({
+      version: 1,
+      databaseOwnerId,
+      publishedAt,
+      assessment: completeAssessment,
+    });
+    const test = harness({
+      rows: [
+        row({
+          snapshot_json: snapshot,
+          snapshot_sha256: createHash("sha256").update(snapshot).digest("hex"),
+        }),
+      ],
+    });
+
+    await expect(
+      test.repository.loadLatestAssessmentByOwner(authenticatedOwnerId),
+    ).resolves.toMatchObject({ assessment: completeAssessment });
+  });
+
   it("keeps an unpublished assessment explicitly empty", async () => {
     const test = harness({ rows: [] });
     await expect(

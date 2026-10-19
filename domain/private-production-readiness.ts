@@ -4,6 +4,30 @@ export type CommissioningBoundaryEvidenceState =
   "not_verified" | "fixture_verified" | "connected_verified" | "failed";
 
 export type CommissioningModuleBoundaries = Readonly<{
+  dashboardReadiness: Readonly<{
+    aggregateReadModel: CommissioningBoundaryEvidenceState;
+    freshnessUi: CommissioningBoundaryEvidenceState;
+  }>;
+  vaultCoreSearch: Readonly<{
+    ownedCoreReadModel: CommissioningBoundaryEvidenceState;
+    exactFormatHistoryUi: CommissioningBoundaryEvidenceState;
+  }>;
+  tournament: Readonly<{
+    allModeFormatReadModel: CommissioningBoundaryEvidenceState;
+    persistenceUi: CommissioningBoundaryEvidenceState;
+  }>;
+  maiden: Readonly<{
+    acceptedSourceReadModel: CommissioningBoundaryEvidenceState;
+    allocationUi: CommissioningBoundaryEvidenceState;
+  }>;
+  discovery: Readonly<{
+    acceptedSourceReadModel: CommissioningBoundaryEvidenceState;
+    rankingUi: CommissioningBoundaryEvidenceState;
+  }>;
+  breedingSplice: Readonly<{
+    independentEvidenceReadModel: CommissioningBoundaryEvidenceState;
+    comparisonUi: CommissioningBoundaryEvidenceState;
+  }>;
   vaultPerformance: Readonly<{
     readModel: CommissioningBoundaryEvidenceState;
     economicEvidenceWrites: CommissioningBoundaryEvidenceState;
@@ -17,7 +41,28 @@ export type CommissioningModuleBoundaries = Readonly<{
     readModel: CommissioningBoundaryEvidenceState;
     economicEvidenceWrites: CommissioningBoundaryEvidenceState;
   }>;
+  proLeague: Readonly<{
+    rosterReadModel: CommissioningBoundaryEvidenceState;
+    fullGateMapUi: CommissioningBoundaryEvidenceState;
+  }>;
+  importApi: Readonly<{
+    acceptedDatasetReadModel: CommissioningBoundaryEvidenceState;
+    refreshRollback: CommissioningBoundaryEvidenceState;
+  }>;
 }>;
+
+export type CommissioningModuleBoundaryInput = Readonly<
+  Pick<
+    CommissioningModuleBoundaries,
+    "vaultPerformance" | "openRace" | "lifecycle"
+  > &
+    Partial<
+      Omit<
+        CommissioningModuleBoundaries,
+        "vaultPerformance" | "openRace" | "lifecycle"
+      >
+    >
+>;
 
 export type PrivateProductionReadinessInput = {
   assessmentId: string;
@@ -39,7 +84,7 @@ export type PrivateProductionReadinessInput = {
   performanceCapacity: ReadinessEvidenceState;
   securityPrivacy: ReadinessEvidenceState;
   accessibilityResponsive: ReadinessEvidenceState;
-  moduleBoundaries?: CommissioningModuleBoundaries;
+  moduleBoundaries?: CommissioningModuleBoundaryInput;
   migrations: "reversible_verified" | "not_verified" | "irreversible";
   knownLimitationsDocumented: boolean;
   productionDisabled: boolean;
@@ -85,6 +130,30 @@ export type PrivateProductionReadiness = {
 };
 
 const unverifiedModuleBoundaries: CommissioningModuleBoundaries = {
+  dashboardReadiness: {
+    aggregateReadModel: "not_verified",
+    freshnessUi: "not_verified",
+  },
+  vaultCoreSearch: {
+    ownedCoreReadModel: "not_verified",
+    exactFormatHistoryUi: "not_verified",
+  },
+  tournament: {
+    allModeFormatReadModel: "not_verified",
+    persistenceUi: "not_verified",
+  },
+  maiden: {
+    acceptedSourceReadModel: "not_verified",
+    allocationUi: "not_verified",
+  },
+  discovery: {
+    acceptedSourceReadModel: "not_verified",
+    rankingUi: "not_verified",
+  },
+  breedingSplice: {
+    independentEvidenceReadModel: "not_verified",
+    comparisonUi: "not_verified",
+  },
   vaultPerformance: {
     readModel: "not_verified",
     economicEvidenceWrites: "not_verified",
@@ -98,6 +167,14 @@ const unverifiedModuleBoundaries: CommissioningModuleBoundaries = {
     readModel: "not_verified",
     economicEvidenceWrites: "not_verified",
   },
+  proLeague: {
+    rosterReadModel: "not_verified",
+    fullGateMapUi: "not_verified",
+  },
+  importApi: {
+    acceptedDatasetReadModel: "not_verified",
+    refreshRollback: "not_verified",
+  },
 };
 
 const boundaryStates = [
@@ -108,13 +185,37 @@ const boundaryStates = [
 ] as const;
 
 function normalizeModuleBoundaries(
-  value: CommissioningModuleBoundaries | undefined,
+  value: CommissioningModuleBoundaryInput | undefined,
 ): CommissioningModuleBoundaries {
   if (value === undefined) return unverifiedModuleBoundaries;
   if (value === null || typeof value !== "object") {
     throw new Error("Commissioning module-boundary evidence is invalid.");
   }
   const normalized: CommissioningModuleBoundaries = {
+    dashboardReadiness: {
+      ...unverifiedModuleBoundaries.dashboardReadiness,
+      ...value.dashboardReadiness,
+    },
+    vaultCoreSearch: {
+      ...unverifiedModuleBoundaries.vaultCoreSearch,
+      ...value.vaultCoreSearch,
+    },
+    tournament: {
+      ...unverifiedModuleBoundaries.tournament,
+      ...value.tournament,
+    },
+    maiden: {
+      ...unverifiedModuleBoundaries.maiden,
+      ...value.maiden,
+    },
+    discovery: {
+      ...unverifiedModuleBoundaries.discovery,
+      ...value.discovery,
+    },
+    breedingSplice: {
+      ...unverifiedModuleBoundaries.breedingSplice,
+      ...value.breedingSplice,
+    },
     vaultPerformance: {
       readModel: value.vaultPerformance?.readModel,
       economicEvidenceWrites: value.vaultPerformance?.economicEvidenceWrites,
@@ -127,6 +228,14 @@ function normalizeModuleBoundaries(
     lifecycle: {
       readModel: value.lifecycle?.readModel,
       economicEvidenceWrites: value.lifecycle?.economicEvidenceWrites,
+    },
+    proLeague: {
+      ...unverifiedModuleBoundaries.proLeague,
+      ...value.proLeague,
+    },
+    importApi: {
+      ...unverifiedModuleBoundaries.importApi,
+      ...value.importApi,
     },
   };
   if (
@@ -282,7 +391,7 @@ export function assessPrivateProductionReadiness(
         : moduleBoundaryStates.every((state) => state === "connected_verified")
           ? "pass"
           : "review",
-      "Vault Performance, Open Race and Lifecycle boundaries remain review-required until each fixture-verified path also has bounded connected owner-data acceptance.",
+      "Every required website module remains review-required until each recorded path has bounded connected owner-data acceptance.",
     ),
     check(
       "MIGRATION_SAFETY",
