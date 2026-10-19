@@ -9,6 +9,7 @@ export type DashboardReadinessConnectionStatus =
   | "persistence_not_configured"
   | "assessment_unavailable"
   | "assessment_read_failed"
+  | "assessment_integrity_failed"
   | "assessment_connected";
 
 export type DashboardReadinessPageState = Readonly<{
@@ -58,22 +59,24 @@ export async function loadDashboardReadinessPageState(
     throw new Error("Dashboard readiness access denied.");
   }
 
-  try {
-    const state = await loadReadinessWorkspacePageState(input);
-    if (state.connectionStatus === "persistence_not_configured") {
-      return emptyState("persistence_not_configured");
-    }
-    if (state.readiness === null) {
-      return emptyState("assessment_unavailable");
-    }
-    return {
-      connectionStatus: "assessment_connected",
-      exactHeadSha: state.exactHeadSha,
-      evidenceCurrentThrough: state.evidenceCurrentThrough,
-      evidenceFreshness: state.evidenceFreshness,
-      readiness: state.readiness,
-    };
-  } catch {
+  const state = await loadReadinessWorkspacePageState(input);
+  if (state.connectionStatus === "persistence_not_configured") {
+    return emptyState("persistence_not_configured");
+  }
+  if (state.connectionStatus === "assessment_read_failed") {
     return emptyState("assessment_read_failed");
   }
+  if (state.connectionStatus === "assessment_integrity_failed") {
+    return emptyState("assessment_integrity_failed");
+  }
+  if (state.readiness === null) {
+    return emptyState("assessment_unavailable");
+  }
+  return {
+    connectionStatus: "assessment_connected",
+    exactHeadSha: state.exactHeadSha,
+    evidenceCurrentThrough: state.evidenceCurrentThrough,
+    evidenceFreshness: state.evidenceFreshness,
+    readiness: state.readiness,
+  };
 }

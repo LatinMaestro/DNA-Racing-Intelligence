@@ -23,6 +23,11 @@ const statusCopy = {
     detail:
       "Readiness evidence could not be verified. No cached, stale or inferred replacement is treated as accepted.",
   },
+  assessment_integrity_failed: {
+    badge: "Assessment integrity failed",
+    detail:
+      "The persisted assessment failed exact-head or publication-integrity checks. All readiness gates remain withheld and no missing value is treated as a pass.",
+  },
   assessment_connected: {
     badge: "Assessment connected",
     detail:

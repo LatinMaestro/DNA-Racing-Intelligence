@@ -16,6 +16,16 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact exact-head assessment repository is not configured.",
   },
+  assessment_read_failed: {
+    heading: "Readiness assessment read failed",
+    detail:
+      "The owner-scoped readiness assessment could not be read. No cached, stale or inferred replacement is treated as accepted, and every commissioning gate remains withheld.",
+  },
+  assessment_integrity_failed: {
+    heading: "Readiness assessment integrity failed",
+    detail:
+      "The persisted assessment failed exact-head, version, chronology or freshness checks. Its gates remain withheld, and missing evidence is never converted into a pass.",
+  },
   read_model_connected: {
     heading: "Readiness evidence connected",
     detail:
