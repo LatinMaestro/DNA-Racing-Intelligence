@@ -169,12 +169,18 @@ function RankingList({
 export function BreedingWorkspace({
   rankings,
   connectionStatus,
+  generationId = null,
+  payloadSha256 = null,
+  publishedAt = null,
   filters = { mode: "all", distance: null },
   selectedParents = ["", ""],
   economicWriteStatus,
 }: Readonly<{
   rankings: readonly BreedingPairRankingResult[];
   connectionStatus: BreedingWorkspaceConnectionStatus;
+  generationId?: string | null;
+  payloadSha256?: string | null;
+  publishedAt?: string | null;
   filters?: EvidenceViewFilters;
   selectedParents?: readonly [string, string];
   economicWriteStatus?: BreedingEconomicWriteStatus;
@@ -226,6 +232,25 @@ export function BreedingWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           {connection.detail}
         </p>
+        {evidenceConnected &&
+        generationId !== null &&
+        payloadSha256 !== null &&
+        publishedAt !== null ? (
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--muted)]">Accepted generation</dt>
+              <dd className="mt-1 break-all font-mono">{generationId}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Published</dt>
+              <dd className="mt-1 font-semibold">{timestamp(publishedAt)}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[var(--muted)]">Payload SHA-256</dt>
+              <dd className="mt-1 break-all font-mono">{payloadSha256}</dd>
+            </div>
+          </dl>
+        ) : null}
         <button
           className="mt-5 cursor-not-allowed rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--muted)]"
           disabled

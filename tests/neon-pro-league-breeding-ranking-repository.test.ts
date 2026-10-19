@@ -308,6 +308,9 @@ describe("Neon Pro League breeding ranking repository", () => {
       rankings: [minimalRanking()],
       latestAcceptedPerformanceImportAt: "2026-09-07T00:30:00.000Z",
       latestAcceptedArenaImportAt: null,
+      generationId,
+      payloadSha256: payloadSha,
+      publishedAt: "2026-09-07T02:00:00.000Z",
     });
     expect(test.events[0]).toBe(
       "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
@@ -326,6 +329,9 @@ describe("Neon Pro League breeding ranking repository", () => {
       rankings: [],
       latestAcceptedPerformanceImportAt: null,
       latestAcceptedArenaImportAt: null,
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
     });
   });
 

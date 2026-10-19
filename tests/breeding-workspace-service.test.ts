@@ -7,6 +7,9 @@ import {
 } from "@/lib/breeding-workspace-service";
 
 const now = new Date("2026-07-28T00:00:00.000Z");
+const generationId = "84000000-0000-4000-8000-000000000501";
+const payloadSha256 = "a".repeat(64);
+const publishedAt = "2026-07-28T00:00:00.000Z";
 const versions = {
   rulesetVersion: "rules-v3",
   candidateSnapshotVersion: "candidates-v9",
@@ -80,6 +83,9 @@ function repository(
       rankings,
       latestAcceptedPerformanceImportAt,
       latestAcceptedArenaImportAt,
+      generationId,
+      payloadSha256,
+      publishedAt,
     }),
   };
 }
@@ -96,6 +102,9 @@ describe("Breeding workspace service", () => {
     ).resolves.toEqual({
       rankings: [],
       connectionStatus: "identity_not_connected",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
     });
     await expect(
       loadBreedingWorkspacePageState({
@@ -107,6 +116,9 @@ describe("Breeding workspace service", () => {
     ).resolves.toEqual({
       rankings: [],
       connectionStatus: "persistence_not_configured",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
     });
   });
 
@@ -115,6 +127,9 @@ describe("Breeding workspace service", () => {
       rankings: [rankingInput],
       latestAcceptedPerformanceImportAt: "2026-07-28T00:00:00.000Z",
       latestAcceptedArenaImportAt: "2026-07-28T00:00:00.000Z",
+      generationId,
+      payloadSha256,
+      publishedAt,
     }));
     await expect(
       loadBreedingWorkspacePageState({
@@ -137,6 +152,9 @@ describe("Breeding workspace service", () => {
       }),
     ).resolves.toMatchObject({
       connectionStatus: "read_model_connected",
+      generationId,
+      payloadSha256,
+      publishedAt,
       rankings: [
         {
           rankingId: "synthetic-ranking",
@@ -223,6 +241,58 @@ describe("Breeding workspace service", () => {
       ).resolves.toEqual({
         rankings: [],
         connectionStatus: "integrity_failed",
+        generationId: null,
+        payloadSha256: null,
+        publishedAt: null,
+      });
+    }
+  });
+
+  it("withholds rankings when accepted publication identity is missing or inconsistent", async () => {
+    const cases = [
+      {
+        rankings: [rankingInput],
+        latestAcceptedPerformanceImportAt: "2026-07-28T00:00:00.000Z",
+        latestAcceptedArenaImportAt: null,
+        generationId: null,
+        payloadSha256: null,
+        publishedAt: null,
+      },
+      {
+        rankings: [rankingInput],
+        latestAcceptedPerformanceImportAt: "2026-07-28T00:00:00.000Z",
+        latestAcceptedArenaImportAt: null,
+        generationId,
+        payloadSha256: "invalid",
+        publishedAt,
+      },
+      {
+        rankings: [rankingInput],
+        latestAcceptedPerformanceImportAt: "2026-07-28T00:00:00.000Z",
+        latestAcceptedArenaImportAt: null,
+        generationId,
+        payloadSha256,
+        publishedAt: "2026-07-27T23:59:59.000Z",
+      },
+    ];
+
+    for (const evidence of cases) {
+      await expect(
+        loadBreedingWorkspacePageState({
+          authenticatedOwnerId: "owner",
+          configuredOwnerId: "owner",
+          repository: {
+            status: "ready",
+            loadRankingEvidenceByOwner: async () => evidence,
+          },
+          now,
+        }),
+      ).resolves.toEqual({
+        rankings: [],
+        connectionStatus: "integrity_failed",
+        generationId: null,
+        payloadSha256: null,
+        publishedAt: null,
       });
     }
   });
@@ -252,6 +322,9 @@ describe("Breeding workspace service", () => {
       ).resolves.toEqual({
         rankings: [],
         connectionStatus: "integrity_failed",
+        generationId: null,
+        payloadSha256: null,
+        publishedAt: null,
       });
     }
   });
@@ -273,6 +346,9 @@ describe("Breeding workspace service", () => {
     ).resolves.toEqual({
       rankings: [],
       connectionStatus: "read_failed",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
     });
   });
 
@@ -314,6 +390,9 @@ describe("Breeding workspace service", () => {
     ).resolves.toEqual({
       rankings: [],
       connectionStatus: "integrity_failed",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
     });
     await expect(
       loadBreedingWorkspacePageState({

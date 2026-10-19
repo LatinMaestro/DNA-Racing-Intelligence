@@ -120,6 +120,9 @@ describe("Breeding workspace", () => {
     const html = renderToStaticMarkup(
       <BreedingWorkspace
         connectionStatus="read_model_connected"
+        generationId="84000000-0000-4000-8000-000000000501"
+        payloadSha256={"a".repeat(64)}
+        publishedAt="2026-07-20T03:00:00.000Z"
         rankings={[ranking]}
       />,
     );
@@ -139,6 +142,11 @@ describe("Breeding workspace", () => {
     expect(html).toContain("Arena snapshot arena-v5");
     expect(html).toContain("Imported Arena listing expiry");
     expect(html).toContain("Historical breeding evidence connected");
+    expect(html).toContain("Accepted generation");
+    expect(html).toContain("84000000-0000-4000-8000-000000000501");
+    expect(html).toContain("Payload SHA-256");
+    expect(html).toContain("a".repeat(64));
+    expect(html).toContain("20 July 2026, 3:00 am");
     expect(html).toContain("Find accepted pairs");
     expect(html).toContain("Compare parents and evidence");
     expect(html).toContain(

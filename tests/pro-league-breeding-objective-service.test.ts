@@ -101,6 +101,9 @@ function repository(dataCurrentThrough?: string) {
     rankings: [ranking(dataCurrentThrough)],
     latestAcceptedPerformanceImportAt: "2026-09-07T02:00:00.000Z",
     latestAcceptedArenaImportAt: null,
+    generationId: "84000000-0000-4000-8000-000000000502",
+    payloadSha256: "b".repeat(64),
+    publishedAt: "2026-09-07T03:00:00.000Z",
   }));
   return {
     value: { status: "ready" as const, loadRankingEvidenceByOwner },
