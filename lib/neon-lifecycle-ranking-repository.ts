@@ -305,10 +305,13 @@ export function createNeonLifecycleRankingRepository(
         if (result.rows.length > 1) fail();
         let ranking: LifecycleActionRankingInput | null = null;
         let latestAcceptedImportAt: string | null = null;
+        let publishedAt: string | null = null;
+        let snapshotSha256: string | null = null;
         if (result.rows.length === 1) {
           const row = record(result.rows[0]);
           latestAcceptedImportAt = timestamp(row.latest_accepted_import_at);
-          const publishedAt = timestamp(row.published_at);
+          publishedAt = timestamp(row.published_at);
+          snapshotSha256 = required(row.snapshot_sha256);
           const evaluatedAt = timestamp(row.evaluated_at);
           const dataCurrentThrough = timestamp(row.data_current_through);
           if (
@@ -336,13 +339,18 @@ export function createNeonLifecycleRankingRepository(
             databaseOwnerId: configuration.databaseOwnerId,
             publishedAt,
             latestAcceptedImportAt,
-            sha256: required(row.snapshot_sha256),
+            sha256: snapshotSha256,
             bindings,
           });
         }
         await session.client.query("COMMIT");
         started = false;
-        return { ranking, latestAcceptedImportAt };
+        return {
+          ranking,
+          latestAcceptedImportAt,
+          publishedAt,
+          snapshotSha256,
+        };
       } catch {
         if (started)
           await session.client.query("ROLLBACK").catch(() => undefined);

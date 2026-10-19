@@ -8,6 +8,8 @@ import {
 export type LifecycleRankingEvidence = Readonly<{
   ranking: LifecycleActionRankingInput | null;
   latestAcceptedImportAt: string | null;
+  publishedAt: string | null;
+  snapshotSha256: string | null;
 }>;
 
 export type LifecycleRankingRepository =
@@ -28,6 +30,8 @@ export type LifecycleWorkspaceConnectionStatus =
 
 export type LifecycleWorkspacePageState = Readonly<{
   ranking: LifecycleActionRankingResult | null;
+  publishedAt: string | null;
+  snapshotSha256: string | null;
   connectionStatus: LifecycleWorkspaceConnectionStatus;
 }>;
 
@@ -78,13 +82,23 @@ export async function loadLifecycleWorkspacePageState(
   const authenticatedOwnerId = normalizedIdentity(input.authenticatedOwnerId);
   const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
   if (authenticatedOwnerId === null || configuredOwnerId === null) {
-    return { ranking: null, connectionStatus: "identity_not_connected" };
+    return {
+      ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
+      connectionStatus: "identity_not_connected",
+    };
   }
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Lifecycle workspace access denied.");
   }
   if (input.repository.status === "not_configured") {
-    return { ranking: null, connectionStatus: "persistence_not_configured" };
+    return {
+      ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
+      connectionStatus: "persistence_not_configured",
+    };
   }
   if (input.repository.status !== "ready") {
     throw new Error("Lifecycle repository status is invalid.");
@@ -96,19 +110,38 @@ export async function loadLifecycleWorkspacePageState(
     evidence =
       await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
   } catch {
-    return { ranking: null, connectionStatus: "read_failed" };
+    return {
+      ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
+      connectionStatus: "read_failed",
+    };
   }
   try {
     if (
       evidence === null ||
       typeof evidence !== "object" ||
       !("ranking" in evidence) ||
-      !("latestAcceptedImportAt" in evidence)
+      !("latestAcceptedImportAt" in evidence) ||
+      !("publishedAt" in evidence) ||
+      !("snapshotSha256" in evidence)
     ) {
       throw new Error("Lifecycle repository evidence is invalid.");
     }
     if (evidence.latestAcceptedImportAt === null) {
-      return { ranking: null, connectionStatus: "read_model_connected" };
+      if (
+        evidence.ranking !== null ||
+        evidence.publishedAt !== null ||
+        evidence.snapshotSha256 !== null
+      ) {
+        throw new Error("Lifecycle empty publication evidence is invalid.");
+      }
+      return {
+        ranking: null,
+        publishedAt: null,
+        snapshotSha256: null,
+        connectionStatus: "read_model_connected",
+      };
     }
     const latestAcceptedImportAt = canonicalTimestamp(
       evidence.latestAcceptedImportAt,
@@ -118,7 +151,20 @@ export async function loadLifecycleWorkspacePageState(
       throw new Error("Latest accepted import cannot be in the future.");
     }
     if (evidence.ranking === null) {
-      return { ranking: null, connectionStatus: "read_model_connected" };
+      throw new Error("Lifecycle publication is missing its ranking.");
+    }
+    if (
+      typeof evidence.snapshotSha256 !== "string" ||
+      !/^[a-f0-9]{64}$/.test(evidence.snapshotSha256)
+    ) {
+      throw new Error("Lifecycle snapshot identity is invalid.");
+    }
+    const publishedAt = canonicalTimestamp(
+      evidence.publishedAt,
+      "Lifecycle publication time",
+    );
+    if (Date.parse(publishedAt) > input.now.getTime()) {
+      throw new Error("Lifecycle publication cannot be in the future.");
     }
     const ranking = evidence.ranking;
     const dataCurrentThrough = canonicalTimestamp(
@@ -144,6 +190,9 @@ export async function loadLifecycleWorkspacePageState(
     if (Date.parse(evaluatedAt) > input.now.getTime()) {
       throw new Error("Lifecycle evaluation cannot be in the future.");
     }
+    if (Date.parse(evaluatedAt) > Date.parse(publishedAt)) {
+      throw new Error("Lifecycle publication cannot precede evaluation.");
+    }
     const freshness = deriveLifecycleFreshness(dataCurrentThrough, input.now);
     if (ranking.freshness !== freshness) {
       throw new Error(
@@ -152,9 +201,16 @@ export async function loadLifecycleWorkspacePageState(
     }
     return {
       ranking: rankLifecycleActions({ ...ranking, freshness }),
+      publishedAt,
+      snapshotSha256: evidence.snapshotSha256,
       connectionStatus: "read_model_connected",
     };
   } catch {
-    return { ranking: null, connectionStatus: "integrity_failed" };
+    return {
+      ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
+      connectionStatus: "integrity_failed",
+    };
   }
 }
