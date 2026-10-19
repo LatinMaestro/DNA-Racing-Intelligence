@@ -170,6 +170,8 @@ describe("compact Neon readiness assessment dependency", () => {
     ).resolves.toMatchObject({
       assessmentId: assessment.assessmentId,
       assessmentVersion: assessment.assessmentVersion,
+      assessmentSnapshotSha256: row().snapshot_sha256,
+      publishedAt,
       connectionStatus: "read_model_connected",
       readiness: { status: "review_required", activationAuthorized: false },
     });
@@ -193,6 +195,7 @@ describe("compact Neon readiness assessment dependency", () => {
       assessment: null,
       acceptedAssessmentVersion: null,
       publishedAt: null,
+      snapshotSha256: null,
     });
   });
 

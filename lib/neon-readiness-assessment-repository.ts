@@ -345,6 +345,7 @@ export function createNeonReadinessAssessmentRepository(
             assessment: null,
             acceptedAssessmentVersion: null,
             publishedAt: null,
+            snapshotSha256: null,
           };
         }
         const row = record(result.rows[0]);
@@ -360,6 +361,7 @@ export function createNeonReadinessAssessmentRepository(
         )
           fail();
         const assessmentVersion = required(row.assessment_version);
+        const snapshotSha256 = required(row.snapshot_sha256);
         const assessment = decodeSnapshot(row.snapshot_json, {
           databaseOwnerId: configuration.databaseOwnerId,
           assessmentId: required(row.assessment_id),
@@ -368,7 +370,7 @@ export function createNeonReadinessAssessmentRepository(
           evidenceCurrentThrough,
           assessedAt,
           publishedAt,
-          sha256: required(row.snapshot_sha256),
+          sha256: snapshotSha256,
         });
         await session.client.query("COMMIT");
         started = false;
@@ -376,6 +378,7 @@ export function createNeonReadinessAssessmentRepository(
           assessment,
           acceptedAssessmentVersion: assessmentVersion,
           publishedAt,
+          snapshotSha256,
         };
       } catch {
         if (started)

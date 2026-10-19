@@ -9,7 +9,11 @@ describe("Dashboard readiness status", () => {
       <DashboardReadinessStatus
         state={{
           connectionStatus: "assessment_read_failed",
+          assessmentId: null,
+          assessmentVersion: null,
+          assessmentSnapshotSha256: null,
           exactHeadSha: null,
+          publishedAt: null,
           evidenceCurrentThrough: null,
           evidenceFreshness: null,
           readiness: null,
@@ -30,7 +34,11 @@ describe("Dashboard readiness status", () => {
       <DashboardReadinessStatus
         state={{
           connectionStatus: "assessment_integrity_failed",
+          assessmentId: null,
+          assessmentVersion: null,
+          assessmentSnapshotSha256: null,
           exactHeadSha: null,
+          publishedAt: null,
           evidenceCurrentThrough: null,
           evidenceFreshness: null,
           readiness: null,
@@ -43,5 +51,27 @@ describe("Dashboard readiness status", () => {
     expect(markup).toContain("Not available");
     expect(markup).not.toContain("private provider detail");
     expect(markup).not.toContain("Activate");
+  });
+
+  it("renders the accepted assessment publication identity", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardReadinessStatus
+        state={{
+          connectionStatus: "assessment_connected",
+          assessmentId: "readiness-accepted-1",
+          assessmentVersion: "readiness-v3",
+          assessmentSnapshotSha256: "b".repeat(64),
+          exactHeadSha: "a".repeat(40),
+          publishedAt: "2026-10-19T01:30:00.000Z",
+          evidenceCurrentThrough: "2026-10-19T01:00:00.000Z",
+          evidenceFreshness: "current",
+          readiness: null,
+        }}
+      />,
+    );
+
+    expect(markup).toContain("readiness-accepted-1 · readiness-v3");
+    expect(markup).toContain("2026-10-19 01:30:00 UTC");
+    expect(markup).toContain(`Accepted snapshot SHA-256: ${"b".repeat(64)}`);
   });
 });

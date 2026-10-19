@@ -61,12 +61,14 @@ describe("Readiness workspace", () => {
     const html = renderToStaticMarkup(
       <ReadinessWorkspace
         assessmentId={null}
+        assessmentSnapshotSha256={null}
         assessedAt={null}
         assessmentVersion={null}
         connectionStatus="identity_not_connected"
         evidenceCurrentThrough={null}
         evidenceFreshness={null}
         exactHeadSha={null}
+        publishedAt={null}
         horseScreeningState={unavailableHorseScreeningState}
         readiness={null}
       />,
@@ -93,12 +95,14 @@ describe("Readiness workspace", () => {
       const html = renderToStaticMarkup(
         <ReadinessWorkspace
           assessmentId={null}
+          assessmentSnapshotSha256={null}
           assessedAt={null}
           assessmentVersion={null}
           connectionStatus={connectionStatus}
           evidenceCurrentThrough={null}
           evidenceFreshness={null}
           exactHeadSha={null}
+          publishedAt={null}
           horseScreeningState={unavailableHorseScreeningState}
           readiness={null}
         />,
@@ -114,18 +118,22 @@ describe("Readiness workspace", () => {
     const html = renderToStaticMarkup(
       <ReadinessWorkspace
         assessmentId="synthetic-readiness"
+        assessmentSnapshotSha256={"b".repeat(64)}
         assessedAt="2026-07-23T01:00:00.000Z"
         assessmentVersion="readiness-v1"
         connectionStatus="read_model_connected"
         evidenceCurrentThrough="2026-07-23T00:00:00.000Z"
         evidenceFreshness="current"
         exactHeadSha={"a".repeat(40)}
+        publishedAt="2026-07-23T02:00:00.000Z"
         horseScreeningState={unavailableHorseScreeningState}
         readiness={readiness}
       />,
     );
     expect(html).toContain("synthetic-readiness · readiness-v1");
     expect(html).toContain("Evidence current through");
+    expect(html).toContain(`Accepted snapshot SHA-256: ${"b".repeat(64)}`);
+    expect(html).toContain("Published 2026-07-23T02:00:00.000Z");
     expect(html).toContain("Representative Private Import");
     expect(html).toContain("Commissioning module boundaries");
     expect(html).toContain("Vault Performance");
@@ -147,12 +155,14 @@ describe("Readiness workspace", () => {
       const html = renderToStaticMarkup(
         <ReadinessWorkspace
           assessmentId={null}
+          assessmentSnapshotSha256={null}
           assessedAt={null}
           assessmentVersion={null}
           connectionStatus="read_model_connected"
           evidenceCurrentThrough={null}
           evidenceFreshness={null}
           exactHeadSha={null}
+          publishedAt={null}
           horseScreeningState={{ connectionStatus, snapshot: null }}
           readiness={null}
         />,
@@ -166,12 +176,14 @@ describe("Readiness workspace", () => {
     const html = renderToStaticMarkup(
       <ReadinessWorkspace
         assessmentId={null}
+        assessmentSnapshotSha256={null}
         assessedAt={null}
         assessmentVersion={null}
         connectionStatus="read_model_connected"
         evidenceCurrentThrough={null}
         evidenceFreshness={null}
         exactHeadSha={null}
+        publishedAt={null}
         horseScreeningState={{
           connectionStatus: "snapshot_connected",
           snapshot: {

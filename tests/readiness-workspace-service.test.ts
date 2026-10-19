@@ -53,6 +53,7 @@ const assessment: PrivateProductionReadinessInput = {
 
 const now = new Date("2026-07-26T00:00:00.000Z");
 const expectedHeadSha = "a".repeat(40);
+const snapshotSha256 = "b".repeat(64);
 
 function repository(value: PrivateProductionReadinessInput | null) {
   return {
@@ -61,6 +62,7 @@ function repository(value: PrivateProductionReadinessInput | null) {
       assessment: value,
       acceptedAssessmentVersion: value?.assessmentVersion ?? null,
       publishedAt: value === null ? null : "2026-07-23T02:00:00.000Z",
+      snapshotSha256: value === null ? null : snapshotSha256,
     }),
   };
 }
@@ -78,10 +80,12 @@ describe("Readiness workspace service", () => {
     ).resolves.toEqual({
       assessmentId: null,
       assessmentVersion: null,
+      assessmentSnapshotSha256: null,
       assessedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
       exactHeadSha: null,
+      publishedAt: null,
       readiness: null,
       connectionStatus: "identity_not_connected",
     });
@@ -197,6 +201,7 @@ describe("Readiness workspace service", () => {
             assessment: staged,
             acceptedAssessmentVersion: staged.assessmentVersion,
             publishedAt: "2026-07-25T01:00:00.000Z",
+            snapshotSha256,
           }),
         },
         expectedHeadSha,
@@ -222,6 +227,7 @@ describe("Readiness workspace service", () => {
           loadLatestAssessmentByOwner: async () => ({
             ...(await baseRepository.loadLatestAssessmentByOwner()),
             acceptedAssessmentVersion: "readiness-v2",
+            snapshotSha256,
           }),
         },
         expectedHeadSha,
@@ -276,6 +282,7 @@ describe("Readiness workspace service", () => {
               assessment: staged,
               acceptedAssessmentVersion: staged.assessmentVersion,
               publishedAt,
+              snapshotSha256,
             }),
           },
           expectedHeadSha,
@@ -305,10 +312,12 @@ describe("Readiness workspace service", () => {
     ).resolves.toEqual({
       assessmentId: null,
       assessmentVersion: null,
+      assessmentSnapshotSha256: null,
       assessedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
       exactHeadSha: null,
+      publishedAt: null,
       readiness: null,
       connectionStatus: "assessment_read_failed",
     });

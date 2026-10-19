@@ -45,12 +45,14 @@ export default async function ReadinessPage() {
   return (
     <ReadinessWorkspace
       assessmentId={state.assessmentId}
+      assessmentSnapshotSha256={state.assessmentSnapshotSha256}
       assessedAt={state.assessedAt}
       assessmentVersion={state.assessmentVersion}
       connectionStatus={state.connectionStatus}
       evidenceCurrentThrough={state.evidenceCurrentThrough}
       evidenceFreshness={state.evidenceFreshness}
       exactHeadSha={state.exactHeadSha}
+      publishedAt={state.publishedAt}
       horseScreeningState={horseScreeningState}
       readiness={state.readiness}
     />
