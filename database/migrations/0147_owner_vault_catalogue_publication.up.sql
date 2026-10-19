@@ -22,7 +22,9 @@ DECLARE
   v_owner_id uuid := dna.current_owner_id();
   v_version dna.dataset_version%ROWTYPE;
   v_batch dna.import_batch%ROWTYPE;
-  v_receipt dna.dataset_version_evidence_receipt%ROWTYPE;
+  -- Evidence receipts are installed by a separately managed migration in some
+  -- isolated CI paths, so defer relation binding until function execution.
+  v_receipt record;
   v_core_count bigint;
   v_source_batch_count bigint;
   v_mismatched_source_batch_count bigint;

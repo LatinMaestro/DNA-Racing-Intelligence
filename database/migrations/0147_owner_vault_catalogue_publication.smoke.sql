@@ -1,5 +1,28 @@
 BEGIN;
 
+-- The evidence-receipt schema is exercised by a separate migration workflow.
+-- Recreate only the columns consumed here when that workflow has not run in
+-- this isolated CI database; this is a no-op on a fully migrated schema.
+CREATE TABLE IF NOT EXISTS dna.dataset_version_evidence_receipt (
+  owner_id uuid NOT NULL,
+  dataset_version_id uuid NOT NULL,
+  import_batch_id uuid NOT NULL,
+  source_type text NOT NULL CHECK (
+    source_type IN ('race_merge', 'core_details', 'current_arena')
+  ),
+  evidence_kind text NOT NULL CHECK (
+    evidence_kind IN ('staged_rows', 'normalized_partition')
+  ),
+  evidence_partition_count integer NOT NULL CHECK (
+    evidence_partition_count BETWEEN 1 AND 10000
+  ),
+  evidence_row_count bigint NOT NULL CHECK (evidence_row_count > 0),
+  evidence_byte_size bigint NOT NULL CHECK (evidence_byte_size > 0),
+  sealed_at timestamptz NOT NULL,
+  PRIMARY KEY (owner_id, dataset_version_id),
+  UNIQUE (owner_id, import_batch_id)
+);
+
 INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
   ('a1470000-0000-4000-8000-000000000001', 'smoke_vault_publication_owner'),
   ('a1470000-0000-4000-8000-000000000002', 'smoke_vault_publication_other');
