@@ -93,9 +93,7 @@ INSERT INTO dna.core_import_provenance (
 
 DO $permissions$
 BEGIN
-  IF has_table_privilege('dna_app_runtime', 'dna.import_batch', 'SELECT')
-    OR has_table_privilege('dna_app_runtime', 'dna.dataset_version', 'SELECT')
-    OR has_table_privilege('dna_app_runtime',
+  IF has_table_privilege('dna_app_runtime',
       'dna.dataset_version_evidence_receipt', 'SELECT')
     OR NOT has_function_privilege('dna_app_runtime',
       'dna.read_owner_vault_catalogue_publication(uuid)', 'EXECUTE')
