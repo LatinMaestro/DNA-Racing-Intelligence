@@ -165,7 +165,14 @@ describe("compact Neon Vault Performance summary dependency", () => {
       repository: h.repository,
       now,
     });
-    expect(page).toEqual({ connectionStatus: "read_model_connected", summary });
+    expect(page).toEqual({
+      connectionStatus: "read_model_connected",
+      summary,
+      acceptedEvidence: {
+        acceptedSourceVersion: source,
+        materializedAt: "2026-10-15T00:00:00.000Z",
+      },
+    });
     expect(page.summary?.cashCryptoTotals[0]?.openRacePayouts).toBe(
       "9007199254740993.000000000000000001",
     );
@@ -304,5 +311,9 @@ describe("compact Neon Vault Performance summary dependency", () => {
     expect(result?.warnings).toContain("IMPORTED_DATA_STALE");
     expect(result?.cashCryptoTotals).toEqual(summary.cashCryptoTotals);
     expect(result?.status).toBe("partial");
+    expect(result).toMatchObject({
+      acceptedSourceVersion: source,
+      materializedAt: "2026-10-15T00:00:00.000Z",
+    });
   });
 });

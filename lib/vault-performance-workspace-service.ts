@@ -13,8 +13,19 @@ export type VaultPerformanceSummaryRepository =
       status: "ready";
       loadSummaryByOwner: (
         ownerId: string,
-      ) => Promise<VaultPerformanceSummary | null>;
+      ) => Promise<
+        | (VaultPerformanceSummary & Partial<VaultPerformanceAcceptedEvidence>)
+        | null
+      >;
     }>;
+
+export type VaultPerformanceAcceptedEvidence = Readonly<{
+  acceptedSourceVersion: string;
+  materializedAt: string;
+}>;
+
+type VaultPerformancePersistedSummary = VaultPerformanceSummary &
+  Partial<VaultPerformanceAcceptedEvidence>;
 
 export type VaultPerformanceConnectionStatus =
   | "identity_not_connected"
@@ -25,6 +36,7 @@ export type VaultPerformanceConnectionStatus =
 
 export type VaultPerformancePageState = Readonly<{
   summary: VaultPerformanceSummary | null;
+  acceptedEvidence: VaultPerformanceAcceptedEvidence | null;
   connectionStatus: VaultPerformanceConnectionStatus;
 }>;
 
@@ -43,6 +55,7 @@ const warnings = new Set<VaultPerformanceWarning>([
   "IMPORTED_DATA_STALE",
 ]);
 const assetCodePattern = /^[A-Z][A-Z0-9_]{1,15}$/;
+const sha256Pattern = /^[a-f0-9]{64}$/;
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -52,6 +65,25 @@ function normalizedIdentity(value: string | null): string | null {
 function isCanonicalTimestamp(value: string): boolean {
   const parsed = new Date(value);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function normalizeAcceptedEvidence(
+  value: Partial<VaultPerformanceAcceptedEvidence>,
+  now: Date,
+): VaultPerformanceAcceptedEvidence {
+  if (
+    typeof value.acceptedSourceVersion !== "string" ||
+    !sha256Pattern.test(value.acceptedSourceVersion) ||
+    typeof value.materializedAt !== "string" ||
+    !isCanonicalTimestamp(value.materializedAt) ||
+    Date.parse(value.materializedAt) > now.getTime()
+  ) {
+    throw new Error("Invalid Vault Performance accepted evidence.");
+  }
+  return {
+    acceptedSourceVersion: value.acceptedSourceVersion,
+    materializedAt: value.materializedAt,
+  };
 }
 
 function validNow(value: unknown): Date {
@@ -213,6 +245,7 @@ export async function loadVaultPerformancePageState(
   if (authenticatedOwnerId === null || configuredOwnerId === null) {
     return {
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "identity_not_connected",
     };
   }
@@ -222,6 +255,7 @@ export async function loadVaultPerformancePageState(
   if (input.repository.status === "not_configured") {
     return {
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "persistence_not_configured",
     };
   }
@@ -233,27 +267,57 @@ export async function loadVaultPerformancePageState(
     throw new Error("Invalid Vault Performance repository.");
   }
 
-  let persistedSummary: VaultPerformanceSummary | null;
+  let persistedSummary: VaultPerformancePersistedSummary | null;
   try {
     persistedSummary =
       await input.repository.loadSummaryByOwner(authenticatedOwnerId);
   } catch {
     return {
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "read_failed",
     };
   }
   try {
+    const acceptedEvidence =
+      persistedSummary === null ||
+      (persistedSummary.acceptedSourceVersion === undefined &&
+        persistedSummary.materializedAt === undefined)
+        ? null
+        : normalizeAcceptedEvidence(persistedSummary, now);
+    const summaryCandidate =
+      persistedSummary === null ? null : { ...persistedSummary };
+    if (summaryCandidate !== null) {
+      delete summaryCandidate.acceptedSourceVersion;
+      delete summaryCandidate.materializedAt;
+    }
+    const normalizedSummary =
+      summaryCandidate === null
+        ? null
+        : normalizeVaultPerformanceReadSummary(summaryCandidate, now);
+    if (
+      acceptedEvidence !== null &&
+      normalizedSummary !== null &&
+      [normalizedSummary.dataCurrentThrough, normalizedSummary.lastImported]
+        .filter((value): value is string => value !== null)
+        .some(
+          (value) =>
+            Date.parse(value) > Date.parse(acceptedEvidence.materializedAt),
+        )
+    ) {
+      throw new Error(
+        "Vault Performance accepted evidence predates its summary.",
+      );
+    }
     return {
-      summary:
-        persistedSummary === null
-          ? null
-          : normalizeVaultPerformanceReadSummary(persistedSummary, now),
+      summary: normalizedSummary,
+      acceptedEvidence,
       connectionStatus: "read_model_connected",
     };
   } catch {
     return {
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "integrity_failed",
     };
   }
