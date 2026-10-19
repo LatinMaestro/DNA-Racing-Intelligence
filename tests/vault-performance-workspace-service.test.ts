@@ -47,6 +47,7 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "identity_not_connected",
     });
   });
@@ -74,6 +75,7 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "persistence_not_configured",
     });
   });
@@ -81,7 +83,11 @@ describe("Vault Performance workspace service", () => {
   it("loads a validated owner-scoped materialized summary", async () => {
     const loadSummaryByOwner = vi.fn(async (ownerId: string) => {
       expect(ownerId).toBe("owner");
-      return summary;
+      return {
+        ...summary,
+        acceptedSourceVersion: "a".repeat(64),
+        materializedAt: "2026-07-20T02:00:00.000Z",
+      };
     });
     await expect(
       loadVaultPerformancePageState({
@@ -92,6 +98,10 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary,
+      acceptedEvidence: {
+        acceptedSourceVersion: "a".repeat(64),
+        materializedAt: "2026-07-20T02:00:00.000Z",
+      },
       connectionStatus: "read_model_connected",
     });
   });
@@ -111,6 +121,7 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "read_failed",
     });
   });
@@ -170,6 +181,7 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary: null,
+      acceptedEvidence: null,
       connectionStatus: "integrity_failed",
     });
   });
@@ -216,6 +228,40 @@ describe("Vault Performance workspace service", () => {
         }),
       ).resolves.toEqual({
         summary: null,
+        acceptedEvidence: null,
+        connectionStatus: "integrity_failed",
+      });
+    }
+  });
+
+  it("withholds malformed or future accepted-generation evidence", async () => {
+    for (const evidence of [
+      { acceptedSourceVersion: "invalid", materializedAt: now.toISOString() },
+      {
+        acceptedSourceVersion: "a".repeat(64),
+        materializedAt: "2026-07-21T00:00:00.001Z",
+      },
+      {
+        acceptedSourceVersion: "a".repeat(64),
+        materializedAt: "2026-07-20T00:30:00.000Z",
+      },
+      {
+        acceptedSourceVersion: "a".repeat(64),
+      },
+    ]) {
+      await expect(
+        loadVaultPerformancePageState({
+          authenticatedOwnerId: "owner",
+          configuredOwnerId: "owner",
+          now,
+          repository: {
+            status: "ready",
+            loadSummaryByOwner: async () => ({ ...summary, ...evidence }),
+          },
+        }),
+      ).resolves.toEqual({
+        summary: null,
+        acceptedEvidence: null,
         connectionStatus: "integrity_failed",
       });
     }

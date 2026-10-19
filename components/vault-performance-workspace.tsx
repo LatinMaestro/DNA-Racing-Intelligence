@@ -6,7 +6,10 @@ import type {
   VaultPerformanceAssetTotal,
   VaultPerformanceSummary,
 } from "@/domain/vault-performance-summary";
-import type { VaultPerformanceConnectionStatus } from "@/lib/vault-performance-workspace-service";
+import type {
+  VaultPerformanceAcceptedEvidence,
+  VaultPerformanceConnectionStatus,
+} from "@/lib/vault-performance-workspace-service";
 
 const connectionCopy: Record<
   VaultPerformanceConnectionStatus,
@@ -105,10 +108,12 @@ function AssetCard({ total }: Readonly<{ total: VaultPerformanceAssetTotal }>) {
 }
 
 export function VaultPerformanceWorkspace({
+  acceptedEvidence = null,
   summary,
   connectionStatus,
   economicWriteStatus,
 }: Readonly<{
+  acceptedEvidence?: VaultPerformanceAcceptedEvidence | null;
   summary: VaultPerformanceSummary | null;
   connectionStatus: VaultPerformanceConnectionStatus;
   economicWriteStatus?: VaultPerformanceEconomicWriteStatus;
@@ -169,6 +174,28 @@ export function VaultPerformanceWorkspace({
         </section>
       ) : (
         <>
+          <section
+            aria-labelledby="performance-generation"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+          >
+            <h2 className="text-lg font-semibold" id="performance-generation">
+              Accepted economic generation
+            </h2>
+            {acceptedEvidence === null ? (
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Accepted source version is unavailable for this summary.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Ledger version{" "}
+                <code className="break-all text-[var(--foreground)]">
+                  {acceptedEvidence.acceptedSourceVersion}
+                </code>{" "}
+                · Materialized {timestamp(acceptedEvidence.materializedAt)}
+              </p>
+            )}
+          </section>
+
           <section aria-labelledby="performance-coverage">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>

@@ -39,6 +39,7 @@ export default async function VaultPerformancePage() {
 
   return (
     <VaultPerformanceWorkspace
+      acceptedEvidence={state.acceptedEvidence}
       connectionStatus={state.connectionStatus}
       economicWriteStatus={
         authenticatedOwnerId === null ||

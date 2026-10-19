@@ -3,7 +3,7 @@ import {
   unavailableVaultPerformanceSummaryRepository,
   type VaultPerformanceSummaryRepository,
 } from "./vault-performance-workspace-service";
-import { decodeVaultPerformanceSummarySnapshot } from "./vault-performance-summary-snapshot";
+import { decodeVaultPerformanceSummarySnapshotEnvelope } from "./vault-performance-summary-snapshot";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceClient,
@@ -175,13 +175,18 @@ export function createNeonVaultPerformanceSummaryRepository(
               typeof snapshot.snapshot_sha256 !== "string"
             )
               fail();
-            summary = decodeVaultPerformanceSummarySnapshot({
+            const accepted = decodeVaultPerformanceSummarySnapshotEnvelope({
               json: snapshot.snapshot_json,
               sha256: snapshot.snapshot_sha256,
               databaseOwnerId,
               sourceLedgerSha256: source,
               now,
             });
+            summary = {
+              ...accepted.summary,
+              acceptedSourceVersion: accepted.sourceLedgerSha256,
+              materializedAt: accepted.materializedAt,
+            };
           }
         }
         await session.client.query("COMMIT");

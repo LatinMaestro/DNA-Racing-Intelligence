@@ -71,6 +71,12 @@ type Snapshot = Readonly<{
   summary: VaultPerformanceSummary;
 }>;
 
+export type DecodedVaultPerformanceSummarySnapshot = Readonly<{
+  sourceLedgerSha256: string;
+  materializedAt: string;
+  summary: VaultPerformanceSummary;
+}>;
+
 function fail(): never {
   // Never interpolate owner identities, source evidence or financial values.
   throw new Error("Invalid Vault Performance summary snapshot.");
@@ -250,6 +256,18 @@ export function decodeVaultPerformanceSummarySnapshot(
     now: Date;
   }>,
 ): VaultPerformanceSummary {
+  return decodeVaultPerformanceSummarySnapshotEnvelope(input).summary;
+}
+
+export function decodeVaultPerformanceSummarySnapshotEnvelope(
+  input: Readonly<{
+    json: string;
+    sha256: string;
+    databaseOwnerId: string;
+    sourceLedgerSha256: string;
+    now: Date;
+  }>,
+): DecodedVaultPerformanceSummarySnapshot {
   try {
     if (
       typeof input.json !== "string" ||
@@ -266,7 +284,14 @@ export function decodeVaultPerformanceSummarySnapshot(
       canonical(snapshot) !== input.json
     )
       fail();
-    return normalizeVaultPerformanceReadSummary(snapshot.summary, input.now);
+    return {
+      sourceLedgerSha256: snapshot.sourceLedgerSha256,
+      materializedAt: snapshot.materializedAt,
+      summary: normalizeVaultPerformanceReadSummary(
+        snapshot.summary,
+        input.now,
+      ),
+    };
   } catch {
     return fail();
   }

@@ -86,12 +86,21 @@ describe("Vault Performance workspace", () => {
     );
     const html = renderToStaticMarkup(
       <VaultPerformanceWorkspace
+        acceptedEvidence={{
+          acceptedSourceVersion: "a".repeat(64),
+          materializedAt: "2026-07-21T02:00:00.000Z",
+        }}
         connectionStatus="read_model_connected"
         summary={summary}
       />,
     );
 
     expect(html).toContain("Historical economic summary connected");
+    expect(html).toContain("Accepted economic generation");
+    expect(html).toContain(
+      `Ledger version <code class="break-all text-[var(--foreground)]">${"a".repeat(64)}</code>`,
+    );
+    expect(html).toContain("Materialized 21 July 2026, 2:00 am");
     expect(html).toContain("1.25 DEZ");
     expect(html).toContain("25 BGC");
     expect(html).toContain("Game Credit");
