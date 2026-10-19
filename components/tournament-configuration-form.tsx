@@ -125,13 +125,11 @@ export function TournamentConfigurationForm({
   const existingConfiguration =
     selection?.kind === "new" ? undefined : selectedBracket?.ruleConfiguration;
   const hasExistingConfiguration = brackets.length > 0;
-  const creating =
-    selection?.kind === "new" || !hasExistingConfiguration;
+  const creating = selection?.kind === "new" || !hasExistingConfiguration;
   const mode = selection?.kind === "new" ? selection.mode : "bike";
   const invalidSelection =
     selection?.kind === "existing" && selectedBracket === undefined;
-  const disabled =
-    connectionStatus !== "read_model_connected" || invalidSelection;
+  const disabled = connectionStatus !== "read_model_connected" || invalidSelection;
   const editorKey = selectedBracket
     ? JSON.stringify([selectedBracket.tournamentId, selectedBracket.bracketId])
     : `new-${mode}`;
@@ -169,8 +167,7 @@ export function TournamentConfigurationForm({
               href={editorLink(bracket.tournamentId, bracket.bracketId)}
               key={JSON.stringify([bracket.tournamentId, bracket.bracketId])}
             >
-              {bracket.tournamentLabel} — {bracket.splitLabel} (
-              {bracket.mode})
+              {`${bracket.tournamentLabel} — ${bracket.splitLabel} (${bracket.mode})`}
             </Link>
           ))}
         </div>
