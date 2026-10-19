@@ -180,6 +180,7 @@ export function BreedingWorkspace({
   economicWriteStatus?: BreedingEconomicWriteStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
+  const evidenceConnected = connectionStatus === "read_model_connected";
   const allPairs = rankings.flatMap((ranking) => [
     ...ranking.eliteUpsideRanking,
     ...ranking.vaultGapRanking,
@@ -331,10 +332,15 @@ export function BreedingWorkspace({
 
         {rankings.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">No accepted breeding rankings</h3>
+            <h3 className="font-semibold">
+              {evidenceConnected
+                ? "No accepted breeding rankings"
+                : "Breeding rankings withheld"}
+            </h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-              Missing ranking evidence is unavailable. It does not mean every
-              pair is eligible, available or low value.
+              {evidenceConnected
+                ? "The accepted snapshot contains no rankings. This does not mean every pair is eligible, available or low value."
+                : "No verified owner-scoped ranking snapshot is available in this state. Unknown does not mean that no accepted analysis exists."}
             </p>
           </div>
         ) : (

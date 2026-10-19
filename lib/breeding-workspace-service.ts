@@ -163,7 +163,13 @@ export async function loadBreedingWorkspacePageState(
   try {
     evidence =
       await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /(access denied|owner scope denied)/i.test(error.message)
+    ) {
+      throw error;
+    }
     // Withhold the whole owner-scoped snapshot and provider error details.
     // A failed read must never fall back to stale or inferred pair rankings.
     return withheldEvidence("read_failed");

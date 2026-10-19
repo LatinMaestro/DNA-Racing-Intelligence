@@ -16,7 +16,11 @@ describe("Breeding workspace", () => {
       );
 
       expect(html).toContain(heading);
-      expect(html).toContain("No accepted breeding rankings");
+      expect(html).toContain("Breeding rankings withheld");
+      expect(html).toContain(
+        "Unknown does not mean that no accepted analysis exists",
+      );
+      expect(html).not.toContain("No accepted breeding rankings");
       expect(html).toContain("Breeding execution unavailable");
       expect(html).not.toContain("Recommended pair");
     },
@@ -31,10 +35,24 @@ describe("Breeding workspace", () => {
     );
 
     expect(html).toContain("Breeding read model not connected");
-    expect(html).toContain("No accepted breeding rankings");
+    expect(html).toContain("Breeding rankings withheld");
+    expect(html).not.toContain("No accepted breeding rankings");
     expect(html).toContain("Breeding execution unavailable");
     expect(html).toContain("Gate E not passed");
     expect(html).not.toContain("Recommended pair");
+  });
+
+  it("reserves the empty claim for a verified connected snapshot", () => {
+    const html = renderToStaticMarkup(
+      <BreedingWorkspace
+        connectionStatus="read_model_connected"
+        rankings={[]}
+      />,
+    );
+
+    expect(html).toContain("No accepted breeding rankings");
+    expect(html).toContain("accepted snapshot contains no rankings");
+    expect(html).not.toContain("Breeding rankings withheld");
   });
 
   it("renders separate bound rankings and confirmed offspring rules", () => {
