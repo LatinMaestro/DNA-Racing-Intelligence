@@ -19,6 +19,16 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact private action repository is not configured. No raw history is scanned on this page.",
   },
+  read_failed: {
+    heading: "Lifecycle evidence temporarily unavailable",
+    detail:
+      "The owner-scoped lifecycle read could not be completed. All action rankings are withheld; no cached or inferred recommendation is shown.",
+  },
+  integrity_failed: {
+    heading: "Lifecycle evidence failed validation",
+    detail:
+      "The saved lifecycle snapshot failed accepted-source, version or metric validation. All action rankings remain withheld until the snapshot is repaired.",
+  },
   read_model_connected: {
     heading: "Historical lifecycle evidence connected",
     detail:

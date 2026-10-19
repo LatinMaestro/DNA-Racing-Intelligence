@@ -22,6 +22,8 @@ export type LifecycleRankingRepository =
 export type LifecycleWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type LifecycleWorkspacePageState = Readonly<{
@@ -89,61 +91,70 @@ export async function loadLifecycleWorkspacePageState(
   }
   if (Number.isNaN(input.now.getTime()))
     throw new Error("Lifecycle server time must be valid.");
-  const evidence =
-    await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
-  if (
-    evidence === null ||
-    typeof evidence !== "object" ||
-    !("ranking" in evidence) ||
-    !("latestAcceptedImportAt" in evidence)
-  ) {
-    throw new Error("Lifecycle repository evidence is invalid.");
+  let evidence: LifecycleRankingEvidence;
+  try {
+    evidence =
+      await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
+  } catch {
+    return { ranking: null, connectionStatus: "read_failed" };
   }
-  if (evidence.latestAcceptedImportAt === null) {
-    return { ranking: null, connectionStatus: "read_model_connected" };
-  }
-  const latestAcceptedImportAt = canonicalTimestamp(
-    evidence.latestAcceptedImportAt,
-    "Latest accepted import",
-  );
-  if (Date.parse(latestAcceptedImportAt) > input.now.getTime()) {
-    throw new Error("Latest accepted import cannot be in the future.");
-  }
-  if (evidence.ranking === null) {
-    return { ranking: null, connectionStatus: "read_model_connected" };
-  }
-  const ranking = evidence.ranking;
-  const dataCurrentThrough = canonicalTimestamp(
-    ranking.dataCurrentThrough,
-    "Data current through",
-  );
-  const lastImported = canonicalTimestamp(
-    ranking.lastImported,
-    "Last imported",
-  );
-  const evaluatedAt = canonicalTimestamp(
-    ranking.evaluatedAt,
-    "Evaluation time",
-  );
-  if (lastImported !== latestAcceptedImportAt) {
-    throw new Error(
-      "Lifecycle ranking is not bound to the latest accepted import.",
+  try {
+    if (
+      evidence === null ||
+      typeof evidence !== "object" ||
+      !("ranking" in evidence) ||
+      !("latestAcceptedImportAt" in evidence)
+    ) {
+      throw new Error("Lifecycle repository evidence is invalid.");
+    }
+    if (evidence.latestAcceptedImportAt === null) {
+      return { ranking: null, connectionStatus: "read_model_connected" };
+    }
+    const latestAcceptedImportAt = canonicalTimestamp(
+      evidence.latestAcceptedImportAt,
+      "Latest accepted import",
     );
-  }
-  if (Date.parse(dataCurrentThrough) > Date.parse(lastImported)) {
-    throw new Error("Lifecycle cutoff cannot follow its accepted import.");
-  }
-  if (Date.parse(evaluatedAt) > input.now.getTime()) {
-    throw new Error("Lifecycle evaluation cannot be in the future.");
-  }
-  const freshness = deriveLifecycleFreshness(dataCurrentThrough, input.now);
-  if (ranking.freshness !== freshness) {
-    throw new Error(
-      "Stored lifecycle freshness does not match server-derived freshness.",
+    if (Date.parse(latestAcceptedImportAt) > input.now.getTime()) {
+      throw new Error("Latest accepted import cannot be in the future.");
+    }
+    if (evidence.ranking === null) {
+      return { ranking: null, connectionStatus: "read_model_connected" };
+    }
+    const ranking = evidence.ranking;
+    const dataCurrentThrough = canonicalTimestamp(
+      ranking.dataCurrentThrough,
+      "Data current through",
     );
+    const lastImported = canonicalTimestamp(
+      ranking.lastImported,
+      "Last imported",
+    );
+    const evaluatedAt = canonicalTimestamp(
+      ranking.evaluatedAt,
+      "Evaluation time",
+    );
+    if (lastImported !== latestAcceptedImportAt) {
+      throw new Error(
+        "Lifecycle ranking is not bound to the latest accepted import.",
+      );
+    }
+    if (Date.parse(dataCurrentThrough) > Date.parse(lastImported)) {
+      throw new Error("Lifecycle cutoff cannot follow its accepted import.");
+    }
+    if (Date.parse(evaluatedAt) > input.now.getTime()) {
+      throw new Error("Lifecycle evaluation cannot be in the future.");
+    }
+    const freshness = deriveLifecycleFreshness(dataCurrentThrough, input.now);
+    if (ranking.freshness !== freshness) {
+      throw new Error(
+        "Stored lifecycle freshness does not match server-derived freshness.",
+      );
+    }
+    return {
+      ranking: rankLifecycleActions({ ...ranking, freshness }),
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    return { ranking: null, connectionStatus: "integrity_failed" };
   }
-  return {
-    ranking: rankLifecycleActions({ ...ranking, freshness }),
-    connectionStatus: "read_model_connected",
-  };
 }

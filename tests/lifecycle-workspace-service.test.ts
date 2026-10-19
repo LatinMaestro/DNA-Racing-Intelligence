@@ -99,7 +99,7 @@ describe("Lifecycle workspace service", () => {
     });
   });
 
-  it("rejects future, post-import, stale-label and import-binding inconsistencies", async () => {
+  it("withholds future, post-import, stale-label and import-binding inconsistencies", async () => {
     const cases = [
       repository(ranking(), "2026-07-31T00:00:00.000Z"),
       repository(ranking({ evaluatedAt: "2026-07-31T00:00:00.000Z" })),
@@ -115,11 +115,33 @@ describe("Lifecycle workspace service", () => {
           repository: item,
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        ranking: null,
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 
-  it("rejects malformed repositories, payloads and server time", async () => {
+  it("withholds repository failures without exposing provider details", async () => {
+    await expect(
+      loadLifecycleWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          loadRankingEvidenceByOwner: async () => {
+            throw new Error("private provider detail");
+          },
+        },
+        now,
+      }),
+    ).resolves.toEqual({
+      ranking: null,
+      connectionStatus: "read_failed",
+    });
+  });
+
+  it("rejects malformed repository capabilities and server time", async () => {
     await expect(
       loadLifecycleWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -138,7 +160,10 @@ describe("Lifecycle workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow("evidence is invalid");
+    ).resolves.toEqual({
+      ranking: null,
+      connectionStatus: "integrity_failed",
+    });
     await expect(
       loadLifecycleWorkspacePageState({
         authenticatedOwnerId: "owner",
