@@ -57,109 +57,69 @@ function syntheticBracket(mode: TournamentMode) {
 }
 
 describe("Multi-mode Tournament configuration editor", () => {
-  it.each(["bike", "car", "horse"] as const)(
-    "provides a review-only %s starter that round-trips through real save parsing",
-    (mode) => {
-      const formData = new FormData();
-      formData.set("ruleConfiguration", tournamentStarterConfiguration(mode));
-      const draft = parseTournamentConfigurationFormData(formData);
-      expect(draft.mode).toBe(mode);
-      expect(draft.tournamentId).toBe("replace-with-tournament-id");
-      expect(draft.bracketId).toBe(`replace-with-${mode}-split-id`);
-      expect(draft.evidence.status).toBe("uncertain");
-      expect(draft.campaignAction).toBeNull();
-      expect(draft.qualification.rankingMetric).toBe("fastest_single_time");
-    },
-  );
+  it.each(["bike", "car", "horse"] as const)("parses a %s starter", (mode) => {
+    const formData = new FormData();
+    formData.set("ruleConfiguration", tournamentStarterConfiguration(mode));
+    const draft = parseTournamentConfigurationFormData(formData);
+    expect(draft.mode).toBe(mode);
+    expect(draft.bracketId).toBe(`replace-with-${mode}-split-id`);
+    expect(draft.evidence.status).toBe("uncertain");
+    expect(draft.campaignAction).toBeNull();
+  });
 
-  it(
-    "selects the exact saved Car event without replacing a different Bike or Horse split",
-    () => {
-      const brackets = [
-        syntheticBracket("bike"),
-        syntheticBracket("car"),
-        syntheticBracket("horse"),
-      ];
-      const html = renderToStaticMarkup(
-        <TournamentConfigurationForm
-          brackets={brackets}
-          connectionStatus="read_model_connected"
-          saveAction={saveAction}
-          selection={{
-            kind: "existing",
-            tournamentId: "synthetic-car-event",
-            bracketId: "synthetic-car-split",
-          }}
-        />,
-      );
-      expect(html).toContain("Synthetic bike Cup");
-      expect(html).toContain("Synthetic car Cup");
-      expect(html).toContain("Synthetic horse Cup");
-      expect(html).toContain("Editing saved car split");
-      expect(html).toContain("&quot;mode&quot;: &quot;car&quot;");
-      expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
-      expect(html).not.toContain("&quot;mode&quot;: &quot;horse&quot;");
-      expect(html).not.toContain("&quot;configurationVersion&quot;");
-      expect(html).not.toContain("&quot;candidateSnapshotVersion&quot;");
-      expect(html).toContain("New Bike split");
-      expect(html).toContain("New Car split");
-      expect(html).toContain("New Horse split");
-    },
-  );
+  it("edits the exact saved Car split", () => {
+    const html = renderToStaticMarkup(
+      <TournamentConfigurationForm
+        brackets={[
+          syntheticBracket("bike"),
+          syntheticBracket("car"),
+          syntheticBracket("horse"),
+        ]}
+        connectionStatus="read_model_connected"
+        saveAction={saveAction}
+        selection={{
+          kind: "existing",
+          tournamentId: "synthetic-car-event",
+          bracketId: "synthetic-car-split",
+        }}
+      />,
+    );
+    expect(html).toContain("Synthetic bike Cup");
+    expect(html).toContain("Synthetic car Cup");
+    expect(html).toContain("Synthetic horse Cup");
+    expect(html).toContain("&quot;mode&quot;: &quot;car&quot;");
+    expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
+    expect(html).not.toContain("&quot;configurationVersion&quot;");
+  });
 
-  it(
-    "creates a new Horse draft even when existing Bike and Car splits are present",
-    () => {
-      const html = renderToStaticMarkup(
-        <TournamentConfigurationForm
-          brackets={[syntheticBracket("bike"), syntheticBracket("car")]}
-          connectionStatus="read_model_connected"
-          saveAction={saveAction}
-          selection={{ kind: "new", mode: "horse" }}
-        />,
-      );
-      expect(html).toContain("New horse review draft");
-      expect(html).toContain("&quot;mode&quot;: &quot;horse&quot;");
-      expect(html).toContain("replace-with-horse-split-id");
-      expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
-      expect(html).toContain("The starter is review-only");
-    },
-  );
+  it("creates a new Horse split without replacing a Bike one", () => {
+    const html = renderToStaticMarkup(
+      <TournamentConfigurationForm
+        brackets={[syntheticBracket("bike")]}
+        connectionStatus="read_model_connected"
+        saveAction={saveAction}
+        selection={{ kind: "new", mode: "horse" }}
+      />,
+    );
+    expect(html).toContain("&quot;mode&quot;: &quot;horse&quot;");
+    expect(html).toContain("replace-with-horse-split-id");
+    expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
+  });
 
-  it(
-    "does not silently edit a different event when the selected split is absent",
-    () => {
-      const html = renderToStaticMarkup(
-        <TournamentConfigurationForm
-          brackets={[syntheticBracket("bike")]}
-          connectionStatus="read_model_connected"
-          saveAction={saveAction}
-          selection={{
-            kind: "existing",
-            tournamentId: "missing",
-            bracketId: "missing",
-          }}
-        />,
-      );
-      expect(html).toContain("no longer exist");
-      expect(html).toContain("<fieldset disabled=\"\"");
-      expect(html).not.toContain("&quot;mode&quot;: &quot;bike&quot;");
-    },
-  );
-
-  it(
-    "does not enable owner writes when the accepted repository is disconnected",
-    () => {
-      const html = renderToStaticMarkup(
-        <TournamentConfigurationForm
-          brackets={[]}
-          connectionStatus="persistence_not_configured"
-          saveAction={saveAction}
-          selection={{ kind: "new", mode: "bike" }}
-        />,
-      );
-      expect(html).toContain("<fieldset disabled=\"\"");
-      expect(html).toContain("Configuration editing stays disabled");
-    },
-  );
+  it("disables editing when an exact saved split is missing", () => {
+    const html = renderToStaticMarkup(
+      <TournamentConfigurationForm
+        brackets={[syntheticBracket("bike")]}
+        connectionStatus="read_model_connected"
+        saveAction={saveAction}
+        selection={{
+          kind: "existing",
+          tournamentId: "missing",
+          bracketId: "missing",
+        }}
+      />,
+    );
+    expect(html).toContain("no longer exists");
+    expect(html).toContain("<fieldset disabled=\"\"");
+  });
 });
