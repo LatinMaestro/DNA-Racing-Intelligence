@@ -276,6 +276,22 @@ describe("Breeding workspace service", () => {
     });
   });
 
+  it("does not downgrade a repository owner-scope denial", async () => {
+    await expect(
+      loadBreedingWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          loadRankingEvidenceByOwner: async () => {
+            throw new Error("Breeding repository owner scope denied.");
+          },
+        },
+        now,
+      }),
+    ).rejects.toThrow("owner scope denied");
+  });
+
   it("rejects malformed repositories and server time but withholds malformed evidence", async () => {
     await expect(
       loadBreedingWorkspacePageState({
