@@ -1,5 +1,46 @@
 BEGIN;
 
+-- The aggregate publication and Discovery benchmark schemas have independent
+-- migration workflows. Recreate only the columns consumed by this read
+-- migration when the combined CI job has not applied those older migrations.
+-- On a fully migrated database these statements are no-ops.
+CREATE TABLE IF NOT EXISTS dna.discovery_exact_distance_benchmark (
+  owner_id uuid NOT NULL,
+  mode text NOT NULL,
+  distance integer NOT NULL,
+  data_current_through timestamptz NOT NULL,
+  race_entry_count bigint NOT NULL,
+  winning_entry_count bigint NOT NULL,
+  top_three_entry_count bigint NOT NULL,
+  winning_p25_milliseconds numeric NOT NULL,
+  winning_median_milliseconds numeric NOT NULL,
+  winning_p75_milliseconds numeric NOT NULL,
+  top_three_p25_milliseconds numeric NOT NULL,
+  top_three_median_milliseconds numeric NOT NULL,
+  top_three_p75_milliseconds numeric NOT NULL,
+  refreshed_at timestamptz NOT NULL,
+  PRIMARY KEY (owner_id, mode, distance)
+);
+
+CREATE TABLE IF NOT EXISTS dna.race_archive_aggregate_publication_receipt (
+  owner_id uuid NOT NULL,
+  refresh_id uuid NOT NULL,
+  target_dataset_version_id uuid NOT NULL,
+  race_dataset_version_id uuid NOT NULL,
+  source_version_set_sha256 character(64) NOT NULL,
+  payload_sha256 character(64) NOT NULL,
+  core_performance_profile_count bigint NOT NULL,
+  validated_event_count bigint NOT NULL,
+  core_star_profile_count bigint NOT NULL,
+  discovery_benchmark_count bigint NOT NULL,
+  accepted_format_entry_count bigint NOT NULL,
+  payout_format_profile_count bigint NOT NULL,
+  materialized_row_count bigint NOT NULL,
+  refreshed_at timestamptz NOT NULL,
+  published_at timestamptz NOT NULL,
+  PRIMARY KEY (owner_id, refresh_id)
+);
+
 INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
   ('a1450000-0000-4000-8000-000000000001', 'smoke_discovery_publication_owner'),
   ('a1450000-0000-4000-8000-000000000002', 'smoke_discovery_publication_other');
