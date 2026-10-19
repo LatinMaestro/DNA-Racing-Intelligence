@@ -13,6 +13,7 @@ export type ReadinessAssessmentRepository =
           assessment: PrivateProductionReadinessInput | null;
           acceptedAssessmentVersion: string | null;
           publishedAt: string | null;
+          snapshotSha256: string | null;
         }>
       >;
     }>;
@@ -27,10 +28,12 @@ export type ReadinessWorkspaceConnectionStatus =
 export type ReadinessWorkspacePageState = Readonly<{
   assessmentId: string | null;
   assessmentVersion: string | null;
+  assessmentSnapshotSha256: string | null;
   assessedAt: string | null;
   evidenceCurrentThrough: string | null;
   evidenceFreshness: "current" | "ageing" | "stale" | null;
   exactHeadSha: string | null;
+  publishedAt: string | null;
   readiness: PrivateProductionReadiness | null;
   connectionStatus: ReadinessWorkspaceConnectionStatus;
 }>;
@@ -84,10 +87,12 @@ function emptyState(connectionStatus: ReadinessWorkspaceConnectionStatus) {
   return {
     assessmentId: null,
     assessmentVersion: null,
+    assessmentSnapshotSha256: null,
     assessedAt: null,
     evidenceCurrentThrough: null,
     evidenceFreshness: null,
     exactHeadSha: null,
+    publishedAt: null,
     readiness: null,
     connectionStatus,
   } as const;
@@ -182,6 +187,13 @@ export async function loadReadinessWorkspacePageState(
       envelope.publishedAt,
       "Assessment publication time",
     );
+    const assessmentSnapshotSha256 = required(
+      envelope.snapshotSha256,
+      "Assessment snapshot SHA-256",
+    );
+    if (!/^[0-9a-f]{64}$/.test(assessmentSnapshotSha256)) {
+      throw new Error("Assessment snapshot SHA-256 is invalid.");
+    }
     if (
       evidenceCurrentThrough > assessedAt ||
       assessedAt > publishedAt ||
@@ -211,10 +223,12 @@ export async function loadReadinessWorkspacePageState(
     return {
       assessmentId: assessment.assessmentId,
       assessmentVersion,
+      assessmentSnapshotSha256,
       assessedAt,
       evidenceCurrentThrough,
       evidenceFreshness,
       exactHeadSha: expectedHeadSha,
+      publishedAt,
       readiness,
       connectionStatus: "read_model_connected",
     };

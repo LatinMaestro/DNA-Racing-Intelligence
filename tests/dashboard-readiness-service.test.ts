@@ -36,6 +36,7 @@ const assessment: PrivateProductionReadinessInput = {
 };
 
 const now = new Date("2026-10-18T01:00:00.000Z");
+const snapshotSha256 = "b".repeat(64);
 
 describe("Dashboard readiness service", () => {
   it("fails closed before a verified owner or configured repository", async () => {
@@ -87,6 +88,7 @@ describe("Dashboard readiness service", () => {
             assessment,
             acceptedAssessmentVersion: assessment.assessmentVersion,
             publishedAt: "2026-10-18T00:45:00.000Z",
+            snapshotSha256,
           }),
         },
         expectedHeadSha: assessment.exactHeadSha,
@@ -95,6 +97,10 @@ describe("Dashboard readiness service", () => {
     ).resolves.toMatchObject({
       connectionStatus: "assessment_connected",
       exactHeadSha: assessment.exactHeadSha,
+      assessmentId: assessment.assessmentId,
+      assessmentVersion: assessment.assessmentVersion,
+      assessmentSnapshotSha256: snapshotSha256,
+      publishedAt: "2026-10-18T00:45:00.000Z",
       evidenceFreshness: "current",
       readiness: {
         activationAuthorized: false,
@@ -119,6 +125,7 @@ describe("Dashboard readiness service", () => {
             assessment: null,
             acceptedAssessmentVersion: null,
             publishedAt: null,
+            snapshotSha256: null,
           }),
         },
       }),
@@ -135,7 +142,11 @@ describe("Dashboard readiness service", () => {
       }),
     ).resolves.toEqual({
       connectionStatus: "assessment_read_failed",
+      assessmentId: null,
+      assessmentVersion: null,
+      assessmentSnapshotSha256: null,
       exactHeadSha: null,
+      publishedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
       readiness: null,
@@ -152,12 +163,17 @@ describe("Dashboard readiness service", () => {
             },
             acceptedAssessmentVersion: assessment.assessmentVersion,
             publishedAt: "2026-10-18T00:45:00.000Z",
+            snapshotSha256,
           }),
         },
       }),
     ).resolves.toEqual({
       connectionStatus: "assessment_integrity_failed",
+      assessmentId: null,
+      assessmentVersion: null,
+      assessmentSnapshotSha256: null,
       exactHeadSha: null,
+      publishedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
       readiness: null,

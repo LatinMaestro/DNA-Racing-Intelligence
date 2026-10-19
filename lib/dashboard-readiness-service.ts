@@ -14,7 +14,11 @@ export type DashboardReadinessConnectionStatus =
 
 export type DashboardReadinessPageState = Readonly<{
   connectionStatus: DashboardReadinessConnectionStatus;
+  assessmentId: string | null;
+  assessmentVersion: string | null;
+  assessmentSnapshotSha256: string | null;
   exactHeadSha: string | null;
+  publishedAt: string | null;
   evidenceCurrentThrough: string | null;
   evidenceFreshness: "current" | "ageing" | "stale" | null;
   readiness: PrivateProductionReadiness | null;
@@ -33,7 +37,11 @@ function emptyState(
 ): DashboardReadinessPageState {
   return {
     connectionStatus,
+    assessmentId: null,
+    assessmentVersion: null,
+    assessmentSnapshotSha256: null,
     exactHeadSha: null,
+    publishedAt: null,
     evidenceCurrentThrough: null,
     evidenceFreshness: null,
     readiness: null,
@@ -74,7 +82,11 @@ export async function loadDashboardReadinessPageState(
   }
   return {
     connectionStatus: "assessment_connected",
+    assessmentId: state.assessmentId,
+    assessmentVersion: state.assessmentVersion,
+    assessmentSnapshotSha256: state.assessmentSnapshotSha256,
     exactHeadSha: state.exactHeadSha,
+    publishedAt: state.publishedAt,
     evidenceCurrentThrough: state.evidenceCurrentThrough,
     evidenceFreshness: state.evidenceFreshness,
     readiness: state.readiness,

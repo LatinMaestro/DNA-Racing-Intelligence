@@ -81,7 +81,7 @@ export function DashboardReadinessStatus({
         </span>
       </div>
 
-      <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
         <div>
           <dt className="text-[var(--muted)]">Overall state</dt>
           <dd className="mt-1 font-semibold">
@@ -112,11 +112,28 @@ export function DashboardReadinessStatus({
               : `${checkCounts.pass} pass · ${checkCounts.review} review · ${checkCounts.block} block`}
           </dd>
         </div>
+        <div>
+          <dt className="text-[var(--muted)]">Accepted assessment</dt>
+          <dd className="mt-1 break-all font-semibold">
+            {state.assessmentId === null
+              ? "Not available"
+              : `${state.assessmentId} · ${state.assessmentVersion}`}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--muted)]">Published</dt>
+          <dd className="mt-1 font-semibold">{timestamp(state.publishedAt)}</dd>
+        </div>
       </dl>
 
       {state.exactHeadSha === null ? null : (
         <p className="mt-4 break-all font-mono text-xs text-[var(--muted)]">
           Exact assessed head: {state.exactHeadSha}
+        </p>
+      )}
+      {state.assessmentSnapshotSha256 === null ? null : (
+        <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+          Accepted snapshot SHA-256: {state.assessmentSnapshotSha256}
         </p>
       )}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">

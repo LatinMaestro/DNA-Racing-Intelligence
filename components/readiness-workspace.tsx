@@ -110,9 +110,11 @@ const horseScreeningStatusCopy = {
 
 export function ReadinessWorkspace({
   assessmentId,
+  assessmentSnapshotSha256,
   assessedAt,
   assessmentVersion,
   exactHeadSha,
+  publishedAt,
   evidenceCurrentThrough,
   evidenceFreshness,
   readiness,
@@ -120,9 +122,11 @@ export function ReadinessWorkspace({
   horseScreeningState,
 }: Readonly<{
   assessmentId: string | null;
+  assessmentSnapshotSha256: string | null;
   assessedAt: string | null;
   assessmentVersion: string | null;
   exactHeadSha: string | null;
+  publishedAt: string | null;
   evidenceCurrentThrough: string | null;
   evidenceFreshness: "current" | "ageing" | "stale" | null;
   readiness: PrivateProductionReadiness | null;
@@ -237,6 +241,12 @@ export function ReadinessWorkspace({
                 Evidence current through {evidenceCurrentThrough} ·{" "}
                 {label(evidenceFreshness ?? "unknown")} · Assessed{" "}
                 {assessedAt ?? "Not available"}
+              </p>
+            )}
+            {assessmentSnapshotSha256 === null ? null : (
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Accepted snapshot SHA-256: {assessmentSnapshotSha256}
+                {publishedAt === null ? "" : ` · Published ${publishedAt}`}
               </p>
             )}
           </div>
