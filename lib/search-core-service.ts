@@ -1,5 +1,8 @@
 import type { CorePerformanceProfile } from "@/domain/core-performance";
-import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
+import type {
+  CorePerformanceProfileRepository,
+  CorePerformancePublication,
+} from "./core-intelligence-workspace-service";
 import { loadCoreIntelligencePageState } from "./core-intelligence-workspace-service";
 import type {
   OwnerVaultCatalogueCore,
@@ -21,6 +24,7 @@ export type SearchCorePageState = Readonly<{
   performanceStatus: "not_connected" | "connected";
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
+  performancePublication?: CorePerformancePublication | null;
   archiveHistoryStatus:
     "not_connected" | "missing" | "connected" | "unavailable";
   archiveHistoryVersionCount: number;
@@ -282,6 +286,9 @@ export async function loadSearchCorePageState(
       (profile) => profile.coreId === selectedCore.sourceCoreId,
     ),
     performanceLastImportedAt: performance.lastImportedAt,
+    ...(performance.publication
+      ? { performancePublication: performance.publication }
+      : {}),
     ...archived,
   };
 }

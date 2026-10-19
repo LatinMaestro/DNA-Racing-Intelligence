@@ -120,6 +120,15 @@ describe("Core Intelligence workspace service", () => {
         return {
           profiles: [{ ...profile, coreId: " synthetic-core " }],
           lastImportedAt: "2026-07-23T01:00:00.000Z",
+          publication: {
+            refreshId: "22222222-2222-4222-8222-222222222222",
+            raceDatasetVersionId: "33333333-3333-4333-8333-333333333333",
+            sourceVersionSetSha256: "b".repeat(64),
+            payloadSha256: "c".repeat(64),
+            profileCount: 1,
+            refreshedAt: "2026-07-23T00:30:00.000Z",
+            publishedAt: "2026-07-23T00:31:00.000Z",
+          },
         };
       }),
     };
@@ -134,6 +143,15 @@ describe("Core Intelligence workspace service", () => {
     ).resolves.toEqual({
       profiles: [profile],
       lastImportedAt: "2026-07-23T01:00:00.000Z",
+      publication: {
+        refreshId: "22222222-2222-4222-8222-222222222222",
+        raceDatasetVersionId: "33333333-3333-4333-8333-333333333333",
+        sourceVersionSetSha256: "b".repeat(64),
+        payloadSha256: "c".repeat(64),
+        profileCount: 1,
+        refreshedAt: "2026-07-23T00:30:00.000Z",
+        publishedAt: "2026-07-23T00:31:00.000Z",
+      },
       connectionStatus: "read_model_connected",
       esportsProfiles: [],
       esportsLastSyncedAt: null,

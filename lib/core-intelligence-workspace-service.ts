@@ -11,9 +11,20 @@ import {
 import { deriveFreshness } from "@/domain/freshness";
 import type { CoreStarProfile, CountRatio } from "@/domain/star-signals";
 
+export type CorePerformancePublication = Readonly<{
+  refreshId: string;
+  raceDatasetVersionId: string;
+  sourceVersionSetSha256: string;
+  payloadSha256: string;
+  profileCount: number;
+  refreshedAt: string;
+  publishedAt: string;
+}>;
+
 type CorePerformanceProjection = Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
+  publication?: CorePerformancePublication | null;
 }>;
 
 type CoreEsportsProjection = Readonly<{
@@ -55,6 +66,7 @@ export type CoreIntelligencePageState = Readonly<{
   profiles: readonly CorePerformanceProfile[];
   lastImportedAt: string | null;
   connectionStatus: CoreIntelligenceConnectionStatus;
+  publication?: CorePerformancePublication | null;
   esportsProfiles: readonly CoreEsportsPerformanceProfile[];
   esportsLastSyncedAt: string | null;
   esportsConnectionStatus: CoreEsportsConnectionStatus;
@@ -67,6 +79,8 @@ export const unavailableCoreEsportsRaceRepository: CoreEsportsRaceRepository =
   Object.freeze({ status: "not_configured" });
 
 const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function object(value: unknown, field: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -91,6 +105,20 @@ function safeIdentifier(value: unknown, field: string): string {
     throw new Error(`Invalid Core Intelligence ${field}.`);
   }
   return normalized;
+}
+
+function uuid(value: unknown, field: string): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
+    throw new Error(`Invalid Core Intelligence ${field}.`);
+  }
+  return value;
+}
+
+function sha256(value: unknown, field: string): string {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error(`Invalid Core Intelligence ${field}.`);
+  }
+  return value;
 }
 
 function canonicalTimestamp(value: unknown, field: string): string {
@@ -399,6 +427,10 @@ function normalizeProjection(
         left.mode.localeCompare(right.mode) ||
         left.distance - right.distance,
     );
+  const publication =
+    projection.publication === undefined || projection.publication === null
+      ? null
+      : normalizePublication(projection.publication, profiles.length);
 
   if (profiles.length > 0 && lastImportedAt === null) {
     throw new Error("Invalid Core Intelligence import timestamp.");
@@ -425,7 +457,50 @@ function normalizeProjection(
     }
     profileKeys.add(key);
   }
-  return { profiles, lastImportedAt };
+  return publication === null
+    ? { profiles, lastImportedAt }
+    : { profiles, lastImportedAt, publication };
+}
+
+function normalizePublication(
+  value: unknown,
+  profileCount: number,
+): CorePerformancePublication {
+  const publication = object(value, "publication");
+  const normalized = {
+    refreshId: uuid(publication.refreshId, "publication refresh ID"),
+    raceDatasetVersionId: uuid(
+      publication.raceDatasetVersionId,
+      "publication race dataset version ID",
+    ),
+    sourceVersionSetSha256: sha256(
+      publication.sourceVersionSetSha256,
+      "publication source version digest",
+    ),
+    payloadSha256: sha256(
+      publication.payloadSha256,
+      "publication payload digest",
+    ),
+    profileCount: nonNegativeSafeInteger(
+      publication.profileCount,
+      "publication profile count",
+    ),
+    refreshedAt: canonicalTimestamp(
+      publication.refreshedAt,
+      "publication refresh timestamp",
+    ),
+    publishedAt: canonicalTimestamp(
+      publication.publishedAt,
+      "publication timestamp",
+    ),
+  };
+  if (
+    normalized.profileCount < profileCount ||
+    Date.parse(normalized.publishedAt) < Date.parse(normalized.refreshedAt)
+  ) {
+    throw new Error("Invalid Core Intelligence publication.");
+  }
+  return normalized;
 }
 
 export async function loadCoreIntelligencePageState(

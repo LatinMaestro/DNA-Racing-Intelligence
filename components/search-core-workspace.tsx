@@ -521,6 +521,13 @@ export function SearchCoreWorkspace({
               . Each profile keeps its own source cutoff and sample. Modes and
               exact distances are never pooled.
             </p>
+            {state.performancePublication ? (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Accepted race dataset{" "}
+                {state.performancePublication.raceDatasetVersionId} · payload{" "}
+                {state.performancePublication.payloadSha256.slice(0, 12)}…
+              </p>
+            ) : null}
             {state.performanceStatus !== "connected" ? (
               <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
                 Historical performance profiles are not configured for this

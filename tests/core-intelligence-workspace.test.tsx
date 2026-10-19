@@ -93,6 +93,15 @@ describe("Core Intelligence historical workspace", () => {
       <CoreIntelligenceWorkspace
         connectionStatus="read_model_connected"
         lastImportedAt="2026-07-20T01:00:00Z"
+        publication={{
+          refreshId: "22222222-2222-4222-8222-222222222222",
+          raceDatasetVersionId: "33333333-3333-4333-8333-333333333333",
+          sourceVersionSetSha256: "b".repeat(64),
+          payloadSha256: "c".repeat(64),
+          profileCount: profiles.length,
+          refreshedAt: "2026-07-20T00:30:00.000Z",
+          publishedAt: "2026-07-20T00:31:00.000Z",
+        }}
         profiles={profiles}
         selectedEvidenceView="normal"
       />,
@@ -113,6 +122,9 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("Yellow-eligible races (source Gold)");
     expect(html).toContain("Normal-racing exact-distance profiles");
     expect(html).toContain("Historical snapshot · Last imported");
+    expect(html).toContain("Accepted aggregate publication");
+    expect(html).toContain("33333333-3333-4333-8333-333333333333");
+    expect(html).toContain("cccccccccccc…");
     expect(html).not.toContain("Historical profile read model connected");
     expect(html).not.toContain("Experimental evidence boundary");
     expect(html).not.toContain("Historical snapshot coverage boundary");
