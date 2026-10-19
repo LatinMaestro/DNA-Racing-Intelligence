@@ -264,7 +264,10 @@ describe("Open Race prediction page service", () => {
           },
           sessions: [session],
         }),
-      ).resolves.toEqual({ connectionStatus: "integrity_failed", evidence: [] });
+      ).resolves.toEqual({
+        connectionStatus: "integrity_failed",
+        evidence: [],
+      });
     },
   );
 });
