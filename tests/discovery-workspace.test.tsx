@@ -77,6 +77,15 @@ describe("Discovery workspace", () => {
         candidates={candidates}
         connectionStatus="read_model_connected"
         lastImportedAt="2026-07-20T01:00:00.000Z"
+        publication={{
+          refreshId: "a1450000-0000-4000-8000-000000000030",
+          raceDatasetVersionId: "a1450000-0000-4000-8000-000000000020",
+          sourceVersionSetSha256: "b".repeat(64),
+          payloadSha256: "c".repeat(64),
+          benchmarkCount: 1,
+          refreshedAt: "2026-07-20T01:00:00.000Z",
+          publishedAt: "2026-07-20T02:00:00.000Z",
+        }}
       />,
     );
 
@@ -111,6 +120,15 @@ describe("Discovery workspace", () => {
     expect(html).toContain("Tournament relevance");
     expect(html).toContain("Maiden Commitment Review Required");
     expect(html).toContain("Owned-core Discovery planner connected");
+    expect(html).toContain("Accepted refresh");
+    expect(html).toContain("a1450000-0000-4000-8000-000000000030");
+    expect(html).toContain("Race dataset version");
+    expect(html).toContain("a1450000-0000-4000-8000-000000000020");
+    expect(html).toContain("Benchmarks accepted");
+    expect(html).toContain("Accepted aggregate payload SHA-256");
+    expect(html).toContain("c".repeat(64));
+    expect(html).toContain("Accepted source-version SHA-256");
+    expect(html).toContain("b".repeat(64));
   });
 
   it.each([

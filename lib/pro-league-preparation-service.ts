@@ -105,7 +105,7 @@ export function createProLeaguePreparationRepository(input: {
           payoutFormats.listProfilesByOwner(ownerId),
         ]);
       const benchmarkByModeDistance = new Map(
-        benchmarkEvidence.map((benchmark) => [
+        benchmarkEvidence.benchmarks.map((benchmark) => [
           benchmarkKey(benchmark.mode, benchmark.distanceMetres),
           benchmark,
         ]),

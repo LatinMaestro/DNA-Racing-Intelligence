@@ -43,17 +43,28 @@ const benchmark: DiscoveryExactDistanceBenchmarkEvidence = {
   topThreeP75Milliseconds: 54_000,
   refreshedAt: "2026-07-20T01:00:00.000Z",
 };
+const publication = {
+  refreshId: "a1450000-0000-4000-8000-000000000030",
+  raceDatasetVersionId: "a1450000-0000-4000-8000-000000000020",
+  sourceVersionSetSha256: "b".repeat(64),
+  payloadSha256: "c".repeat(64),
+  benchmarkCount: 1,
+  refreshedAt: "2026-07-20T01:00:00.000Z",
+  publishedAt: "2026-07-20T02:00:00.000Z",
+};
 
 function evidence(
   overrides: Partial<{
     candidates: readonly DiscoveryProbeCandidateInput[];
     benchmarks: readonly DiscoveryExactDistanceBenchmarkEvidence[];
+    publication: typeof publication | null;
     lastImportedAt: string | null;
   }> = {},
 ) {
   return {
     candidates: [candidate],
     benchmarks: [benchmark],
+    publication,
     lastImportedAt: "2026-07-20T01:00:00.000Z",
     ...overrides,
   };
@@ -71,6 +82,7 @@ describe("Discovery workspace service", () => {
     ).resolves.toEqual({
       candidates: [],
       lastImportedAt: null,
+      publication: null,
       connectionStatus: "identity_not_connected",
     });
     await expect(
@@ -83,6 +95,7 @@ describe("Discovery workspace service", () => {
     ).resolves.toEqual({
       candidates: [],
       lastImportedAt: null,
+      publication: null,
       connectionStatus: "persistence_not_configured",
     });
   });
@@ -117,6 +130,7 @@ describe("Discovery workspace service", () => {
     ).resolves.toMatchObject({
       connectionStatus: "read_model_connected",
       lastImportedAt: "2026-07-20T01:00:00.000Z",
+      publication,
       candidates: [
         {
           coreId: "synthetic-core",
@@ -219,6 +233,11 @@ describe("Discovery workspace service", () => {
         ],
       }),
       evidence({ lastImportedAt: "2026-07-22T00:00:00.000Z" }),
+      evidence({ publication: null }),
+      evidence({ publication: { ...publication, payloadSha256: "invalid" } }),
+      evidence({
+        publication: { ...publication, benchmarkCount: 2 },
+      }),
       { candidates: [candidate], lastImportedAt: null } as never,
     ];
 
@@ -288,7 +307,10 @@ describe("Discovery workspace service", () => {
       },
       benchmarkRepository: {
         status: "ready",
-        listBenchmarksByOwner: async () => [],
+        listBenchmarksByOwner: async () => ({
+          benchmarks: [],
+          publication: null,
+        }),
       },
       tournamentRepository: {
         status: "ready",
@@ -420,7 +442,10 @@ describe("Discovery workspace service", () => {
       },
       benchmarkRepository: {
         status: "ready",
-        listBenchmarksByOwner: async () => [],
+        listBenchmarksByOwner: async () => ({
+          benchmarks: [],
+          publication: null,
+        }),
       },
       tournamentRepository: { status: "not_configured" },
     });

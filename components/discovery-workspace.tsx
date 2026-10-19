@@ -1,5 +1,6 @@
 import type { DiscoveryDecisionCandidate } from "@/domain/discovery-decision-guidance";
 import type { DiscoveryWorkspaceConnectionStatus } from "@/lib/discovery-workspace-service";
+import type { DiscoveryBenchmarkPublication } from "@/lib/neon-discovery-benchmark-repository";
 import {
   DiscoveryStudyWorkspace,
   type DiscoveryStudyFilters,
@@ -134,6 +135,7 @@ function decisionReasonSummary(candidate: DiscoveryDecisionCandidate): string {
 export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
+  publication = null,
   connectionStatus,
   study = null,
   studyFilters = {
@@ -148,6 +150,7 @@ export function DiscoveryWorkspace({
 }: Readonly<{
   candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
+  publication?: DiscoveryBenchmarkPublication | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
   study?: DiscoveryStudyView | null;
   studyFilters?: DiscoveryStudyFilters;
@@ -181,6 +184,50 @@ export function DiscoveryWorkspace({
         <p className="mt-3 max-w-4xl leading-7 text-[var(--muted)]">
           {connection.detail}
         </p>
+        {connectionStatus === "read_model_connected" && publication !== null ? (
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--muted)]">Accepted refresh</dt>
+              <dd className="mt-1 break-all font-mono">
+                {publication.refreshId}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Race dataset version</dt>
+              <dd className="mt-1 break-all font-mono">
+                {publication.raceDatasetVersionId}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Benchmarks accepted</dt>
+              <dd className="mt-1 font-semibold">
+                {publication.benchmarkCount.toLocaleString("en-AU")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Published</dt>
+              <dd className="mt-1 font-semibold">
+                {timestamp(publication.publishedAt)}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[var(--muted)]">
+                Accepted aggregate payload SHA-256
+              </dt>
+              <dd className="mt-1 break-all font-mono">
+                {publication.payloadSha256}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[var(--muted)]">
+                Accepted source-version SHA-256
+              </dt>
+              <dd className="mt-1 break-all font-mono">
+                {publication.sourceVersionSetSha256}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
       </section>
 
       <section aria-labelledby="discovery-plan">

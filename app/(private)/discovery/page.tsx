@@ -101,6 +101,7 @@ export default async function DiscoveryPage({
       candidates={state.candidates}
       connectionStatus={state.connectionStatus}
       lastImportedAt={state.lastImportedAt}
+      publication={state.publication}
       studyFilters={filters}
     />
   );
