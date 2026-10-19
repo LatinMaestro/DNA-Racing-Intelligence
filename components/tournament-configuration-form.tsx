@@ -111,7 +111,9 @@ export function TournamentConfigurationForm({
   saveAction: SaveAction;
   selection?: TournamentEditorSelection;
 }>) {
-  const creating = selection?.kind === "new" || (selection === null && brackets.length === 0);
+  const creating =
+    selection?.kind === "new" ||
+    (selection === null && brackets.length === 0);
   const creationMode = selection?.kind === "new" ? selection.mode : "bike";
   const selectedBracket =
     selection?.kind === "new"
@@ -122,8 +124,9 @@ export function TournamentConfigurationForm({
               bracket.tournamentId === selection.tournamentId &&
               bracket.bracketId === selection.bracketId,
           )
-        : (brackets.find((bracket) => bracket.ruleConfiguration !== undefined) ??
-          brackets[0]);
+        : (brackets.find(
+            (bracket) => bracket.ruleConfiguration !== undefined,
+          ) ?? brackets[0]);
   const missingSelection =
     selection?.kind === "existing" && selectedBracket === undefined;
   const existingConfiguration = selectedBracket?.ruleConfiguration;
@@ -133,7 +136,10 @@ export function TournamentConfigurationForm({
     ? `new-${creationMode}`
     : selectedBracket === undefined
       ? "no-current-split"
-      : JSON.stringify([selectedBracket.tournamentId, selectedBracket.bracketId]);
+      : JSON.stringify([
+          selectedBracket.tournamentId,
+          selectedBracket.bracketId,
+        ]);
   const editorValue = creating
     ? tournamentStarterConfiguration(creationMode)
     : existingConfiguration === undefined
@@ -187,7 +193,10 @@ export function TournamentConfigurationForm({
                     bracket.tournamentId,
                     bracket.bracketId,
                   )}
-                  key={JSON.stringify([bracket.tournamentId, bracket.bracketId])}
+                  key={JSON.stringify([
+                    bracket.tournamentId,
+                    bracket.bracketId,
+                  ])}
                 >
                   {bracket.tournamentLabel} — {bracket.splitLabel} (
                   {bracket.mode})
@@ -200,7 +209,9 @@ export function TournamentConfigurationForm({
         <div className="flex flex-wrap gap-2">
           {tournamentModes.map((mode) => (
             <Link
-              aria-current={creating && creationMode === mode ? "page" : undefined}
+              aria-current={
+                creating && creationMode === mode ? "page" : undefined
+              }
               className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:underline"
               href={`/tournaments?create=${mode}`}
               key={mode}
