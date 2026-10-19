@@ -16,6 +16,8 @@ export type ImportBatchRepository =
 export type ImportWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type ImportWorkspacePageState = Readonly<{
@@ -51,17 +53,47 @@ export async function loadImportWorkspacePageState(
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Import workspace access denied.");
   }
+  if (
+    typeof input.repository !== "object" ||
+    input.repository === null ||
+    !["not_configured", "ready"].includes(input.repository.status)
+  ) {
+    throw new Error("Import repository status is invalid.");
+  }
   if (input.repository.status === "not_configured") {
     return {
       workspace: buildImportWorkspace([], input.now),
       connectionStatus: "persistence_not_configured",
     };
   }
+  if (typeof input.repository.listBatchesByOwner !== "function") {
+    throw new Error("Import repository is invalid.");
+  }
 
-  const batches =
-    await input.repository.listBatchesByOwner(authenticatedOwnerId);
-  return {
-    workspace: buildImportWorkspace(batches, input.now),
-    connectionStatus: "read_model_connected",
-  };
+  let batches: readonly PrivateImportBatch[];
+  try {
+    batches = await input.repository.listBatchesByOwner(authenticatedOwnerId);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /(access denied|owner scope denied)/i.test(error.message)
+    ) {
+      throw error;
+    }
+    return {
+      workspace: buildImportWorkspace([], input.now),
+      connectionStatus: "read_failed",
+    };
+  }
+  try {
+    return {
+      workspace: buildImportWorkspace(batches, input.now),
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    return {
+      workspace: buildImportWorkspace([], input.now),
+      connectionStatus: "integrity_failed",
+    };
+  }
 }
