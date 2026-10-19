@@ -16,6 +16,7 @@ describe("Dashboard readiness status", () => {
           publishedAt: null,
           evidenceCurrentThrough: null,
           evidenceFreshness: null,
+          moduleBoundarySummary: null,
           readiness: null,
         }}
       />,
@@ -41,6 +42,7 @@ describe("Dashboard readiness status", () => {
           publishedAt: null,
           evidenceCurrentThrough: null,
           evidenceFreshness: null,
+          moduleBoundarySummary: null,
           readiness: null,
         }}
       />,
@@ -65,6 +67,13 @@ describe("Dashboard readiness status", () => {
           publishedAt: "2026-10-19T01:30:00.000Z",
           evidenceCurrentThrough: "2026-10-19T01:00:00.000Z",
           evidenceFreshness: "current",
+          moduleBoundarySummary: {
+            total: 23,
+            notVerified: 17,
+            fixtureVerified: 4,
+            connectedVerified: 1,
+            failed: 1,
+          },
           readiness: null,
         }}
       />,
@@ -73,5 +82,10 @@ describe("Dashboard readiness status", () => {
     expect(markup).toContain("readiness-accepted-1 · readiness-v3");
     expect(markup).toContain("2026-10-19 01:30:00 UTC");
     expect(markup).toContain(`Accepted snapshot SHA-256: ${"b".repeat(64)}`);
+    expect(markup).toContain(
+      "1 connected · 4 fixture · 17 unverified · 1 failed",
+    );
+    expect(markup).toContain("23 boundaries tracked");
+    expect(markup).toContain("Fixture verification");
   });
 });

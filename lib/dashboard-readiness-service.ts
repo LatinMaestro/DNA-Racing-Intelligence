@@ -21,6 +21,13 @@ export type DashboardReadinessPageState = Readonly<{
   publishedAt: string | null;
   evidenceCurrentThrough: string | null;
   evidenceFreshness: "current" | "ageing" | "stale" | null;
+  moduleBoundarySummary: Readonly<{
+    total: number;
+    notVerified: number;
+    fixtureVerified: number;
+    connectedVerified: number;
+    failed: number;
+  }> | null;
   readiness: PrivateProductionReadiness | null;
 }>;
 
@@ -44,8 +51,33 @@ function emptyState(
     publishedAt: null,
     evidenceCurrentThrough: null,
     evidenceFreshness: null,
+    moduleBoundarySummary: null,
     readiness: null,
   };
+}
+
+function summarizeModuleBoundaries(
+  readiness: PrivateProductionReadiness,
+): NonNullable<DashboardReadinessPageState["moduleBoundarySummary"]> {
+  const summary = {
+    total: 0,
+    notVerified: 0,
+    fixtureVerified: 0,
+    connectedVerified: 0,
+    failed: 0,
+  };
+
+  for (const moduleBoundaries of Object.values(readiness.moduleBoundaries)) {
+    for (const state of Object.values(moduleBoundaries)) {
+      summary.total += 1;
+      if (state === "not_verified") summary.notVerified += 1;
+      if (state === "fixture_verified") summary.fixtureVerified += 1;
+      if (state === "connected_verified") summary.connectedVerified += 1;
+      if (state === "failed") summary.failed += 1;
+    }
+  }
+
+  return summary;
 }
 
 export async function loadDashboardReadinessPageState(
@@ -89,6 +121,7 @@ export async function loadDashboardReadinessPageState(
     publishedAt: state.publishedAt,
     evidenceCurrentThrough: state.evidenceCurrentThrough,
     evidenceFreshness: state.evidenceFreshness,
+    moduleBoundarySummary: summarizeModuleBoundaries(state.readiness),
     readiness: state.readiness,
   };
 }

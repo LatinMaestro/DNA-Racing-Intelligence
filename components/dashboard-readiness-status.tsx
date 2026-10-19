@@ -113,6 +113,14 @@ export function DashboardReadinessStatus({
           </dd>
         </div>
         <div>
+          <dt className="text-[var(--muted)]">Module boundaries</dt>
+          <dd className="mt-1 font-semibold">
+            {state.moduleBoundarySummary === null
+              ? "Not available"
+              : `${state.moduleBoundarySummary.connectedVerified} connected · ${state.moduleBoundarySummary.fixtureVerified} fixture · ${state.moduleBoundarySummary.notVerified} unverified · ${state.moduleBoundarySummary.failed} failed`}
+          </dd>
+        </div>
+        <div>
           <dt className="text-[var(--muted)]">Accepted assessment</dt>
           <dd className="mt-1 break-all font-semibold">
             {state.assessmentId === null
@@ -134,6 +142,13 @@ export function DashboardReadinessStatus({
       {state.assessmentSnapshotSha256 === null ? null : (
         <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
           Accepted snapshot SHA-256: {state.assessmentSnapshotSha256}
+        </p>
+      )}
+      {state.moduleBoundarySummary === null ? null : (
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
+          Connected means bounded owner-data acceptance. Fixture verification
+          records offline code evidence only (
+          {state.moduleBoundarySummary.total} boundaries tracked).
         </p>
       )}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">

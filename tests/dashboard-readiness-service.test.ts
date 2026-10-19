@@ -24,6 +24,29 @@ const assessment: PrivateProductionReadinessInput = {
   performanceCapacity: "not_run",
   securityPrivacy: "not_run",
   accessibilityResponsive: "not_run",
+  moduleBoundaries: {
+    dashboardReadiness: {
+      aggregateReadModel: "connected_verified",
+      freshnessUi: "fixture_verified",
+    },
+    vaultCoreSearch: {
+      ownedCoreReadModel: "fixture_verified",
+      exactFormatHistoryUi: "not_verified",
+    },
+    vaultPerformance: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "not_verified",
+    },
+    openRace: {
+      readModel: "failed",
+      fieldLock: "not_verified",
+      postLockObservation: "not_verified",
+    },
+    lifecycle: {
+      readModel: "fixture_verified",
+      economicEvidenceWrites: "not_verified",
+    },
+  },
   migrations: "reversible_verified",
   knownLimitationsDocumented: true,
   productionDisabled: true,
@@ -102,6 +125,13 @@ describe("Dashboard readiness service", () => {
       assessmentSnapshotSha256: snapshotSha256,
       publishedAt: "2026-10-18T00:45:00.000Z",
       evidenceFreshness: "current",
+      moduleBoundarySummary: {
+        total: 23,
+        notVerified: 17,
+        fixtureVerified: 4,
+        connectedVerified: 1,
+        failed: 1,
+      },
       readiness: {
         activationAuthorized: false,
         productionMutationAllowed: false,
@@ -149,6 +179,7 @@ describe("Dashboard readiness service", () => {
       publishedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
+      moduleBoundarySummary: null,
       readiness: null,
     });
     await expect(
@@ -176,6 +207,7 @@ describe("Dashboard readiness service", () => {
       publishedAt: null,
       evidenceCurrentThrough: null,
       evidenceFreshness: null,
+      moduleBoundarySummary: null,
       readiness: null,
     });
   });
