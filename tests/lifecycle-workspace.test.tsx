@@ -5,6 +5,27 @@ import { rankLifecycleActions } from "@/domain/lifecycle-action-ranking";
 import { core, ranking } from "./lifecycle-fixture";
 
 describe("Lifecycle workspace", () => {
+  it.each([
+    ["read_failed", "Lifecycle evidence temporarily unavailable"],
+    ["integrity_failed", "Lifecycle evidence failed validation"],
+  ] as const)(
+    "renders the %s boundary without unsafe action evidence",
+    (connectionStatus, heading) => {
+      const html = renderToStaticMarkup(
+        <LifecycleWorkspace
+          connectionStatus={connectionStatus}
+          ranking={null}
+        />,
+      );
+      expect(html).toContain(heading);
+      expect(html).toContain("No accepted lifecycle evidence");
+      expect(html).toContain("Sale unavailable");
+      expect(html).toContain("Burn unavailable");
+      expect(html).not.toContain("1. Sell");
+      expect(html).not.toContain("1. Burn");
+    },
+  );
+
   it("renders unavailable evidence without a disposal claim", () => {
     const html = renderToStaticMarkup(
       <LifecycleWorkspace
