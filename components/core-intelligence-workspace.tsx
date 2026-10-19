@@ -11,7 +11,10 @@ import {
   type CorePerformanceProfile,
   type RaceMode,
 } from "@/domain/core-performance";
-import type { CoreIntelligenceConnectionStatus } from "@/lib/core-intelligence-workspace-service";
+import type {
+  CoreEsportsConnectionStatus,
+  CoreIntelligenceConnectionStatus,
+} from "@/lib/core-intelligence-workspace-service";
 
 export const coreIntelligenceEvidenceViews = [
   "overview",
@@ -34,6 +37,16 @@ const connectionCopy: Record<
     heading: "Core Intelligence storage not connected",
     detail:
       "Owner verification is available, but the compact private profile repository is not configured. No raw history is scanned on this page.",
+  },
+  read_failed: {
+    heading: "Core Intelligence evidence temporarily unavailable",
+    detail:
+      "The owner-scoped normal-racing profile read could not be completed. All normal profiles are withheld; no cached or inferred replacements are shown.",
+  },
+  integrity_failed: {
+    heading: "Core Intelligence evidence failed validation",
+    detail:
+      "Saved normal-racing profiles failed accepted-source or metric validation. All normal profiles remain withheld until the accepted snapshot is repaired.",
   },
   read_model_connected: {
     heading: "Historical profile read model connected",
@@ -204,7 +217,7 @@ function EsportsEvidence({
   connectionStatus,
 }: {
   profiles: readonly CoreEsportsPerformanceProfile[];
-  connectionStatus: "not_configured" | "connected";
+  connectionStatus: CoreEsportsConnectionStatus;
 }) {
   if (profiles.length === 0) {
     return (
@@ -212,14 +225,17 @@ function EsportsEvidence({
         <h3 className="font-semibold">
           {connectionStatus === "connected"
             ? "No completed Esports races in the accepted generation"
-            : "Esports history not commissioned yet"}
+            : connectionStatus === "read_failed"
+              ? "Esports evidence temporarily unavailable"
+              : connectionStatus === "integrity_failed"
+                ? "Esports evidence failed validation"
+                : "Esports history not commissioned yet"}
         </h3>
         <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-          DNA omits Pro League/Esports races from its normal public Core
-          profile. Their absence here is therefore unavailable source coverage,
-          never a zero-race claim. The private API history lane will publish
-          only complete, deduplicated generations after the existing persistence
-          approval gate.
+          {connectionStatus === "read_failed" ||
+          connectionStatus === "integrity_failed"
+            ? "The separate owner-scoped Esports lane could not be verified, so all Esports profiles are withheld. Normal-racing evidence remains independently auditable and no missing Esports value is treated as zero."
+            : "DNA omits Pro League/Esports races from its normal public Core profile. Their absence here is therefore unavailable source coverage, never a zero-race claim. The private API history lane will publish only complete, deduplicated generations after the existing persistence approval gate."}
         </p>
       </EmptyEvidence>
     );
@@ -325,7 +341,7 @@ export function CoreIntelligenceWorkspace({
   connectionStatus: CoreIntelligenceConnectionStatus;
   esportsProfiles?: readonly CoreEsportsPerformanceProfile[];
   esportsLastSyncedAt?: string | null;
-  esportsConnectionStatus?: "not_configured" | "connected";
+  esportsConnectionStatus?: CoreEsportsConnectionStatus;
   selectedEvidenceView?: CoreIntelligenceEvidenceView;
   selectedMode?: RaceMode | "all";
   selectedDistance?: number | null;

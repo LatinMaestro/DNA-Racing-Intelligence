@@ -44,7 +44,12 @@ export type CoreEsportsRaceRepository =
 export type CoreIntelligenceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
+
+export type CoreEsportsConnectionStatus =
+  "not_configured" | "read_failed" | "integrity_failed" | "connected";
 
 export type CoreIntelligencePageState = Readonly<{
   profiles: readonly CorePerformanceProfile[];
@@ -52,7 +57,7 @@ export type CoreIntelligencePageState = Readonly<{
   connectionStatus: CoreIntelligenceConnectionStatus;
   esportsProfiles: readonly CoreEsportsPerformanceProfile[];
   esportsLastSyncedAt: string | null;
-  esportsConnectionStatus: "not_configured" | "connected";
+  esportsConnectionStatus: CoreEsportsConnectionStatus;
 }>;
 
 export const unavailableCorePerformanceProfileRepository: CorePerformanceProfileRepository =
@@ -476,15 +481,37 @@ export async function loadCoreIntelligencePageState(
     throw new Error("Invalid Core Intelligence repository.");
   }
 
-  const projection = normalizeProjection(
-    await input.repository.listProfilesByOwner(authenticatedOwnerId),
-    now,
-  );
   const esports = await loadCoreEsportsProjection({
     ownerId: authenticatedOwnerId,
     repository: input.esportsRepository ?? unavailableCoreEsportsRaceRepository,
     now,
   });
+  let persistedProjection: CorePerformanceProjection;
+  try {
+    persistedProjection =
+      await input.repository.listProfilesByOwner(authenticatedOwnerId);
+  } catch {
+    // The normal and Esports lanes are independently auditable. Withhold the
+    // failed normal snapshot without exposing provider details or discarding a
+    // separately verified Esports projection.
+    return {
+      profiles: [],
+      lastImportedAt: null,
+      connectionStatus: "read_failed",
+      ...esports,
+    };
+  }
+  let projection: CorePerformanceProjection;
+  try {
+    projection = normalizeProjection(persistedProjection, now);
+  } catch {
+    return {
+      profiles: [],
+      lastImportedAt: null,
+      connectionStatus: "integrity_failed",
+      ...esports,
+    };
+  }
   return {
     ...projection,
     connectionStatus: "read_model_connected",
@@ -515,38 +542,58 @@ async function loadCoreEsportsProjection(input: {
   ) {
     throw new Error("Invalid Core Intelligence Esports repository.");
   }
-  const projection = object(
-    await input.repository.listRaceObservationsByOwner(input.ownerId),
-    "Esports repository projection",
-  );
-  const lastSyncedAt =
-    projection.lastSyncedAt === null
-      ? null
-      : canonicalTimestamp(
-          projection.lastSyncedAt,
-          "Esports last-synced timestamp",
-        );
-  const observations = array(
-    projection.observations,
-    "Esports observation list",
-  ) as readonly CoreEsportsRaceObservation[];
-  if (observations.length > 0 && lastSyncedAt === null) {
-    throw new Error("Esports observations require a last-synced timestamp.");
+  let persistedProjection: CoreEsportsProjection;
+  try {
+    persistedProjection = await input.repository.listRaceObservationsByOwner(
+      input.ownerId,
+    );
+  } catch {
+    return {
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "read_failed",
+    };
   }
-  if (
-    lastSyncedAt !== null &&
-    observations.some(
-      ({ observedAt }) => Date.parse(observedAt) > Date.parse(lastSyncedAt),
-    )
-  ) {
-    throw new Error("Esports evidence cannot follow its sync timestamp.");
+  try {
+    const projection = object(
+      persistedProjection,
+      "Esports repository projection",
+    );
+    const lastSyncedAt =
+      projection.lastSyncedAt === null
+        ? null
+        : canonicalTimestamp(
+            projection.lastSyncedAt,
+            "Esports last-synced timestamp",
+          );
+    const observations = array(
+      projection.observations,
+      "Esports observation list",
+    ) as readonly CoreEsportsRaceObservation[];
+    if (observations.length > 0 && lastSyncedAt === null) {
+      throw new Error("Esports observations require a last-synced timestamp.");
+    }
+    if (
+      lastSyncedAt !== null &&
+      observations.some(
+        ({ observedAt }) => Date.parse(observedAt) > Date.parse(lastSyncedAt),
+      )
+    ) {
+      throw new Error("Esports evidence cannot follow its sync timestamp.");
+    }
+    return {
+      esportsProfiles: buildCoreEsportsPerformanceProfiles({
+        observations,
+        now: input.now,
+      }),
+      esportsLastSyncedAt: lastSyncedAt,
+      esportsConnectionStatus: "connected",
+    };
+  } catch {
+    return {
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "integrity_failed",
+    };
   }
-  return {
-    esportsProfiles: buildCoreEsportsPerformanceProfiles({
-      observations,
-      now: input.now,
-    }),
-    esportsLastSyncedAt: lastSyncedAt,
-    esportsConnectionStatus: "connected",
-  };
 }
