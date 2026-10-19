@@ -318,4 +318,46 @@ describe("Search Core service", () => {
       connectionStatus: "persistence_not_configured",
     });
   });
+
+  it("withholds Search Core evidence after catalogue read or integrity failure", async () => {
+    const failedRead = vi.fn(async () => {
+      throw new Error("Synthetic provider detail");
+    });
+    await expect(
+      loadSearchCorePageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository: catalogue(failedRead),
+        performanceRepository: noPerformance,
+        now,
+        query: "Seven",
+        selectedCoreId: "core-7",
+      }),
+    ).resolves.toMatchObject({
+      connectionStatus: "read_failed",
+      results: [],
+      selectedCore: null,
+      performanceProfiles: [],
+      archiveHistoryStatus: "not_connected",
+    });
+    expect(failedRead).toHaveBeenCalledTimes(1);
+
+    await expect(
+      loadSearchCorePageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository: catalogue(async () => [core, core]),
+        performanceRepository: noPerformance,
+        now,
+        query: "Seven",
+        selectedCoreId: "core-7",
+      }),
+    ).resolves.toMatchObject({
+      connectionStatus: "integrity_failed",
+      results: [],
+      selectedCore: null,
+      performanceProfiles: [],
+      archiveHistoryStatus: "not_connected",
+    });
+  });
 });

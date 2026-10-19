@@ -10,6 +10,28 @@ import {
   type OwnerVaultCataloguePageState,
 } from "@/lib/owner-vault-catalogue-service";
 
+const connectionCopy = {
+  identity_not_connected: {
+    heading: "Vault data not connected",
+    detail: "Sign-in identity is not connected to the private owner allowlist.",
+  },
+  persistence_not_configured: {
+    heading: "Vault data not connected",
+    detail:
+      "The owner Vault database runtime is not configured for this environment.",
+  },
+  read_failed: {
+    heading: "Vault records temporarily unavailable",
+    detail:
+      "The owner-scoped Vault read could not be completed. All catalogue rows and ownership controls are withheld; no cached or inferred ownership is shown.",
+  },
+  integrity_failed: {
+    heading: "Vault records failed validation",
+    detail:
+      "The saved Vault projection contains invalid or inconsistent rows. All catalogue rows and ownership controls remain withheld until the projection is repaired.",
+  },
+} as const;
+
 function optionLabel(value: string): string {
   return value === "X-Class"
     ? value
@@ -30,6 +52,7 @@ export function OwnerVaultWorkspace({
     "Counts reflect returned records, not verified totals; additional matching cores may be omitted.",
     "Narrow the filters or search by exact Core ID.",
   ].join(" ");
+  const unavailable = connected ? null : connectionCopy[state.connectionStatus];
 
   return (
     <div className="space-y-8">
@@ -168,12 +191,8 @@ export function OwnerVaultWorkspace({
 
       {!connected ? (
         <section className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6">
-          <h2 className="text-lg font-semibold">Vault data not connected</h2>
-          <p className="mt-3 text-[var(--muted)]">
-            {state.connectionStatus === "identity_not_connected"
-              ? "Sign-in identity is not connected to the private owner allowlist."
-              : "The owner Vault database runtime is not configured for this environment."}
-          </p>
+          <h2 className="text-lg font-semibold">{unavailable?.heading}</h2>
+          <p className="mt-3 text-[var(--muted)]">{unavailable?.detail}</p>
         </section>
       ) : (
         <section aria-labelledby="vault-results">

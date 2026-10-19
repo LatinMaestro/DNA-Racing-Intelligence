@@ -10,6 +10,29 @@ import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import { OWNER_CORE_CATALOGUE_LIST_LIMIT } from "@/lib/owner-vault-catalogue-service";
 import type { SearchCorePageState } from "@/lib/search-core-service";
 
+const catalogueConnectionCopy = {
+  identity_not_connected: {
+    heading: "Core catalogue not connected",
+    detail:
+      "The signed-in identity is not connected to the private owner allowlist.",
+  },
+  persistence_not_configured: {
+    heading: "Core catalogue not connected",
+    detail:
+      "The private Core Details database runtime is not configured for this environment.",
+  },
+  read_failed: {
+    heading: "Core catalogue temporarily unavailable",
+    detail:
+      "The owner-scoped catalogue read could not be completed. Search results and selected Core evidence are withheld; no cached results are shown.",
+  },
+  integrity_failed: {
+    heading: "Core catalogue failed validation",
+    detail:
+      "The saved catalogue projection contains invalid or inconsistent rows. Search results and selected Core evidence remain withheld until it is repaired.",
+  },
+} as const;
+
 function label(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -210,6 +233,9 @@ export function SearchCoreWorkspace({
   filters = { mode: "all", distance: null },
 }: Readonly<{ state: SearchCorePageState; filters?: EvidenceViewFilters }>) {
   const connected = state.connectionStatus === "connected";
+  const unavailable = connected
+    ? null
+    : catalogueConnectionCopy[state.connectionStatus];
   const profiles = state.performanceProfiles.filter(
     (profile) =>
       (filters.mode === "all" || profile.mode === filters.mode) &&
@@ -278,14 +304,8 @@ export function SearchCoreWorkspace({
 
       {!connected ? (
         <section className="rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6">
-          <h2 className="text-lg font-semibold">
-            Core catalogue not connected
-          </h2>
-          <p className="mt-3 text-[var(--muted)]">
-            {state.connectionStatus === "identity_not_connected"
-              ? "The signed-in identity is not connected to the private owner allowlist."
-              : "The private Core Details database runtime is not configured for this environment."}
-          </p>
+          <h2 className="text-lg font-semibold">{unavailable?.heading}</h2>
+          <p className="mt-3 text-[var(--muted)]">{unavailable?.detail}</p>
         </section>
       ) : state.query === null ? (
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">

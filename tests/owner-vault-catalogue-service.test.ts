@@ -89,7 +89,28 @@ describe("owner Vault catalogue service", () => {
     expect(listCoresByOwner).toHaveBeenCalledWith(ownerId, state.filters);
   });
 
-  it("rejects duplicate, impossible and inactive My Vault rows", async () => {
+  it("withholds all rows when the owner-scoped repository read fails", async () => {
+    const repository: OwnerVaultCatalogueRepository = {
+      status: "ready",
+      listCoresByOwner: async () => {
+        throw new Error("Synthetic provider detail");
+      },
+    };
+    const state = await loadOwnerVaultCataloguePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository,
+      filters: { scope: "vault" },
+    });
+
+    expect(state).toMatchObject({
+      connectionStatus: "read_failed",
+      cores: [],
+    });
+    expect(JSON.stringify(state)).not.toContain("provider detail");
+  });
+
+  it("withholds duplicate, impossible and inactive My Vault rows", async () => {
     for (const rows of [
       [core, core],
       [{ ...core, inMyVault: false, meEligible: false }],
@@ -106,7 +127,10 @@ describe("owner Vault catalogue service", () => {
           repository,
           filters: { scope: "vault" },
         }),
-      ).rejects.toThrow(/duplicate core|inactive core|invalid/);
+      ).resolves.toMatchObject({
+        connectionStatus: "integrity_failed",
+        cores: [],
+      });
     }
   });
 });
