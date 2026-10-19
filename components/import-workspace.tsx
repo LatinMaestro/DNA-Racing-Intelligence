@@ -36,6 +36,18 @@ const connectionCopy: Record<
       "Owner verification is available, but the Preview-only database repository is not configured. No private source file is hosted and the prior accepted dataset remains unchanged.",
     action: "Upload unavailable",
   },
+  read_failed: {
+    heading: "Private import status unavailable",
+    detail:
+      "The owner-scoped import status read could not be completed. All receipts, counts, recovery controls and uploads are withheld; no cached or inferred replacement is shown.",
+    action: "Upload unavailable",
+  },
+  integrity_failed: {
+    heading: "Private import status failed validation",
+    detail:
+      "Persisted import receipts failed chronology, count or active-version checks. All status evidence and uploads remain withheld until the accepted read model is repaired.",
+    action: "Upload unavailable",
+  },
   read_model_connected: {
     heading: "Historical status connected",
     detail:
@@ -69,6 +81,7 @@ export function ImportWorkspacePanel({
   connectionStatus: ImportWorkspaceConnectionStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
+  const evidenceConnected = connectionStatus === "read_model_connected";
 
   return (
     <div className="space-y-8">
@@ -148,66 +161,80 @@ export function ImportWorkspacePanel({
             </p>
           </div>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {workspace.sources.map((source) => (
-            <article
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
-              key={source.sourceType}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-semibold">
-                  {sourceLabels[source.sourceType]}
-                </h3>
-                <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
-                  {source.freshness}
-                </span>
-              </div>
-              <dl className="mt-5 space-y-3 text-sm">
-                <div>
-                  <dt className="text-[var(--muted)]">Latest attempt</dt>
-                  <dd className="mt-1 font-medium">
-                    {source.latestBatchStatus.replaceAll("_", " ")}
-                  </dd>
+        {evidenceConnected ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {workspace.sources.map((source) => (
+              <article
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
+                key={source.sourceType}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-semibold">
+                    {sourceLabels[source.sourceType]}
+                  </h3>
+                  <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                    {source.freshness}
+                  </span>
                 </div>
-                <div>
-                  <dt className="text-[var(--muted)]">Data current through</dt>
-                  <dd className="mt-1 font-medium">
-                    {timestamp(source.dataCurrentThrough)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--muted)]">Last imported</dt>
-                  <dd className="mt-1 font-medium">
-                    {timestamp(source.lastImportedAt)}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-3">
+                <dl className="mt-5 space-y-3 text-sm">
                   <div>
-                    <dt className="text-[var(--muted)]">Accepted</dt>
+                    <dt className="text-[var(--muted)]">Latest attempt</dt>
                     <dd className="mt-1 font-medium">
-                      {count(source.acceptedRows)}
+                      {source.latestBatchStatus.replaceAll("_", " ")}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Rejected</dt>
+                    <dt className="text-[var(--muted)]">
+                      Data current through
+                    </dt>
                     <dd className="mt-1 font-medium">
-                      {count(source.rejectedRows)}
+                      {timestamp(source.dataCurrentThrough)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[var(--muted)]">Warnings</dt>
+                    <dt className="text-[var(--muted)]">Last imported</dt>
                     <dd className="mt-1 font-medium">
-                      {count(source.warningRows)}
+                      {timestamp(source.lastImportedAt)}
                     </dd>
                   </div>
-                </div>
-              </dl>
-            </article>
-          ))}
-        </div>
+                  <div className="grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-3">
+                    <div>
+                      <dt className="text-[var(--muted)]">Accepted</dt>
+                      <dd className="mt-1 font-medium">
+                        {count(source.acceptedRows)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Rejected</dt>
+                      <dd className="mt-1 font-medium">
+                        {count(source.rejectedRows)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Warnings</dt>
+                      <dd className="mt-1 font-medium">
+                        {count(source.warningRows)}
+                      </dd>
+                    </div>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
+            <h3 className="font-semibold">Import status withheld</h3>
+            <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
+              No accepted owner-scoped status evidence is available in this
+              state. Unknown does not mean that a source was never imported.
+            </p>
+          </div>
+        )}
       </section>
 
-      <ImportProgressPanel batches={workspace.recentBatches} />
+      {evidenceConnected ? (
+        <ImportProgressPanel batches={workspace.recentBatches} />
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section
@@ -219,8 +246,9 @@ export function ImportWorkspacePanel({
           </h2>
           {workspace.recentBatches.length === 0 ? (
             <p className="mt-4 leading-7 text-[var(--muted)]">
-              No private import has been accepted. Filenames, raw rows and
-              source values will never appear in routine summaries.
+              {evidenceConnected
+                ? "No private import has been accepted. Filenames, raw rows and source values will never appear in routine summaries."
+                : "Recent import evidence is unavailable. This does not establish that no prior import exists."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-[var(--border)]">
@@ -254,8 +282,9 @@ export function ImportWorkspacePanel({
           </h2>
           {workspace.recoveryQueue.length === 0 ? (
             <p className="mt-4 leading-7 text-[var(--muted)]">
-              Nothing is queued. Rollback always requires a recorded reason;
-              identity and observation candidates require explicit review.
+              {evidenceConnected
+                ? "Nothing is queued. Rollback always requires a recorded reason; identity and observation candidates require explicit review."
+                : "Recovery and review status is unavailable. No empty queue is inferred from missing evidence."}
             </p>
           ) : (
             <ul className="mt-4 space-y-3">

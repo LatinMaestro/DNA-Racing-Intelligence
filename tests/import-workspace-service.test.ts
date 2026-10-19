@@ -98,7 +98,7 @@ describe("owner-scoped import workspace service", () => {
     });
   });
 
-  it("fails closed when persisted batch evidence is internally inconsistent", async () => {
+  it("withholds all evidence when persisted batches are internally inconsistent", async () => {
     await expect(
       loadImportWorkspacePageState({
         authenticatedOwnerId: "configured-owner",
@@ -111,6 +111,67 @@ describe("owner-scoped import workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow("acceptedRows plus rejectedRows");
+    ).resolves.toMatchObject({
+      connectionStatus: "integrity_failed",
+      workspace: {
+        recentBatches: [],
+        recoveryQueue: [],
+      },
+    });
+  });
+
+  it("withholds all evidence when the owner-scoped repository read fails", async () => {
+    const listBatchesByOwner = vi.fn(async () => {
+      throw new Error("SYNTHETIC_PRIVATE_PROVIDER_DETAIL");
+    });
+    const state = await loadImportWorkspacePageState({
+      authenticatedOwnerId: "configured-owner",
+      configuredOwnerId: "configured-owner",
+      repository: { status: "ready", listBatchesByOwner },
+      now,
+    });
+
+    expect(listBatchesByOwner).toHaveBeenCalledExactlyOnceWith(
+      "configured-owner",
+    );
+    expect(state.connectionStatus).toBe("read_failed");
+    expect(state.workspace.recentBatches).toEqual([]);
+    expect(state.workspace.recoveryQueue).toEqual([]);
+    expect(
+      state.workspace.sources.every(
+        ({ activeBatchId, freshness }) =>
+          activeBatchId === null && freshness === "unknown",
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(state)).not.toContain(
+      "SYNTHETIC_PRIVATE_PROVIDER_DETAIL",
+    );
+  });
+
+  it("does not downgrade a repository owner-scope denial", async () => {
+    await expect(
+      loadImportWorkspacePageState({
+        authenticatedOwnerId: "configured-owner",
+        configuredOwnerId: "configured-owner",
+        repository: {
+          status: "ready",
+          listBatchesByOwner: vi.fn(async () => {
+            throw new Error("Import repository owner scope denied.");
+          }),
+        },
+        now,
+      }),
+    ).rejects.toThrow("owner scope denied");
+  });
+
+  it("rejects an invalid repository capability before reading evidence", async () => {
+    await expect(
+      loadImportWorkspacePageState({
+        authenticatedOwnerId: "configured-owner",
+        configuredOwnerId: "configured-owner",
+        repository: { status: "unexpected" } as never,
+        now,
+      }),
+    ).rejects.toThrow("repository status is invalid");
   });
 });
