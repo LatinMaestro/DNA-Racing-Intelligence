@@ -57,14 +57,16 @@ function syntheticBracket(mode: TournamentMode) {
 }
 
 describe("Multi-mode Tournament configuration editor", () => {
-  it.each(["bike", "car", "horse"] as const)("parses a %s starter", (mode) => {
-    const formData = new FormData();
-    formData.set("ruleConfiguration", tournamentStarterConfiguration(mode));
-    const draft = parseTournamentConfigurationFormData(formData);
-    expect(draft.mode).toBe(mode);
-    expect(draft.bracketId).toBe(`replace-with-${mode}-split-id`);
-    expect(draft.evidence.status).toBe("uncertain");
-    expect(draft.campaignAction).toBeNull();
+  it("parses a review-only starter for every mode", () => {
+    for (const mode of ["bike", "car", "horse"] as const) {
+      const formData = new FormData();
+      formData.set("ruleConfiguration", tournamentStarterConfiguration(mode));
+      const draft = parseTournamentConfigurationFormData(formData);
+      expect(draft.mode).toBe(mode);
+      expect(draft.bracketId).toBe(`replace-with-${mode}-split-id`);
+      expect(draft.evidence.status).toBe("uncertain");
+      expect(draft.campaignAction).toBeNull();
+    }
   });
 
   it("edits the exact saved Car split", () => {
