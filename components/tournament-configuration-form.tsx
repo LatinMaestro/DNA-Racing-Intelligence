@@ -1,7 +1,18 @@
+import Link from "next/link";
+
 import type { TournamentCandidateRankingResult } from "@/domain/tournament-candidate-ranking";
+import {
+  tournamentModes,
+  type TournamentMode,
+} from "@/domain/tournament-configuration";
 import type { TournamentWorkspaceConnectionStatus } from "@/lib/tournament-workspace-service";
 
 type SaveAction = (formData: FormData) => Promise<void>;
+
+export type TournamentEditorSelection =
+  | Readonly<{ kind: "existing"; tournamentId: string; bracketId: string }>
+  | Readonly<{ kind: "new"; mode: TournamentMode }>
+  | null;
 
 function editableConfiguration(
   configuration: NonNullable<
@@ -26,13 +37,13 @@ function editableConfiguration(
 
 const starterConfiguration = JSON.stringify(
   {
-    tournamentId: "spring-cup-2026",
-    tournamentLabel: "Spring Cup",
+    tournamentId: "replace-with-tournament-id",
+    tournamentLabel: "Unspecified tournament",
     seasonLabel: "Unspecified",
     qualificationStartsAt: null,
     qualificationEndsAt: null,
-    bracketId: "bike-a",
-    splitLabel: "Bike A",
+    bracketId: "replace-with-bike-split-id",
+    splitLabel: "Unspecified split",
     mode: "bike",
     eligibleDistancesMetres: [1200],
     gateCount: 4,
@@ -72,20 +83,58 @@ const starterConfiguration = JSON.stringify(
   2,
 );
 
+export function tournamentStarterConfiguration(mode: TournamentMode): string {
+  const template = JSON.parse(starterConfiguration) as Record<string, unknown>;
+  return JSON.stringify(
+    {
+      ...template,
+      mode,
+      bracketId: `replace-with-${mode}-split-id`,
+    },
+    null,
+    2,
+  );
+}
+
+function editorLink(tournamentId: string, bracketId: string): string {
+  return (
+    `/tournaments?tournamentId=${encodeURIComponent(tournamentId)}` +
+    `&bracketId=${encodeURIComponent(bracketId)}`
+  );
+}
+
 export function TournamentConfigurationForm({
   brackets,
   connectionStatus,
   saveAction,
+  selection = null,
 }: Readonly<{
   brackets: readonly TournamentCandidateRankingResult[];
   connectionStatus: TournamentWorkspaceConnectionStatus;
   saveAction: SaveAction;
+  selection?: TournamentEditorSelection;
 }>) {
-  const existingConfiguration = brackets.find(
-    (bracket) => bracket.ruleConfiguration !== undefined,
-  )?.ruleConfiguration;
+  const selectedBracket =
+    selection?.kind === "existing"
+      ? brackets.find(
+          (bracket) =>
+            bracket.tournamentId === selection.tournamentId &&
+            bracket.bracketId === selection.bracketId,
+        )
+      : brackets.find((bracket) => bracket.ruleConfiguration !== undefined);
+  const existingConfiguration =
+    selection?.kind === "new" ? undefined : selectedBracket?.ruleConfiguration;
   const hasExistingConfiguration = brackets.length > 0;
-  const disabled = connectionStatus !== "read_model_connected";
+  const creating = selection?.kind === "new" || !hasExistingConfiguration;
+  const mode = selection?.kind === "new" ? selection.mode : "bike";
+  const invalidSelection =
+    selection?.kind === "existing" && selectedBracket === undefined;
+  const disabled =
+    connectionStatus !== "read_model_connected" || invalidSelection;
+  const selectedEditorKey = selectedBracket
+    ? JSON.stringify([selectedBracket.tournamentId, selectedBracket.bracketId])
+    : `new-${mode}`;
+  const editorKey = creating ? `new-${mode}` : selectedEditorKey;
 
   return (
     <section
@@ -111,6 +160,38 @@ export function TournamentConfigurationForm({
         </p>
       </div>
 
+      <nav aria-label="Tournament split editor" className="mt-6 space-y-3">
+        <p className="text-sm font-semibold">Saved Tournament splits</p>
+        <div className="flex flex-wrap gap-2">
+          {brackets.map((bracket) => (
+            <Link
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:underline"
+              href={editorLink(bracket.tournamentId, bracket.bracketId)}
+              key={JSON.stringify([bracket.tournamentId, bracket.bracketId])}
+            >
+              {`${bracket.tournamentLabel} — ${bracket.splitLabel} (${bracket.mode})`}
+            </Link>
+          ))}
+        </div>
+        <p className="text-sm font-semibold">Create a new split</p>
+        <div className="flex flex-wrap gap-2">
+          {tournamentModes.map((newMode) => (
+            <Link
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:underline"
+              href={`/tournaments?create=${newMode}`}
+              key={newMode}
+            >
+              New {newMode} split
+            </Link>
+          ))}
+        </div>
+      </nav>
+      {invalidSelection ? (
+        <p className="mt-4 text-sm text-[var(--warning)]" role="status">
+          This saved tournament split no longer exists. Select an available
+          split or start a new one before saving.
+        </p>
+      ) : null}
       <form action={saveAction} className="mt-6">
         <fieldset disabled={disabled}>
           <label className="block text-sm font-medium">
@@ -120,11 +201,12 @@ export function TournamentConfigurationForm({
               className="mt-2 min-h-[34rem] w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm"
               defaultValue={
                 existingConfiguration === undefined
-                  ? hasExistingConfiguration
-                    ? ""
-                    : starterConfiguration
+                  ? creating && !invalidSelection
+                    ? tournamentStarterConfiguration(mode)
+                    : ""
                   : editableConfiguration(existingConfiguration)
               }
+              key={editorKey}
               name="ruleConfiguration"
               required
               spellCheck={false}
@@ -135,10 +217,12 @@ export function TournamentConfigurationForm({
             id="tournament-configuration-guidance"
           >
             {existingConfiguration !== undefined
-              ? "The complete stored rule is prefilled. Review the whole payload before replacing it; partial updates and server-derived version fields are rejected."
-              : hasExistingConfiguration
-                ? "A legacy configuration exists without a canonical rule payload. Paste its complete reviewed rule before replacing it; partial updates are rejected."
-                : "The starter is deliberately review-only. Replace every Unspecified or uncertain rule and add source evidence before relying on candidate output."}
+              ? "The exact selected stored rule is prefilled. Review the whole payload before replacing it; partial updates and server-derived version fields are rejected."
+              : invalidSelection
+                ? "Select a saved split or create a new one."
+                : creating
+                  ? "The starter is deliberately review-only. Replace all placeholder identifiers, mode-specific parameters and uncertain rules before relying on candidate output."
+                  : "A legacy configuration exists without a canonical rule payload. Paste its complete reviewed rule before replacing it."}
           </p>
           <button
             className="mt-6 rounded-lg border border-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--muted)]"
@@ -151,8 +235,8 @@ export function TournamentConfigurationForm({
 
       {disabled ? (
         <p className="mt-4 text-sm text-[var(--muted)]">
-          Configuration editing stays disabled until the owner-scoped database
-          read model is connected.
+          Configuration editing requires a connected owner read model and an
+          existing selected split, or a new mode-specific review draft.
         </p>
       ) : null}
     </section>
