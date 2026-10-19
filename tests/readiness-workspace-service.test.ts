@@ -137,7 +137,7 @@ describe("Readiness workspace service", () => {
     });
   });
 
-  it("accepts an empty repository and rejects malformed assessment evidence", async () => {
+  it("accepts an empty repository and withholds malformed assessment evidence", async () => {
     await expect(
       loadReadinessWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -166,7 +166,12 @@ describe("Readiness workspace service", () => {
         expectedHeadSha,
         now,
       }),
-    ).rejects.toThrow("SHA");
+    ).resolves.toMatchObject({
+      assessmentId: null,
+      exactHeadSha: null,
+      readiness: null,
+      connectionStatus: "assessment_integrity_failed",
+    });
   });
 
   it.each([
@@ -206,7 +211,7 @@ describe("Readiness workspace service", () => {
     },
   );
 
-  it("rejects a stale version and a different deployed head", async () => {
+  it("withholds a stale version and a different deployed head", async () => {
     const baseRepository = repository(assessment);
     await expect(
       loadReadinessWorkspacePageState({
@@ -222,7 +227,10 @@ describe("Readiness workspace service", () => {
         expectedHeadSha,
         now,
       }),
-    ).rejects.toThrow("version is stale");
+    ).resolves.toMatchObject({
+      readiness: null,
+      connectionStatus: "assessment_integrity_failed",
+    });
     await expect(
       loadReadinessWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -231,10 +239,13 @@ describe("Readiness workspace service", () => {
         expectedHeadSha: "b".repeat(40),
         now,
       }),
-    ).rejects.toThrow("deployed exact head");
+    ).resolves.toMatchObject({
+      readiness: null,
+      connectionStatus: "assessment_integrity_failed",
+    });
   });
 
-  it("rejects future, inconsistent and non-canonical evidence", async () => {
+  it("withholds future, inconsistent and non-canonical evidence", async () => {
     for (const [staged, publishedAt] of [
       [
         { ...assessment, assessedAt: "2026-07-27T00:00:00.000Z" },
@@ -270,11 +281,37 @@ describe("Readiness workspace service", () => {
           expectedHeadSha,
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toMatchObject({
+        readiness: null,
+        connectionStatus: "assessment_integrity_failed",
+      });
     }
   });
 
-  it("rejects stored freshness drift and malformed repository evidence", async () => {
+  it("distinguishes repository read failure from persisted integrity failure", async () => {
+    await expect(
+      loadReadinessWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          loadLatestAssessmentByOwner: async () => {
+            throw new Error("SYNTHETIC_PRIVATE_PROVIDER_DETAIL");
+          },
+        },
+        expectedHeadSha,
+        now,
+      }),
+    ).resolves.toEqual({
+      assessmentId: null,
+      assessmentVersion: null,
+      assessedAt: null,
+      evidenceCurrentThrough: null,
+      evidenceFreshness: null,
+      exactHeadSha: null,
+      readiness: null,
+      connectionStatus: "assessment_read_failed",
+    });
     await expect(
       loadReadinessWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -286,7 +323,10 @@ describe("Readiness workspace service", () => {
         expectedHeadSha,
         now,
       }),
-    ).rejects.toThrow("server-derived freshness");
+    ).resolves.toMatchObject({
+      readiness: null,
+      connectionStatus: "assessment_integrity_failed",
+    });
     await expect(
       loadReadinessWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -298,6 +338,21 @@ describe("Readiness workspace service", () => {
         expectedHeadSha,
         now,
       }),
-    ).rejects.toThrow("repository evidence is invalid");
+    ).resolves.toMatchObject({
+      readiness: null,
+      connectionStatus: "assessment_integrity_failed",
+    });
+  });
+
+  it("rejects an invalid repository capability before reading evidence", async () => {
+    await expect(
+      loadReadinessWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: { status: "invalid" } as never,
+        expectedHeadSha,
+        now,
+      }),
+    ).rejects.toThrow("repository status is invalid");
   });
 });

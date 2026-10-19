@@ -76,6 +76,40 @@ describe("Readiness workspace", () => {
     expect(html).toContain("Production activation unavailable");
   });
 
+  it.each([
+    [
+      "assessment_read_failed",
+      "Readiness assessment read failed",
+      "No cached, stale or inferred replacement",
+    ],
+    [
+      "assessment_integrity_failed",
+      "Readiness assessment integrity failed",
+      "missing evidence is never converted into a pass",
+    ],
+  ] as const)(
+    "renders the fail-closed %s assessment state",
+    (connectionStatus, heading, detail) => {
+      const html = renderToStaticMarkup(
+        <ReadinessWorkspace
+          assessmentId={null}
+          assessedAt={null}
+          assessmentVersion={null}
+          connectionStatus={connectionStatus}
+          evidenceCurrentThrough={null}
+          evidenceFreshness={null}
+          exactHeadSha={null}
+          horseScreeningState={unavailableHorseScreeningState}
+          readiness={null}
+        />,
+      );
+      expect(html).toContain(heading);
+      expect(html).toContain(detail);
+      expect(html).toContain("No accepted readiness evidence");
+      expect(html).toContain("Production activation unavailable");
+    },
+  );
+
   it("renders bound blockers without an activation action", () => {
     const html = renderToStaticMarkup(
       <ReadinessWorkspace

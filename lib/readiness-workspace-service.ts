@@ -20,6 +20,8 @@ export type ReadinessAssessmentRepository =
 export type ReadinessWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "assessment_read_failed"
+  | "assessment_integrity_failed"
   | "read_model_connected";
 
 export type ReadinessWorkspacePageState = Readonly<{
@@ -116,85 +118,107 @@ export async function loadReadinessWorkspacePageState(
     throw new Error("Readiness repository status is invalid.");
   }
 
-  const envelope =
-    await input.repository.loadLatestAssessmentByOwner(authenticatedOwnerId);
-  if (
-    envelope === null ||
-    typeof envelope !== "object" ||
-    !("assessment" in envelope)
-  ) {
-    throw new Error("Readiness repository evidence is invalid.");
+  let envelope: Awaited<
+    ReturnType<
+      Extract<
+        ReadinessAssessmentRepository,
+        { status: "ready" }
+      >["loadLatestAssessmentByOwner"]
+    >
+  >;
+  try {
+    envelope =
+      await input.repository.loadLatestAssessmentByOwner(authenticatedOwnerId);
+  } catch {
+    return emptyState("assessment_read_failed");
   }
-  if (envelope.assessment === null) {
-    return emptyState("read_model_connected");
-  }
-  if (Number.isNaN(input.now.getTime())) {
-    throw new Error("Readiness server time must be valid.");
-  }
-  const expectedHeadSha = required(
-    input.expectedHeadSha,
-    "Expected deployed repository head",
-  ).toLowerCase();
-  if (!/^[0-9a-f]{40}$/.test(expectedHeadSha)) {
-    throw new Error("Expected deployed repository head must be an exact SHA.");
-  }
-  const assessment = envelope.assessment;
-  const assessmentVersion = required(
-    assessment.assessmentVersion,
-    "Assessment version",
-  );
-  if (
-    assessmentVersion !==
-    required(envelope.acceptedAssessmentVersion, "Accepted assessment version")
-  ) {
-    throw new Error("Readiness assessment version is stale or inconsistent.");
-  }
-  const assessedAt = canonicalTimestamp(
-    assessment.assessedAt,
-    "Assessment time",
-  );
-  const evidenceCurrentThrough = canonicalTimestamp(
-    assessment.evidenceCurrentThrough,
-    "Readiness evidence current through",
-  );
-  const publishedAt = canonicalTimestamp(
-    envelope.publishedAt,
-    "Assessment publication time",
-  );
-  if (
-    evidenceCurrentThrough > assessedAt ||
-    assessedAt > publishedAt ||
-    Date.parse(publishedAt) > input.now.getTime()
-  ) {
-    throw new Error("Readiness assessment chronology is inconsistent.");
-  }
-  if (assessment.exactHeadSha.toLowerCase() !== expectedHeadSha) {
-    throw new Error(
-      "Readiness assessment SHA does not match the deployed exact head.",
+
+  try {
+    if (
+      envelope === null ||
+      typeof envelope !== "object" ||
+      !("assessment" in envelope)
+    ) {
+      throw new Error("Readiness repository evidence is invalid.");
+    }
+    if (envelope.assessment === null) {
+      return emptyState("read_model_connected");
+    }
+    if (Number.isNaN(input.now.getTime())) {
+      throw new Error("Readiness server time must be valid.");
+    }
+    const expectedHeadSha = required(
+      input.expectedHeadSha,
+      "Expected deployed repository head",
+    ).toLowerCase();
+    if (!/^[0-9a-f]{40}$/.test(expectedHeadSha)) {
+      throw new Error(
+        "Expected deployed repository head must be an exact SHA.",
+      );
+    }
+    const assessment = envelope.assessment;
+    const assessmentVersion = required(
+      assessment.assessmentVersion,
+      "Assessment version",
     );
-  }
-  const evidenceFreshness = deriveReadinessFreshness(
-    evidenceCurrentThrough,
-    input.now,
-  );
-  if (assessment.evidenceFreshness !== evidenceFreshness) {
-    throw new Error(
-      "Stored readiness freshness does not match server-derived freshness.",
+    if (
+      assessmentVersion !==
+      required(
+        envelope.acceptedAssessmentVersion,
+        "Accepted assessment version",
+      )
+    ) {
+      throw new Error("Readiness assessment version is stale or inconsistent.");
+    }
+    const assessedAt = canonicalTimestamp(
+      assessment.assessedAt,
+      "Assessment time",
     );
+    const evidenceCurrentThrough = canonicalTimestamp(
+      assessment.evidenceCurrentThrough,
+      "Readiness evidence current through",
+    );
+    const publishedAt = canonicalTimestamp(
+      envelope.publishedAt,
+      "Assessment publication time",
+    );
+    if (
+      evidenceCurrentThrough > assessedAt ||
+      assessedAt > publishedAt ||
+      Date.parse(publishedAt) > input.now.getTime()
+    ) {
+      throw new Error("Readiness assessment chronology is inconsistent.");
+    }
+    if (assessment.exactHeadSha.toLowerCase() !== expectedHeadSha) {
+      throw new Error(
+        "Readiness assessment SHA does not match the deployed exact head.",
+      );
+    }
+    const evidenceFreshness = deriveReadinessFreshness(
+      evidenceCurrentThrough,
+      input.now,
+    );
+    if (assessment.evidenceFreshness !== evidenceFreshness) {
+      throw new Error(
+        "Stored readiness freshness does not match server-derived freshness.",
+      );
+    }
+    const readiness = assessPrivateProductionReadiness({
+      ...assessment,
+      exactHeadSha: expectedHeadSha,
+      evidenceFreshness,
+    });
+    return {
+      assessmentId: assessment.assessmentId,
+      assessmentVersion,
+      assessedAt,
+      evidenceCurrentThrough,
+      evidenceFreshness,
+      exactHeadSha: expectedHeadSha,
+      readiness,
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    return emptyState("assessment_integrity_failed");
   }
-  const readiness = assessPrivateProductionReadiness({
-    ...assessment,
-    exactHeadSha: expectedHeadSha,
-    evidenceFreshness,
-  });
-  return {
-    assessmentId: assessment.assessmentId,
-    assessmentVersion,
-    assessedAt,
-    evidenceCurrentThrough,
-    evidenceFreshness,
-    exactHeadSha: expectedHeadSha,
-    readiness,
-    connectionStatus: "read_model_connected",
-  };
 }

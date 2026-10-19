@@ -24,4 +24,24 @@ describe("Dashboard readiness status", () => {
     expect(markup).not.toContain("private provider detail");
     expect(markup).not.toContain("Activate");
   });
+
+  it("renders a fail-closed integrity state without gate counts", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardReadinessStatus
+        state={{
+          connectionStatus: "assessment_integrity_failed",
+          exactHeadSha: null,
+          evidenceCurrentThrough: null,
+          evidenceFreshness: null,
+          readiness: null,
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Assessment integrity failed");
+    expect(markup).toContain("All readiness gates remain withheld");
+    expect(markup).toContain("Not available");
+    expect(markup).not.toContain("private provider detail");
+    expect(markup).not.toContain("Activate");
+  });
 });

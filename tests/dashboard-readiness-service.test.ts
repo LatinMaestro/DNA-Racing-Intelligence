@@ -140,5 +140,27 @@ describe("Dashboard readiness service", () => {
       evidenceFreshness: null,
       readiness: null,
     });
+    await expect(
+      loadDashboardReadinessPageState({
+        ...base,
+        repository: {
+          status: "ready",
+          loadLatestAssessmentByOwner: async () => ({
+            assessment: {
+              ...assessment,
+              exactHeadSha: "not-an-exact-sha",
+            },
+            acceptedAssessmentVersion: assessment.assessmentVersion,
+            publishedAt: "2026-10-18T00:45:00.000Z",
+          }),
+        },
+      }),
+    ).resolves.toEqual({
+      connectionStatus: "assessment_integrity_failed",
+      exactHeadSha: null,
+      evidenceCurrentThrough: null,
+      evidenceFreshness: null,
+      readiness: null,
+    });
   });
 });
