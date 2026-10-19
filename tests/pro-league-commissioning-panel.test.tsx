@@ -102,6 +102,20 @@ describe("Pro League commissioning panel", () => {
         remainingCount: 8,
         substitutions: [],
       },
+      historyCoverage: {
+        connectionStatus: "connected",
+        baselineStatus: "complete",
+        dataCurrentThrough: "2026-09-02T00:11:55.961Z",
+        versionFingerprint: "9ad61cb3e812",
+        sourceRecordUpperBound: 2_000_000,
+        receiptCount: 17_464,
+        finishedRaceReceiptCount: 17_369,
+        retainedR2Bytes: 874_370_990,
+        omittedIdentityObservationCount: 1,
+        incrementalRefreshStatus: "not_connected",
+        readOnly: true,
+        refreshTriggered: false,
+      },
       weeklyPerformance: {
         sourceStatus: "esports_connected",
         weekStart: "2026-09-16T00:00:00.000Z",
@@ -237,6 +251,14 @@ describe("Pro League commissioning panel", () => {
 
     expect(markup).toContain("Roster recommendation");
     expect(markup).toContain("Roster health");
+    expect(markup).toContain("Historical Race evidence");
+    expect(markup).toContain("2026-09-02T00:11:55.961Z");
+    expect(markup).toContain("Version 9ad61cb3e812");
+    expect(markup).toContain("17,464 total");
+    expect(markup).toContain("17,369 finished-race receipts");
+    expect(markup).toContain("874,370,990 bytes");
+    expect(markup).toContain("1 approved identity omission");
+    expect(markup).toContain("Incremental refresh is not connected");
     expect(markup).toContain("2/10 used");
     expect(markup).toContain("Weekly roster performance");
     expect(markup).toContain("1 review flag");
@@ -264,5 +286,50 @@ describe("Pro League commissioning panel", () => {
     expect(markup).not.toContain("API refresh safety");
     expect(markup).not.toContain("Breeding");
     expect(markup).not.toContain("Discovery");
+  });
+
+  it("does not imply historical coverage when the accepted baseline is unavailable", () => {
+    const state = {
+      connectionStatus: "read_model_connected",
+      evidence: null,
+      roster: null,
+      lineup: null,
+      ownerPlan: {
+        planId: "owner-final-roster/full-gate-win-first/2026-09-20",
+        roster: [],
+        mapStrategy: {
+          homePick: "Anchor",
+          homeDeny: "Miracles",
+          awayPriority: ["Anchor", "Measure", "Glory", "Miracles"],
+          contingencyMap: "Miracles",
+        },
+        maps: [],
+        requiredCoreEntries: 0,
+        assignedCoreEntries: 0,
+        allSlotsFilled: false,
+      },
+      historyCoverage: {
+        connectionStatus: "persistence_not_configured",
+        baselineStatus: "not_started",
+        dataCurrentThrough: null,
+        versionFingerprint: null,
+        sourceRecordUpperBound: 0,
+        receiptCount: 0,
+        finishedRaceReceiptCount: null,
+        retainedR2Bytes: 0,
+        omittedIdentityObservationCount: 0,
+        incrementalRefreshStatus: "not_connected",
+        readOnly: true,
+        refreshTriggered: false,
+      },
+    } as unknown as ProLeagueDraftCommissioningState;
+
+    const markup = renderToStaticMarkup(
+      <ProLeagueCommissioningPanel state={state} />,
+    );
+
+    expect(markup).toContain("Historical baseline coverage is unavailable");
+    expect(markup).not.toContain("17,464 total");
+    expect(markup).not.toContain("Data current through");
   });
 });
