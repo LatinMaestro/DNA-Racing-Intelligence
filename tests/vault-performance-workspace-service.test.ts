@@ -111,7 +111,7 @@ describe("Vault Performance workspace service", () => {
       }),
     ).resolves.toEqual({
       summary: null,
-      connectionStatus: "read_model_error",
+      connectionStatus: "read_failed",
     });
   });
 
@@ -153,7 +153,7 @@ describe("Vault Performance workspace service", () => {
     }
   });
 
-  it("rejects impossible freshness chronology and invalid repository capabilities", async () => {
+  it("withholds impossible freshness chronology as an integrity failure", async () => {
     await expect(
       loadVaultPerformancePageState({
         authenticatedOwnerId: "owner",
@@ -168,8 +168,13 @@ describe("Vault Performance workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow("cannot follow its import");
+    ).resolves.toEqual({
+      summary: null,
+      connectionStatus: "integrity_failed",
+    });
+  });
 
+  it("rejects invalid repository capabilities", async () => {
     await expect(
       loadVaultPerformancePageState({
         authenticatedOwnerId: "owner",
@@ -180,7 +185,7 @@ describe("Vault Performance workspace service", () => {
     ).rejects.toThrow("repository");
   });
 
-  it("rejects malformed persisted totals and completeness claims", async () => {
+  it("withholds malformed persisted totals and completeness claims", async () => {
     const cases: VaultPerformanceSummary[] = [
       {
         ...summary,
@@ -209,7 +214,10 @@ describe("Vault Performance workspace service", () => {
             loadSummaryByOwner: async () => persisted,
           },
         }),
-      ).rejects.toThrow("Invalid Vault Performance");
+      ).resolves.toEqual({
+        summary: null,
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 });
