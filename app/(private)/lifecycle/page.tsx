@@ -48,7 +48,9 @@ export default async function LifecyclePage() {
             ? "ready"
             : "persistence_not_configured"
       }
+      publishedAt={state.publishedAt}
       ranking={state.ranking}
+      snapshotSha256={state.snapshotSha256}
     />
   );
 }

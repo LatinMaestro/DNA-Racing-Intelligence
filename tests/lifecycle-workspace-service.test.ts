@@ -7,9 +7,11 @@ import {
 import { ranking } from "./lifecycle-fixture";
 
 const now = new Date("2026-07-30T00:00:00.000Z");
+const publishedAt = "2026-07-28T01:00:00.000Z";
+const snapshotSha256 = "a".repeat(64);
 
 function repository(
-  evidence = ranking(),
+  evidence: ReturnType<typeof ranking> | null = ranking(),
   latestAcceptedImportAt: string | null = "2026-07-28T00:00:00.000Z",
 ) {
   return {
@@ -17,6 +19,8 @@ function repository(
     loadRankingEvidenceByOwner: async () => ({
       ranking: evidence,
       latestAcceptedImportAt,
+      publishedAt: latestAcceptedImportAt === null ? null : publishedAt,
+      snapshotSha256: latestAcceptedImportAt === null ? null : snapshotSha256,
     }),
   };
 }
@@ -32,6 +36,8 @@ describe("Lifecycle workspace service", () => {
       }),
     ).resolves.toEqual({
       ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
       connectionStatus: "identity_not_connected",
     });
     await expect(
@@ -43,6 +49,8 @@ describe("Lifecycle workspace service", () => {
       }),
     ).resolves.toEqual({
       ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
       connectionStatus: "persistence_not_configured",
     });
   });
@@ -51,6 +59,8 @@ describe("Lifecycle workspace service", () => {
     const loadRankingEvidenceByOwner = vi.fn(async () => ({
       ranking: ranking(),
       latestAcceptedImportAt: "2026-07-28T00:00:00.000Z",
+      publishedAt,
+      snapshotSha256,
     }));
     await expect(
       loadLifecycleWorkspacePageState({
@@ -90,11 +100,13 @@ describe("Lifecycle workspace service", () => {
       loadLifecycleWorkspacePageState({
         authenticatedOwnerId: "owner",
         configuredOwnerId: "owner",
-        repository: repository(ranking(), null),
+        repository: repository(null, null),
         now,
       }),
     ).resolves.toEqual({
       ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
       connectionStatus: "read_model_connected",
     });
   });
@@ -117,6 +129,8 @@ describe("Lifecycle workspace service", () => {
         }),
       ).resolves.toEqual({
         ranking: null,
+        publishedAt: null,
+        snapshotSha256: null,
         connectionStatus: "integrity_failed",
       });
     }
@@ -137,6 +151,8 @@ describe("Lifecycle workspace service", () => {
       }),
     ).resolves.toEqual({
       ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
       connectionStatus: "read_failed",
     });
   });
@@ -162,6 +178,8 @@ describe("Lifecycle workspace service", () => {
       }),
     ).resolves.toEqual({
       ranking: null,
+      publishedAt: null,
+      snapshotSha256: null,
       connectionStatus: "integrity_failed",
     });
     await expect(

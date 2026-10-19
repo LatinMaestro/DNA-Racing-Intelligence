@@ -134,6 +134,8 @@ describe("compact Neon Lifecycle ranking dependency", () => {
       }),
     ).resolves.toMatchObject({
       connectionStatus: "read_model_connected",
+      publishedAt,
+      snapshotSha256: row().snapshot_sha256,
       ranking: {
         rankingId: evidence.rankingId,
         cores: [{ coreId: "synthetic-core", leadingAction: "race" }],
@@ -155,7 +157,12 @@ describe("compact Neon Lifecycle ranking dependency", () => {
     const test = harness({ rows: [] });
     await expect(
       test.repository.loadRankingEvidenceByOwner(authenticatedOwnerId),
-    ).resolves.toEqual({ ranking: null, latestAcceptedImportAt: null });
+    ).resolves.toEqual({
+      ranking: null,
+      latestAcceptedImportAt: null,
+      publishedAt: null,
+      snapshotSha256: null,
+    });
     expect(test.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
   });
 

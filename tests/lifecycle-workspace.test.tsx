@@ -55,13 +55,17 @@ describe("Lifecycle workspace", () => {
     const html = renderToStaticMarkup(
       <LifecycleWorkspace
         connectionStatus="read_model_connected"
+        publishedAt="2026-07-28T01:00:00.000Z"
         ranking={result}
+        snapshotSha256={"a".repeat(64)}
       />,
     );
     expect(html).toContain("Historical lifecycle evidence connected");
     expect(html).toContain("Configuration lifecycle-config-v2");
     expect(html).toContain("Candidates candidate-v7");
     expect(html).toContain("Lineage lineage-v5");
+    expect(html).toContain(`Accepted snapshot SHA-256: ${"a".repeat(64)}`);
+    expect(html).toContain("Published 2026-07-28T01:00:00.000Z");
     expect(html).toContain("Core synthetic-core · Morphed");
     expect(html).toContain("Strategic review only; not an instruction.");
     expect(html).toContain(

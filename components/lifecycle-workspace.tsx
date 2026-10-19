@@ -63,10 +63,14 @@ function percentage(basisPoints: number): string {
 
 export function LifecycleWorkspace({
   ranking,
+  publishedAt,
+  snapshotSha256,
   connectionStatus,
   economicWriteStatus,
 }: Readonly<{
   ranking: LifecycleActionRankingResult | null;
+  publishedAt?: string | null;
+  snapshotSha256?: string | null;
   connectionStatus: LifecycleWorkspaceConnectionStatus;
   economicWriteStatus?: LifecycleEconomicWriteStatus;
 }>) {
@@ -130,16 +134,24 @@ export function LifecycleWorkspace({
                 : label(ranking.freshness)}
             </p>
             {ranking === null ? null : (
-              <p className="mt-1 text-xs text-[var(--muted)]">
-                Configuration {ranking.configurationVersion} · Candidates{" "}
-                {ranking.candidateSnapshotVersion} · Racing{" "}
-                {ranking.racingSnapshotVersion} · Discovery{" "}
-                {ranking.discoverySnapshotVersion} · Maiden{" "}
-                {ranking.maidenSnapshotVersion} · Breeding{" "}
-                {ranking.breedingSnapshotVersion} · Lineage{" "}
-                {ranking.lineageSnapshotVersion} · Market{" "}
-                {ranking.marketSnapshotVersion}
-              </p>
+              <>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Configuration {ranking.configurationVersion} · Candidates{" "}
+                  {ranking.candidateSnapshotVersion} · Racing{" "}
+                  {ranking.racingSnapshotVersion} · Discovery{" "}
+                  {ranking.discoverySnapshotVersion} · Maiden{" "}
+                  {ranking.maidenSnapshotVersion} · Breeding{" "}
+                  {ranking.breedingSnapshotVersion} · Lineage{" "}
+                  {ranking.lineageSnapshotVersion} · Market{" "}
+                  {ranking.marketSnapshotVersion}
+                </p>
+                {snapshotSha256 == null || publishedAt == null ? null : (
+                  <p className="mt-1 break-all font-mono text-xs text-[var(--muted)]">
+                    Accepted snapshot SHA-256: {snapshotSha256} · Published{" "}
+                    {publishedAt}
+                  </p>
+                )}
+              </>
             )}
           </div>
           <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
