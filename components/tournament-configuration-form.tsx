@@ -129,10 +129,12 @@ export function TournamentConfigurationForm({
   const mode = selection?.kind === "new" ? selection.mode : "bike";
   const invalidSelection =
     selection?.kind === "existing" && selectedBracket === undefined;
-  const disabled = connectionStatus !== "read_model_connected" || invalidSelection;
-  const editorKey = selectedBracket
+  const disabled =
+    connectionStatus !== "read_model_connected" || invalidSelection;
+  const selectedEditorKey = selectedBracket
     ? JSON.stringify([selectedBracket.tournamentId, selectedBracket.bracketId])
     : `new-${mode}`;
+  const editorKey = creating ? `new-${mode}` : selectedEditorKey;
 
   return (
     <section

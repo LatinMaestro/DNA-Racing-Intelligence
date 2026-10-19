@@ -48,7 +48,7 @@ function syntheticBracket(mode: TournamentMode) {
     mode: rule.mode,
     eligibleDistancesMetres: rule.eligibleDistancesMetres,
     discoveryRelevance: rule.discoveryRelevance,
-    qualificationMetricLabel: "Fastest single time",
+    qualificationMetricLabel: rule.qualification.rankingMetric,
     configurationVersion: rule.configurationVersion,
     candidateSnapshotVersion: rule.candidateSnapshotVersion!,
     ruleConfiguration: rule,
@@ -122,6 +122,6 @@ describe("Multi-mode Tournament configuration editor", () => {
       />,
     );
     expect(html).toContain("no longer exists");
-    expect(html).toContain("<fieldset disabled=\"\"");
+    expect(html).toContain('<fieldset disabled=""');
   });
 });
