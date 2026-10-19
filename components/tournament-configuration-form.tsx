@@ -1,7 +1,22 @@
+import Link from "next/link";
+
 import type { TournamentCandidateRankingResult } from "@/domain/tournament-candidate-ranking";
+import {
+  tournamentModes,
+  type TournamentMode,
+} from "@/domain/tournament-configuration";
 import type { TournamentWorkspaceConnectionStatus } from "@/lib/tournament-workspace-service";
 
 type SaveAction = (formData: FormData) => Promise<void>;
+
+export type TournamentEditorSelection =
+  | Readonly<{
+      kind: "existing";
+      tournamentId: string;
+      bracketId: string;
+    }>
+  | Readonly<{ kind: "new"; mode: TournamentMode }>
+  | null;
 
 function editableConfiguration(
   configuration: NonNullable<
@@ -24,68 +39,106 @@ function editableConfiguration(
   return JSON.stringify(editable, null, 2);
 }
 
-const starterConfiguration = JSON.stringify(
-  {
-    tournamentId: "spring-cup-2026",
-    tournamentLabel: "Spring Cup",
-    seasonLabel: "Unspecified",
-    qualificationStartsAt: null,
-    qualificationEndsAt: null,
-    bracketId: "bike-a",
-    splitLabel: "Bike A",
-    mode: "bike",
-    eligibleDistancesMetres: [1200],
-    gateCount: 4,
-    entryFee: { amount: "0", asset: "Unspecified" },
-    raceFormat: "Unspecified",
-    eligibility: {
-      breeds: [],
-      classes: [],
-      elements: [],
-      fNumbers: [],
-      fNumberRanges: [],
-      groups: [],
+/**
+ * An unconfirmed complete-rule template, not a real event or a prediction.
+ * The owner must replace its identifiers, format, distance and source evidence.
+ */
+export function tournamentStarterConfiguration(mode: TournamentMode): string {
+  return JSON.stringify(
+    {
+      tournamentId: "replace-with-tournament-id",
+      tournamentLabel: "Unspecified tournament",
+      seasonLabel: "Unspecified",
+      qualificationStartsAt: null,
+      qualificationEndsAt: null,
+      bracketId: `replace-with-${mode}-split-id`,
+      splitLabel: "Unspecified split",
+      mode,
+      eligibleDistancesMetres: [1000],
+      gateCount: 4,
+      entryFee: { amount: "0", asset: "Unspecified" },
+      raceFormat: "Unspecified",
+      eligibility: {
+        breeds: [],
+        classes: [],
+        elements: [],
+        fNumbers: [],
+        fNumberRanges: [],
+        groups: [],
+      },
+      leaderboard: {
+        splitDimension: "none",
+        groups: [],
+        qualifyingRaceSemantics: "separate",
+      },
+      qualification: {
+        minimumRaceCount: 1,
+        target: { kind: "count", value: 1 },
+        rankingMetric: "fastest_single_time",
+        topFinishPosition: null,
+        pointsTable: {},
+        customScoringConfiguration: {},
+      },
+      discoveryRelevance: "eligible",
+      evidence: {
+        status: "uncertain",
+        notes: "",
+        sourceEvidence: "",
+        provenance: {},
+      },
+      campaignAction: null,
     },
-    leaderboard: {
-      splitDimension: "none",
-      groups: [],
-      qualifyingRaceSemantics: "separate",
-    },
-    qualification: {
-      minimumRaceCount: 1,
-      target: { kind: "count", value: 1 },
-      rankingMetric: "fastest_single_time",
-      topFinishPosition: null,
-      pointsTable: {},
-      customScoringConfiguration: {},
-    },
-    discoveryRelevance: "eligible",
-    evidence: {
-      status: "uncertain",
-      notes: "",
-      sourceEvidence: "",
-      provenance: {},
-    },
-    campaignAction: null,
-  },
-  null,
-  2,
-);
+    null,
+    2,
+  );
+}
+
+function selectedBracketLink(tournamentId: string, bracketId: string): string {
+  return (
+    `/tournaments?tournamentId=${encodeURIComponent(tournamentId)}` +
+    `&bracketId=${encodeURIComponent(bracketId)}`
+  );
+}
 
 export function TournamentConfigurationForm({
   brackets,
   connectionStatus,
   saveAction,
+  selection = null,
 }: Readonly<{
   brackets: readonly TournamentCandidateRankingResult[];
   connectionStatus: TournamentWorkspaceConnectionStatus;
   saveAction: SaveAction;
+  selection?: TournamentEditorSelection;
 }>) {
-  const existingConfiguration = brackets.find(
-    (bracket) => bracket.ruleConfiguration !== undefined,
-  )?.ruleConfiguration;
-  const hasExistingConfiguration = brackets.length > 0;
-  const disabled = connectionStatus !== "read_model_connected";
+  const creating = selection?.kind === "new" || (selection === null && brackets.length === 0);
+  const creationMode = selection?.kind === "new" ? selection.mode : "bike";
+  const selectedBracket =
+    selection?.kind === "new"
+      ? undefined
+      : selection?.kind === "existing"
+        ? brackets.find(
+            (bracket) =>
+              bracket.tournamentId === selection.tournamentId &&
+              bracket.bracketId === selection.bracketId,
+          )
+        : (brackets.find((bracket) => bracket.ruleConfiguration !== undefined) ??
+          brackets[0]);
+  const missingSelection =
+    selection?.kind === "existing" && selectedBracket === undefined;
+  const existingConfiguration = selectedBracket?.ruleConfiguration;
+  const disabled =
+    connectionStatus !== "read_model_connected" || missingSelection;
+  const editorKey = creating
+    ? `new-${creationMode}`
+    : selectedBracket === undefined
+      ? "no-current-split"
+      : JSON.stringify([selectedBracket.tournamentId, selectedBracket.bracketId]);
+  const editorValue = creating
+    ? tournamentStarterConfiguration(creationMode)
+    : existingConfiguration === undefined
+      ? ""
+      : editableConfiguration(existingConfiguration);
 
   return (
     <section
@@ -103,13 +156,80 @@ export function TournamentConfigurationForm({
           Add or replace a complete Tournament split
         </h2>
         <p className="mt-3 leading-7 text-[var(--muted)]">
-          Submit the complete rule payload used by Tournament and Discovery.
-          Versions and timestamps are derived by the server, and every rule
-          change invalidates previously bound candidate evidence. Bound campaign
-          acknowledgements are deliberately cleared before rule replacement.
-          This editor never submits a Tournament entry.
+          Select the exact saved event and split to edit, or start a new Bike,
+          Car or Horse split. The full owner-approved rule payload is retained,
+          including formats, gate counts, groupings and qualification scoring.
+          Versions and timestamps are derived by the server. Every rule change
+          invalidates previously bound candidate evidence and campaign
+          acknowledgements. This editor never submits a Tournament entry.
         </p>
       </div>
+
+      <nav aria-label="Tournament split editor" className="mt-6 space-y-3">
+        <p className="text-sm font-semibold">Saved events and splits</p>
+        {brackets.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No saved Tournament split yet. Start with a mode-specific review
+            draft below.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {brackets.map((bracket) => {
+              const active =
+                !creating &&
+                selectedBracket?.tournamentId === bracket.tournamentId &&
+                selectedBracket.bracketId === bracket.bracketId;
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:underline"
+                  href={selectedBracketLink(
+                    bracket.tournamentId,
+                    bracket.bracketId,
+                  )}
+                  key={JSON.stringify([bracket.tournamentId, bracket.bracketId])}
+                >
+                  {bracket.tournamentLabel} — {bracket.splitLabel} (
+                  {bracket.mode})
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-sm font-semibold">New event or split</p>
+        <div className="flex flex-wrap gap-2">
+          {tournamentModes.map((mode) => (
+            <Link
+              aria-current={creating && creationMode === mode ? "page" : undefined}
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:underline"
+              href={`/tournaments?create=${mode}`}
+              key={mode}
+            >
+              New {mode.charAt(0).toUpperCase() + mode.slice(1)} split
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {missingSelection ? (
+        <p className="mt-4 text-sm text-[var(--warning)]" role="status">
+          The selected saved tournament and split no longer exist. Choose a
+          listed split or start a new review draft before saving.
+        </p>
+      ) : selectedBracket !== undefined ? (
+        <p className="mt-4 text-sm" role="status">
+          Editing saved {selectedBracket.mode} split:{" "}
+          <strong>
+            {selectedBracket.tournamentLabel} — {selectedBracket.splitLabel}
+          </strong>
+        </p>
+      ) : creating ? (
+        <p className="mt-4 text-sm text-[var(--muted)]" role="status">
+          New {creationMode} review draft. Replace the example identifiers,
+          distance, gates, format, fees, qualification rules and missing source
+          evidence before relying on it.
+        </p>
+      ) : null}
 
       <form action={saveAction} className="mt-6">
         <fieldset disabled={disabled}>
@@ -118,13 +238,8 @@ export function TournamentConfigurationForm({
             <textarea
               aria-describedby="tournament-configuration-guidance"
               className="mt-2 min-h-[34rem] w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm"
-              defaultValue={
-                existingConfiguration === undefined
-                  ? hasExistingConfiguration
-                    ? ""
-                    : starterConfiguration
-                  : editableConfiguration(existingConfiguration)
-              }
+              defaultValue={editorValue}
+              key={editorKey}
               name="ruleConfiguration"
               required
               spellCheck={false}
@@ -134,11 +249,13 @@ export function TournamentConfigurationForm({
             className="mt-3 text-sm leading-6 text-[var(--muted)]"
             id="tournament-configuration-guidance"
           >
-            {existingConfiguration !== undefined
-              ? "The complete stored rule is prefilled. Review the whole payload before replacing it; partial updates and server-derived version fields are rejected."
-              : hasExistingConfiguration
-                ? "A legacy configuration exists without a canonical rule payload. Paste its complete reviewed rule before replacing it; partial updates are rejected."
-                : "The starter is deliberately review-only. Replace every Unspecified or uncertain rule and add source evidence before relying on candidate output."}
+            {existingConfiguration !== undefined && !creating
+              ? "The exact selected stored rule is prefilled. Review the full payload before replacing this split; partial updates and server-derived version fields are rejected."
+              : selectedBracket !== undefined
+                ? "This legacy split has no canonical rule payload. Supply the full reviewed configuration before saving."
+                : missingSelection
+                  ? "Select a valid saved split or use a new mode-specific draft."
+                  : "The starter is review-only, not an authoritative event. Replace placeholder values and add confirmed source evidence before relying on rankings."}
           </p>
           <button
             className="mt-6 rounded-lg border border-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border)] disabled:text-[var(--muted)]"
@@ -151,8 +268,9 @@ export function TournamentConfigurationForm({
 
       {disabled ? (
         <p className="mt-4 text-sm text-[var(--muted)]">
-          Configuration editing stays disabled until the owner-scoped database
-          read model is connected.
+          {missingSelection
+            ? "The selected event is unavailable for editing."
+            : "Configuration editing stays disabled until the owner-scoped database read model is connected."}
         </p>
       ) : null}
     </section>

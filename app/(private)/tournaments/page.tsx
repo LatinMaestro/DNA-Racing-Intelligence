@@ -5,6 +5,7 @@ import {
 import {
   TournamentCampaignActionForm,
   TournamentConfigurationForm,
+  type TournamentEditorSelection,
 } from "@/components/tournament-configuration-form";
 import { Season12TournamentSchedule } from "@/components/season-12-tournament-schedule";
 import { TournamentHorseScreeningPanel } from "@/components/tournament-horse-screening-panel";
@@ -17,7 +18,38 @@ import { loadTournamentWorkspacePageState } from "@/lib/tournament-workspace-ser
 
 export const dynamic = "force-dynamic";
 
-export default async function TournamentsPage() {
+type TournamentSearchParams = Readonly<{
+  tournamentId?: string | string[];
+  bracketId?: string | string[];
+  create?: string | string[];
+}>;
+
+export function tournamentEditorSelection(
+  params: TournamentSearchParams,
+): TournamentEditorSelection {
+  const mode = params.create;
+  if (mode === "bike" || mode === "car" || mode === "horse") {
+    return { kind: "new", mode };
+  }
+  if (
+    typeof params.tournamentId === "string" &&
+    typeof params.bracketId === "string"
+  ) {
+    return {
+      kind: "existing",
+      tournamentId: params.tournamentId,
+      bracketId: params.bracketId,
+    };
+  }
+  return null;
+}
+
+export default async function TournamentsPage({
+  searchParams,
+}: Readonly<{
+  searchParams: Promise<TournamentSearchParams>;
+}>) {
+  const editorSelection = tournamentEditorSelection(await searchParams);
   const authenticatedOwnerId = await authenticatedClerkOwnerId({
     environment: {
       publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
@@ -53,6 +85,7 @@ export default async function TournamentsPage() {
         brackets={state.brackets}
         connectionStatus={state.connectionStatus}
         saveAction={saveTournamentConfigurationAction}
+        selection={editorSelection}
       />
       <TournamentCampaignActionForm
         acknowledgementAction={acknowledgeTournamentCampaignAction}
