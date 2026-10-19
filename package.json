@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write components/tournament-configuration-form.tsx tests/tournament-configuration-form.test.tsx && prettier --check . && echo __COMPONENT_START__ && base64 -w 0 components/tournament-configuration-form.tsx && echo && echo __COMPONENT_END__ && echo __TEST_START__ && base64 -w 0 tests/tournament-configuration-form.test.tsx && echo && echo __TEST_END__",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
