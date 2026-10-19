@@ -43,6 +43,19 @@ function vaultState(
     connectionStatus: "connected",
     filters: normalizeOwnerVaultCatalogueFilters({ scope }),
     cores: cores(count),
+    publication: {
+      coreDatasetVersionId: "11111111-1111-4111-8111-111111111111",
+      importBatchId: "22222222-2222-4222-8222-222222222222",
+      sourceSha256: "a".repeat(64),
+      sourceRowCount: count + 1,
+      acceptedRowCount: count,
+      coreCount: count,
+      evidenceRowCount: count + 1,
+      activatedAt: "2026-08-11T00:30:00.000Z",
+      dataCurrentThrough: null,
+      aggregateRefreshedAt: "2026-08-11T00:45:00.000Z",
+      evidenceSealedAt: "2026-08-11T00:50:00.000Z",
+    },
   };
 }
 
@@ -112,6 +125,9 @@ describe("bounded private Core catalogue results", () => {
     expect(html).toContain("50-core result limit");
     expect(html).toContain("not verified totals");
     expect(html).toContain('role="status"');
+    expect(html).toContain("Accepted Core Details source");
+    expect(html).toContain("11111111-1111-4111-8111-111111111111");
+    expect(html).toContain("Source SHA256");
   });
 
   it("discloses the different 500-result My Vault bound", () => {

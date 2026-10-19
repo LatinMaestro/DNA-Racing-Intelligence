@@ -163,6 +163,57 @@ describe("Neon owner Vault catalogue repository", () => {
     expect(listCall?.values?.[7]).toBe(500);
   });
 
+  it("reads accepted publication identity and catalogue rows atomically", async () => {
+    const test = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [ownerEvidence()],
+      [
+        {
+          core_dataset_version_id: "22222222-2222-4222-8222-222222222222",
+          import_batch_id: "33333333-3333-4333-8333-333333333333",
+          source_sha256: "a".repeat(64),
+          source_row_count: "8",
+          accepted_row_count: "7",
+          core_count: "7",
+          evidence_row_count: "8",
+          activated_at: "2026-08-11T00:30:00.000Z",
+          data_current_through: null,
+          aggregate_refreshed_at: "2026-08-11T00:45:00.000Z",
+          evidence_sealed_at: "2026-08-11T00:50:00.000Z",
+        },
+      ],
+      [],
+    ]);
+    const repository = ready(test);
+    await expect(
+      repository.readCataloguePageByOwner!(clerkOwnerId, filters),
+    ).resolves.toEqual({
+      cores: [],
+      publication: {
+        coreDatasetVersionId: "22222222-2222-4222-8222-222222222222",
+        importBatchId: "33333333-3333-4333-8333-333333333333",
+        sourceSha256: "a".repeat(64),
+        sourceRowCount: 8,
+        acceptedRowCount: 7,
+        coreCount: 7,
+        evidenceRowCount: 8,
+        activatedAt: "2026-08-11T00:30:00.000Z",
+        dataCurrentThrough: null,
+        aggregateRefreshedAt: "2026-08-11T00:45:00.000Z",
+        evidenceSealedAt: "2026-08-11T00:50:00.000Z",
+      },
+    });
+    expect(test.calls[0]?.statement).toContain("REPEATABLE READ READ ONLY");
+    expect(
+      test.calls.some((call) =>
+        call.statement.includes(
+          "FROM dna.read_owner_vault_catalogue_publication($1::uuid)",
+        ),
+      ),
+    ).toBe(true);
+    expect(test.calls.at(-1)?.statement).toBe("COMMIT");
+  });
+
   it("fails before catalogue access if owner isolation or runtime privilege is unsafe", async () => {
     for (const evidence of [
       ownerEvidence({ vault_force_row_security_enabled: false }),
