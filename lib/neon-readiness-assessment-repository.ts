@@ -91,6 +91,22 @@ const MODULE_BOUNDARY_STATES = [
   "connected_verified",
   "failed",
 ] as const;
+const LEGACY_MODULE_BOUNDARY_KEYS = [
+  "vaultPerformance",
+  "openRace",
+  "lifecycle",
+] as const;
+const MODULE_BOUNDARY_KEYS = [
+  "dashboardReadiness",
+  "vaultCoreSearch",
+  "tournament",
+  "maiden",
+  "discovery",
+  "breedingSplice",
+  ...LEGACY_MODULE_BOUNDARY_KEYS,
+  "proLeague",
+  "importApi",
+] as const;
 
 function fail(): never {
   throw new Error(ERROR);
@@ -169,17 +185,76 @@ function verifyAssessmentShape(value: Record<string, unknown>) {
     if (typeof value[field] !== "boolean") fail();
   if (value.moduleBoundaries !== undefined) {
     const boundaries = record(value.moduleBoundaries);
-    exactKeys(boundaries, ["vaultPerformance", "openRace", "lifecycle"]);
+    const suppliedKeys = Object.keys(boundaries);
+    const expectedKeys =
+      suppliedKeys.length === LEGACY_MODULE_BOUNDARY_KEYS.length
+        ? LEGACY_MODULE_BOUNDARY_KEYS
+        : MODULE_BOUNDARY_KEYS;
+    exactKeys(boundaries, expectedKeys);
+    const dashboardReadiness =
+      boundaries.dashboardReadiness === undefined
+        ? null
+        : record(boundaries.dashboardReadiness);
+    const vaultCoreSearch =
+      boundaries.vaultCoreSearch === undefined
+        ? null
+        : record(boundaries.vaultCoreSearch);
+    const tournament =
+      boundaries.tournament === undefined
+        ? null
+        : record(boundaries.tournament);
+    const maiden =
+      boundaries.maiden === undefined ? null : record(boundaries.maiden);
+    const discovery =
+      boundaries.discovery === undefined ? null : record(boundaries.discovery);
+    const breedingSplice =
+      boundaries.breedingSplice === undefined
+        ? null
+        : record(boundaries.breedingSplice);
     const vaultPerformance = record(boundaries.vaultPerformance);
     exactKeys(vaultPerformance, ["readModel", "economicEvidenceWrites"]);
     const openRace = record(boundaries.openRace);
     exactKeys(openRace, ["readModel", "fieldLock", "postLockObservation"]);
     const lifecycle = record(boundaries.lifecycle);
     exactKeys(lifecycle, ["readModel", "economicEvidenceWrites"]);
+    const proLeague =
+      boundaries.proLeague === undefined ? null : record(boundaries.proLeague);
+    const importApi =
+      boundaries.importApi === undefined ? null : record(boundaries.importApi);
+    if (dashboardReadiness !== null)
+      exactKeys(dashboardReadiness, ["aggregateReadModel", "freshnessUi"]);
+    if (vaultCoreSearch !== null)
+      exactKeys(vaultCoreSearch, [
+        "ownedCoreReadModel",
+        "exactFormatHistoryUi",
+      ]);
+    if (tournament !== null)
+      exactKeys(tournament, ["allModeFormatReadModel", "persistenceUi"]);
+    if (maiden !== null)
+      exactKeys(maiden, ["acceptedSourceReadModel", "allocationUi"]);
+    if (discovery !== null)
+      exactKeys(discovery, ["acceptedSourceReadModel", "rankingUi"]);
+    if (breedingSplice !== null)
+      exactKeys(breedingSplice, [
+        "independentEvidenceReadModel",
+        "comparisonUi",
+      ]);
+    if (proLeague !== null)
+      exactKeys(proLeague, ["rosterReadModel", "fullGateMapUi"]);
+    if (importApi !== null)
+      exactKeys(importApi, ["acceptedDatasetReadModel", "refreshRollback"]);
     for (const state of [
+      ...Object.values(dashboardReadiness ?? {}),
+      ...Object.values(vaultCoreSearch ?? {}),
+      ...Object.values(tournament ?? {}),
+      ...Object.values(maiden ?? {}),
+      ...Object.values(discovery ?? {}),
+      ...Object.values(breedingSplice ?? {}),
       ...Object.values(vaultPerformance),
       ...Object.values(openRace),
       ...Object.values(lifecycle),
+      ...Object.values(proLeague ?? {}),
+      ...Object.values(importApi ?? {}),
     ])
       oneOf(state, MODULE_BOUNDARY_STATES);
   }

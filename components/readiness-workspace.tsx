@@ -44,6 +44,48 @@ function label(value: string): string {
 }
 
 const moduleBoundaryLabels = {
+  dashboardReadiness: {
+    heading: "Dashboard and Readiness",
+    boundaries: {
+      aggregateReadModel: "Aggregate read model",
+      freshnessUi: "Freshness UI",
+    },
+  },
+  vaultCoreSearch: {
+    heading: "My Vault, Core Intelligence and Search",
+    boundaries: {
+      ownedCoreReadModel: "Owned Core read model",
+      exactFormatHistoryUi: "Exact-format history UI",
+    },
+  },
+  tournament: {
+    heading: "Tournament",
+    boundaries: {
+      allModeFormatReadModel: "All-mode and format read model",
+      persistenceUi: "Persistence and edit UI",
+    },
+  },
+  maiden: {
+    heading: "Maiden",
+    boundaries: {
+      acceptedSourceReadModel: "Accepted-source read model",
+      allocationUi: "Allocation UI",
+    },
+  },
+  discovery: {
+    heading: "Discovery",
+    boundaries: {
+      acceptedSourceReadModel: "Accepted-source read model",
+      rankingUi: "Ranking UI",
+    },
+  },
+  breedingSplice: {
+    heading: "Breeding and Splice",
+    boundaries: {
+      independentEvidenceReadModel: "Independent-evidence read model",
+      comparisonUi: "Comparison UI",
+    },
+  },
   vaultPerformance: {
     heading: "Vault Performance",
     boundaries: {
@@ -64,6 +106,20 @@ const moduleBoundaryLabels = {
     boundaries: {
       readModel: "Ranking read model",
       economicEvidenceWrites: "Economic evidence writes",
+    },
+  },
+  proLeague: {
+    heading: "Bike Pro League and Esports",
+    boundaries: {
+      rosterReadModel: "Roster read model",
+      fullGateMapUi: "Full-gate map UI",
+    },
+  },
+  importApi: {
+    heading: "Import and API",
+    boundaries: {
+      acceptedDatasetReadModel: "Accepted dataset read model",
+      refreshRollback: "Refresh and rollback",
     },
   },
 } as const;
@@ -297,7 +353,7 @@ export function ReadinessWorkspace({
             Fixture verification records code and CI evidence. Only bounded
             connected owner-data acceptance can mark a boundary connected.
           </p>
-          <ul className="mt-4 grid gap-4 xl:grid-cols-3">
+          <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Object.entries(moduleBoundaryLabels).map(
               ([moduleCode, module]) => {
                 const states =
