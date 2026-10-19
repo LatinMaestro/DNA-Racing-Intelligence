@@ -24,7 +24,7 @@ type TournamentSearchParams = Readonly<{
   create?: string | string[];
 }>;
 
-export function tournamentEditorSelection(
+function tournamentEditorSelection(
   params: TournamentSearchParams,
 ): TournamentEditorSelection {
   const mode = params.create;
