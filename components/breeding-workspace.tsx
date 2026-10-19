@@ -22,6 +22,16 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact private ranking repository is not configured. No raw history is scanned on this page.",
   },
+  read_failed: {
+    heading: "Breeding evidence temporarily unavailable",
+    detail:
+      "The owner-scoped breeding read could not be completed. All pair rankings are withheld until the repository is available; no cached or inferred replacements are shown.",
+  },
+  integrity_failed: {
+    heading: "Breeding evidence failed validation",
+    detail:
+      "Saved breeding evidence failed validation. All pair rankings remain unavailable until the accepted snapshot is repaired; no partial results are shown.",
+  },
   read_model_connected: {
     heading: "Historical breeding evidence connected",
     detail:

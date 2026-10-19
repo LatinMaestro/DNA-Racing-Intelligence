@@ -5,6 +5,23 @@ import { BreedingWorkspace } from "@/components/breeding-workspace";
 import { rankBreedingPairs } from "@/domain/breeding-pair-ranking";
 
 describe("Breeding workspace", () => {
+  it.each([
+    ["read_failed", "Breeding evidence temporarily unavailable"],
+    ["integrity_failed", "Breeding evidence failed validation"],
+  ] as const)(
+    "renders the %s fail-closed state",
+    (connectionStatus, heading) => {
+      const html = renderToStaticMarkup(
+        <BreedingWorkspace connectionStatus={connectionStatus} rankings={[]} />,
+      );
+
+      expect(html).toContain(heading);
+      expect(html).toContain("No accepted breeding rankings");
+      expect(html).toContain("Breeding execution unavailable");
+      expect(html).not.toContain("Recommended pair");
+    },
+  );
+
   it("renders unavailable evidence without a fake pair", () => {
     const html = renderToStaticMarkup(
       <BreedingWorkspace

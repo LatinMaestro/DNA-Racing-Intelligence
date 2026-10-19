@@ -156,7 +156,10 @@ export async function loadProLeagueBreedingObjectiveState(
   });
   if (workspace.connectionStatus !== "read_model_connected") {
     return unavailableProLeagueBreedingObjectiveState(
-      "persistence_not_configured",
+      workspace.connectionStatus === "read_failed" ||
+        workspace.connectionStatus === "integrity_failed"
+        ? "invalid_evidence"
+        : "persistence_not_configured",
       input.roster.evidenceCutoffAt,
       priorityGapCount,
     );

@@ -23,6 +23,8 @@ export type BreedingRankingRepository =
 export type BreedingWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type BreedingWorkspacePageState = Readonly<{
@@ -32,6 +34,12 @@ export type BreedingWorkspacePageState = Readonly<{
 
 export const unavailableBreedingRankingRepository: BreedingRankingRepository =
   Object.freeze({ status: "not_configured" });
+
+function withheldEvidence(
+  connectionStatus: "read_failed" | "integrity_failed",
+): BreedingWorkspacePageState {
+  return { rankings: [], connectionStatus };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -151,51 +159,65 @@ export async function loadBreedingWorkspacePageState(
     throw new Error("Breeding repository is invalid.");
   }
 
-  const evidence =
-    await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
-  if (
-    typeof evidence !== "object" ||
-    evidence === null ||
-    !Array.isArray(evidence.rankings)
-  ) {
-    throw new Error("Breeding ranking evidence is invalid.");
-  }
-  const performanceImportAt = canonicalTimestamp(
-    evidence.latestAcceptedPerformanceImportAt,
-    "Breeding accepted import",
-  );
-  const arenaImportAt = canonicalTimestamp(
-    evidence.latestAcceptedArenaImportAt,
-    "Arena accepted import",
-  );
-  if (
-    [performanceImportAt, arenaImportAt].some(
-      (value) => value !== null && Date.parse(value) > now.getTime(),
-    )
-  ) {
-    throw new Error("Breeding accepted import cannot be future.");
-  }
-  const rankings = evidence.rankings.map((ranking) =>
-    rankBreedingPairs(
-      normalizedRanking(ranking, performanceImportAt, arenaImportAt, now),
-    ),
-  );
-  if (
-    new Set(rankings.map(({ rankingId }) => rankingId)).size !== rankings.length
-  ) {
-    throw new Error("Breeding ranking evidence must use unique IDs.");
-  }
-  if (
-    new Set(rankings.map(({ rankingLabel }) => rankingLabel)).size !==
-    rankings.length
-  ) {
-    throw new Error("Breeding ranking labels must map to unique IDs.");
+  let evidence: BreedingRankingEvidence;
+  try {
+    evidence =
+      await input.repository.loadRankingEvidenceByOwner(authenticatedOwnerId);
+  } catch {
+    // Withhold the whole owner-scoped snapshot and provider error details.
+    // A failed read must never fall back to stale or inferred pair rankings.
+    return withheldEvidence("read_failed");
   }
 
-  return {
-    rankings: rankings.sort((left, right) =>
-      left.rankingId.localeCompare(right.rankingId),
-    ),
-    connectionStatus: "read_model_connected",
-  };
+  try {
+    if (
+      typeof evidence !== "object" ||
+      evidence === null ||
+      !Array.isArray(evidence.rankings)
+    ) {
+      throw new Error("Breeding ranking evidence is invalid.");
+    }
+    const performanceImportAt = canonicalTimestamp(
+      evidence.latestAcceptedPerformanceImportAt,
+      "Breeding accepted import",
+    );
+    const arenaImportAt = canonicalTimestamp(
+      evidence.latestAcceptedArenaImportAt,
+      "Arena accepted import",
+    );
+    if (
+      [performanceImportAt, arenaImportAt].some(
+        (value) => value !== null && Date.parse(value) > now.getTime(),
+      )
+    ) {
+      throw new Error("Breeding accepted import cannot be future.");
+    }
+    const rankings = evidence.rankings.map((ranking) =>
+      rankBreedingPairs(
+        normalizedRanking(ranking, performanceImportAt, arenaImportAt, now),
+      ),
+    );
+    if (
+      new Set(rankings.map(({ rankingId }) => rankingId)).size !==
+      rankings.length
+    ) {
+      throw new Error("Breeding ranking evidence must use unique IDs.");
+    }
+    if (
+      new Set(rankings.map(({ rankingLabel }) => rankingLabel)).size !==
+      rankings.length
+    ) {
+      throw new Error("Breeding ranking labels must map to unique IDs.");
+    }
+
+    return {
+      rankings: rankings.sort((left, right) =>
+        left.rankingId.localeCompare(right.rankingId),
+      ),
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    // Invalid or mixed-version evidence is not a partly usable ranking.
+    return withheldEvidence("integrity_failed");
+  }
 }

@@ -201,7 +201,7 @@ describe("Breeding workspace service", () => {
     });
   });
 
-  it("rejects duplicate ranking IDs and labels", async () => {
+  it("withholds duplicate ranking IDs and labels as an integrity failure", async () => {
     for (const rankings of [
       [rankingInput, rankingInput],
       [
@@ -220,11 +220,14 @@ describe("Breeding workspace service", () => {
           repository: repository(rankings),
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        rankings: [],
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 
-  it("rejects future, post-import and non-canonical evidence", async () => {
+  it("withholds future, post-import and non-canonical evidence", async () => {
     const cases = [
       repository([rankingInput], "2026-07-29T00:00:00.000Z"),
       repository([
@@ -246,11 +249,34 @@ describe("Breeding workspace service", () => {
           repository: item,
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        rankings: [],
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 
-  it("rejects malformed repositories, payloads and server time", async () => {
+  it("withholds repository read failures without exposing provider errors", async () => {
+    const providerError = new Error("private provider detail");
+    await expect(
+      loadBreedingWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          loadRankingEvidenceByOwner: async () => {
+            throw providerError;
+          },
+        },
+        now,
+      }),
+    ).resolves.toEqual({
+      rankings: [],
+      connectionStatus: "read_failed",
+    });
+  });
+
+  it("rejects malformed repositories and server time but withholds malformed evidence", async () => {
     await expect(
       loadBreedingWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -269,7 +295,10 @@ describe("Breeding workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow("evidence is invalid");
+    ).resolves.toEqual({
+      rankings: [],
+      connectionStatus: "integrity_failed",
+    });
     await expect(
       loadBreedingWorkspacePageState({
         authenticatedOwnerId: "owner",
