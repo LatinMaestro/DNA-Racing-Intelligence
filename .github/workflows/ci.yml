@@ -479,6 +479,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.up.sql
       - name: Run Core performance publication read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.smoke.sql
+      - name: Apply Vault catalogue publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.up.sql
+      - name: Run Vault catalogue publication read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.smoke.sql
+      - name: Reverse Vault catalogue publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.down.sql
+      - name: Verify Vault catalogue publication read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.removal.sql
       - name: Reverse Core performance publication read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0146_core_performance_publication_read.down.sql
       - name: Verify Core performance publication read removal

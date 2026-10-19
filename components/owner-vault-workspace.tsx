@@ -196,6 +196,29 @@ export function OwnerVaultWorkspace({
         </section>
       ) : (
         <section aria-labelledby="vault-results">
+          {state.publication ? (
+            <div
+              className="mb-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4"
+              aria-labelledby="vault-publication-heading"
+            >
+              <h2 className="font-semibold" id="vault-publication-heading">
+                Accepted Core Details source
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Dataset {state.publication.coreDatasetVersionId} · import{" "}
+                {state.publication.importBatchId} ·{" "}
+                {state.publication.coreCount.toLocaleString("en-AU")} accepted
+                cores from{" "}
+                {state.publication.sourceRowCount.toLocaleString("en-AU")}{" "}
+                source rows
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                Source SHA256 {state.publication.sourceSha256} · evidence sealed{" "}
+                {state.publication.evidenceSealedAt} · aggregates refreshed{" "}
+                {state.publication.aggregateRefreshedAt}
+              </p>
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold" id="vault-results">

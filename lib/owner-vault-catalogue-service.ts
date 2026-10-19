@@ -37,6 +37,25 @@ export type OwnerVaultCatalogueCore = Readonly<{
   updatedAt: string | null;
 }>;
 
+export type OwnerVaultCataloguePublication = Readonly<{
+  coreDatasetVersionId: string;
+  importBatchId: string;
+  sourceSha256: string;
+  sourceRowCount: number;
+  acceptedRowCount: number;
+  coreCount: number;
+  evidenceRowCount: number;
+  activatedAt: string;
+  dataCurrentThrough: string | null;
+  aggregateRefreshedAt: string;
+  evidenceSealedAt: string;
+}>;
+
+export type OwnerVaultCatalogueRead = Readonly<{
+  cores: readonly OwnerVaultCatalogueCore[];
+  publication: OwnerVaultCataloguePublication;
+}>;
+
 export type OwnerVaultCatalogueRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
@@ -45,6 +64,10 @@ export type OwnerVaultCatalogueRepository =
         ownerId: string,
         filters: OwnerVaultCatalogueFilters,
       ) => Promise<readonly OwnerVaultCatalogueCore[]>;
+      readCataloguePageByOwner?: (
+        ownerId: string,
+        filters: OwnerVaultCatalogueFilters,
+      ) => Promise<OwnerVaultCatalogueRead>;
     }>;
 
 export type OwnerVaultCataloguePageState = Readonly<{
@@ -56,6 +79,7 @@ export type OwnerVaultCataloguePageState = Readonly<{
     | "connected";
   filters: OwnerVaultCatalogueFilters;
   cores: readonly OwnerVaultCatalogueCore[];
+  publication?: OwnerVaultCataloguePublication | null;
 }>;
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -161,6 +185,47 @@ function validateCore(value: OwnerVaultCatalogueCore): OwnerVaultCatalogueCore {
   return value;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHA_256_PATTERN = /^[a-f0-9]{64}$/;
+
+function validatePublication(
+  value: OwnerVaultCataloguePublication,
+  coreCount: number,
+): OwnerVaultCataloguePublication {
+  const timestamps = [
+    value.activatedAt,
+    value.aggregateRefreshedAt,
+    value.evidenceSealedAt,
+    ...(value.dataCurrentThrough === null ? [] : [value.dataCurrentThrough]),
+  ];
+  if (
+    !UUID_PATTERN.test(value.coreDatasetVersionId) ||
+    !UUID_PATTERN.test(value.importBatchId) ||
+    !SHA_256_PATTERN.test(value.sourceSha256) ||
+    !Number.isSafeInteger(value.sourceRowCount) ||
+    value.sourceRowCount < 1 ||
+    !Number.isSafeInteger(value.acceptedRowCount) ||
+    value.acceptedRowCount < 0 ||
+    value.acceptedRowCount > value.sourceRowCount ||
+    !Number.isSafeInteger(value.coreCount) ||
+    value.coreCount < 0 ||
+    value.coreCount !== value.acceptedRowCount ||
+    value.coreCount < coreCount ||
+    !Number.isSafeInteger(value.evidenceRowCount) ||
+    value.evidenceRowCount !== value.sourceRowCount ||
+    timestamps.some((timestamp) => {
+      const parsed = new Date(timestamp);
+      return (
+        Number.isNaN(parsed.getTime()) || parsed.toISOString() !== timestamp
+      );
+    })
+  ) {
+    throw new Error("Vault catalogue publication is invalid.");
+  }
+  return value;
+}
+
 export async function loadOwnerVaultCataloguePageState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
@@ -196,11 +261,21 @@ export async function loadOwnerVaultCataloguePageState(
     throw new Error("Vault catalogue repository is invalid.");
   }
   let persistedCores: readonly OwnerVaultCatalogueCore[];
+  let persistedPublication: OwnerVaultCataloguePublication | null = null;
   try {
-    persistedCores = await input.repository.listCoresByOwner(
-      authenticatedOwnerId,
-      filters,
-    );
+    if (input.repository.readCataloguePageByOwner) {
+      const read = await input.repository.readCataloguePageByOwner(
+        authenticatedOwnerId,
+        filters,
+      );
+      persistedCores = read.cores;
+      persistedPublication = read.publication;
+    } else {
+      persistedCores = await input.repository.listCoresByOwner(
+        authenticatedOwnerId,
+        filters,
+      );
+    }
   } catch {
     return { connectionStatus: "read_failed", filters, cores: [] };
   }
@@ -218,7 +293,11 @@ export async function loadOwnerVaultCataloguePageState(
         );
       }
     }
-    return { connectionStatus: "connected", filters, cores };
+    const publication =
+      persistedPublication === null
+        ? null
+        : validatePublication(persistedPublication, cores.length);
+    return { connectionStatus: "connected", filters, cores, publication };
   } catch {
     return { connectionStatus: "integrity_failed", filters, cores: [] };
   }

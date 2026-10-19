@@ -4,7 +4,7 @@ import {
 } from "./owner-vault-catalogue-service";
 import type {
   OwnerVaultCatalogueCore,
-  OwnerVaultCatalogueFilters,
+  OwnerVaultCataloguePublication,
   OwnerVaultCatalogueRepository,
   OwnerVaultClass,
   OwnerVaultElement,
@@ -83,6 +83,22 @@ const LIST_CORES_SQL = `
   )
 `;
 
+const READ_PUBLICATION_SQL = `
+  SELECT
+    core_dataset_version_id,
+    import_batch_id,
+    source_sha256,
+    source_row_count,
+    accepted_row_count,
+    core_count,
+    evidence_row_count,
+    activated_at,
+    data_current_through,
+    aggregate_refreshed_at,
+    evidence_sealed_at
+  FROM dna.read_owner_vault_catalogue_publication($1::uuid)
+`;
+
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 
 type Environment = Readonly<{
@@ -134,6 +150,41 @@ function optionalTimestamp(value: unknown): string | null {
     value instanceof Date ? value : new Date(text(value, "updated_at"));
   if (Number.isNaN(parsed.getTime())) throw new Error("updated_at is invalid.");
   return parsed.toISOString();
+}
+
+function timestamp(value: unknown, label: string): string {
+  const parsed = value instanceof Date ? value : new Date(text(value, label));
+  if (Number.isNaN(parsed.getTime())) throw new Error(`${label} is invalid.`);
+  return parsed.toISOString();
+}
+
+function publication(rowValue: unknown): OwnerVaultCataloguePublication {
+  const row = object(rowValue, "Vault catalogue publication");
+  return {
+    coreDatasetVersionId: text(
+      row.core_dataset_version_id,
+      "core_dataset_version_id",
+    ),
+    importBatchId: text(row.import_batch_id, "import_batch_id"),
+    sourceSha256: text(row.source_sha256, "source_sha256"),
+    sourceRowCount: positiveInteger(row.source_row_count, "source_row_count"),
+    acceptedRowCount: nonNegativeInteger(
+      row.accepted_row_count,
+      "accepted_row_count",
+    ),
+    coreCount: nonNegativeInteger(row.core_count, "core_count"),
+    evidenceRowCount: positiveInteger(
+      row.evidence_row_count,
+      "evidence_row_count",
+    ),
+    activatedAt: timestamp(row.activated_at, "activated_at"),
+    dataCurrentThrough: optionalTimestamp(row.data_current_through),
+    aggregateRefreshedAt: timestamp(
+      row.aggregate_refreshed_at,
+      "aggregate_refreshed_at",
+    ),
+    evidenceSealedAt: timestamp(row.evidence_sealed_at, "evidence_sealed_at"),
+  };
 }
 
 function databaseOwnerId(value: string): string {
@@ -279,6 +330,66 @@ export function createNeonOwnerVaultCatalogueRepository(
         await session.client.query("COMMIT");
         transactionStarted = false;
         return cores;
+      } catch (error) {
+        if (transactionStarted) {
+          await session.client.query("ROLLBACK").catch(() => undefined);
+        }
+        throw error;
+      } finally {
+        await session.close();
+      }
+    },
+    async readCataloguePageByOwner(authenticatedOwnerId, filters) {
+      const clerkOwner = authenticatedOwnerId.trim();
+      if (clerkOwner === "")
+        throw new Error("authenticated owner is required.");
+      const session = await sessionFactory(url);
+      let transactionStarted = false;
+      try {
+        await session.client.query(
+          "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        );
+        transactionStarted = true;
+        await session.client.query(SET_OWNER_SCOPE_SQL, [owner]);
+        verifyOwnerIsolation(
+          await session.client.query(VERIFY_OWNER_ISOLATION_SQL, [
+            owner,
+            clerkOwner,
+          ]),
+          {
+            databaseOwnerId: owner,
+            authenticatedOwnerId: clerkOwner,
+            runtimeRole: role,
+          },
+        );
+        const publicationResult = await session.client.query(
+          READ_PUBLICATION_SQL,
+          [owner],
+        );
+        if (publicationResult.rows.length !== 1) {
+          throw new Error("Vault catalogue publication is unavailable.");
+        }
+        const limit =
+          filters.scope === "vault"
+            ? OWNER_VAULT_LIST_LIMIT
+            : OWNER_CORE_CATALOGUE_LIST_LIMIT;
+        const coreResult = await session.client.query(LIST_CORES_SQL, [
+          owner,
+          filters.query,
+          filters.element,
+          filters.coreClass,
+          filters.sex,
+          filters.fNumber,
+          filters.scope,
+          limit,
+        ]);
+        const read = {
+          cores: coreResult.rows.map(core),
+          publication: publication(publicationResult.rows[0]),
+        };
+        await session.client.query("COMMIT");
+        transactionStarted = false;
+        return read;
       } catch (error) {
         if (transactionStarted) {
           await session.client.query("ROLLBACK").catch(() => undefined);

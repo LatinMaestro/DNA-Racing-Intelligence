@@ -20,6 +20,20 @@ const core = {
   updatedAt: "2026-08-11T01:00:00.000Z",
 };
 
+const publication = {
+  coreDatasetVersionId: "11111111-1111-4111-8111-111111111111",
+  importBatchId: "22222222-2222-4222-8222-222222222222",
+  sourceSha256: "a".repeat(64),
+  sourceRowCount: 8,
+  acceptedRowCount: 7,
+  coreCount: 7,
+  evidenceRowCount: 8,
+  activatedAt: "2026-08-11T00:30:00.000Z",
+  dataCurrentThrough: null,
+  aggregateRefreshedAt: "2026-08-11T00:45:00.000Z",
+  evidenceSealedAt: "2026-08-11T00:50:00.000Z",
+};
+
 describe("owner Vault catalogue service", () => {
   it("normalizes the supported Vault filters", () => {
     expect(
@@ -87,6 +101,57 @@ describe("owner Vault catalogue service", () => {
     expect(state.connectionStatus).toBe("connected");
     expect(state.cores).toEqual([core]);
     expect(listCoresByOwner).toHaveBeenCalledWith(ownerId, state.filters);
+  });
+
+  it("binds the page rows to one accepted Core Details publication", async () => {
+    const readCataloguePageByOwner = vi.fn(async () => ({
+      cores: [core],
+      publication,
+    }));
+    const repository: OwnerVaultCatalogueRepository = {
+      status: "ready",
+      listCoresByOwner: vi.fn(),
+      readCataloguePageByOwner,
+    };
+    const state = await loadOwnerVaultCataloguePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository,
+      filters: { scope: "vault" },
+    });
+
+    expect(state).toMatchObject({
+      connectionStatus: "connected",
+      cores: [core],
+      publication,
+    });
+    expect(readCataloguePageByOwner).toHaveBeenCalledWith(
+      ownerId,
+      state.filters,
+    );
+    expect(repository.listCoresByOwner).not.toHaveBeenCalled();
+  });
+
+  it("withholds catalogue rows when publication counts drift", async () => {
+    const repository: OwnerVaultCatalogueRepository = {
+      status: "ready",
+      listCoresByOwner: vi.fn(),
+      readCataloguePageByOwner: async () => ({
+        cores: [core],
+        publication: { ...publication, coreCount: 6 },
+      }),
+    };
+    await expect(
+      loadOwnerVaultCataloguePageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository,
+        filters: { scope: "vault" },
+      }),
+    ).resolves.toMatchObject({
+      connectionStatus: "integrity_failed",
+      cores: [],
+    });
   });
 
   it("withholds all rows when the owner-scoped repository read fails", async () => {
