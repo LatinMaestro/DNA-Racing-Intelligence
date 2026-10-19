@@ -21,14 +21,28 @@ describe("Vault Performance workspace", () => {
   it("renders a sanitized compact-read failure", () => {
     const html = renderToStaticMarkup(
       <VaultPerformanceWorkspace
-        connectionStatus="read_model_error"
+        connectionStatus="read_failed"
         summary={null}
       />,
     );
 
-    expect(html).toContain("Vault Performance summary unavailable");
-    expect(html).toContain("provider details are withheld");
+    expect(html).toContain("Vault Performance summary temporarily unavailable");
+    expect(html).toContain("provider details are not exposed");
     expect(html).not.toContain("private provider detail");
+    expect(html).not.toContain("0 DEZ");
+  });
+
+  it("renders an integrity failure without financial values", () => {
+    const html = renderToStaticMarkup(
+      <VaultPerformanceWorkspace
+        connectionStatus="integrity_failed"
+        summary={null}
+      />,
+    );
+
+    expect(html).toContain("Vault Performance summary failed validation");
+    expect(html).toContain("All financial totals remain withheld");
+    expect(html).toContain("No accepted economic summary");
     expect(html).not.toContain("0 DEZ");
   });
 

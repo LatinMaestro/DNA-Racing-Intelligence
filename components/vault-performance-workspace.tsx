@@ -22,10 +22,15 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but the compact private summary repository is not configured. No ledger rows are scanned on this page.",
   },
-  read_model_error: {
-    heading: "Vault Performance summary unavailable",
+  read_failed: {
+    heading: "Vault Performance summary temporarily unavailable",
     detail:
-      "The compact private summary could not be verified. No financial value is inferred, provider details are withheld and the last accepted data remains unchanged.",
+      "The compact owner-scoped summary read could not be completed. All financial totals are withheld, provider details are not exposed and no missing value is treated as zero.",
+  },
+  integrity_failed: {
+    heading: "Vault Performance summary failed validation",
+    detail:
+      "The saved summary contains invalid economic totals, coverage or freshness evidence. All financial totals remain withheld until the accepted projection is repaired.",
   },
   read_model_connected: {
     heading: "Historical economic summary connected",

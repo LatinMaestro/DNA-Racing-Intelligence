@@ -19,7 +19,8 @@ export type VaultPerformanceSummaryRepository =
 export type VaultPerformanceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
-  | "read_model_error"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type VaultPerformancePageState = Readonly<{
@@ -239,14 +240,21 @@ export async function loadVaultPerformancePageState(
   } catch {
     return {
       summary: null,
-      connectionStatus: "read_model_error",
+      connectionStatus: "read_failed",
     };
   }
-  return {
-    summary:
-      persistedSummary === null
-        ? null
-        : normalizeVaultPerformanceReadSummary(persistedSummary, now),
-    connectionStatus: "read_model_connected",
-  };
+  try {
+    return {
+      summary:
+        persistedSummary === null
+          ? null
+          : normalizeVaultPerformanceReadSummary(persistedSummary, now),
+      connectionStatus: "read_model_connected",
+    };
+  } catch {
+    return {
+      summary: null,
+      connectionStatus: "integrity_failed",
+    };
+  }
 }
