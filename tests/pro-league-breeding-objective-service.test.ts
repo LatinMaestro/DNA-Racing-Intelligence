@@ -182,4 +182,27 @@ describe("Pro League breeding objective service", () => {
       ),
     );
   });
+
+  it("keeps failed breeding reads distinct from absent persistence", async () => {
+    await expect(
+      loadProLeagueBreedingObjectiveState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        roster: roster(),
+        repository: {
+          status: "ready",
+          loadRankingEvidenceByOwner: async () => {
+            throw new Error("private provider detail");
+          },
+        },
+        now: new Date("2026-09-08T00:00:00.000Z"),
+      }),
+    ).resolves.toEqual(
+      unavailableProLeagueBreedingObjectiveState(
+        "invalid_evidence",
+        "2026-09-07T01:00:00.000Z",
+        1,
+      ),
+    );
+  });
 });
