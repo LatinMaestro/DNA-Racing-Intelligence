@@ -632,13 +632,16 @@ export async function loadOpenRaceWorkspacePageState(
         );
       }
       if (
-        session.bindings?.raceImportVersion !== latestAcceptedRaceImportVersion ||
+        session.bindings?.raceImportVersion !==
+          latestAcceptedRaceImportVersion ||
         session.bindings?.vaultSnapshotVersion !==
           latestAcceptedVaultSnapshotVersion ||
         session.bindings?.historicalAggregateVersion !==
           latestPublishedHistoricalAggregateVersion
       ) {
-        throw new Error("Open Race evidence versions are stale or inconsistent.");
+        throw new Error(
+          "Open Race evidence versions are stale or inconsistent.",
+        );
       }
       const raceFreshness = deriveOpenRaceFreshness(raceCutoff, input.now);
       const vaultFreshness = deriveOpenRaceFreshness(vaultCutoff, input.now);

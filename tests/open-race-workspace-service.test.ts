@@ -427,9 +427,9 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -509,9 +509,9 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
     await expect(
       loadOpenRaceWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -520,9 +520,9 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -564,9 +564,9 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it("rejects stage-version disagreement", async () => {
@@ -583,9 +583,9 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -652,8 +652,8 @@ describe("Open Race workspace service", () => {
         now,
       }),
     ).resolves.toEqual({
-        sessions: [],
-        connectionStatus: "integrity_failed",
-      });
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 });
