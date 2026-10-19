@@ -187,6 +187,42 @@ function repository(sessions: readonly OpenRaceWorkspaceEvidence[]) {
 }
 
 describe("Open Race workspace service", () => {
+  it("withholds every stage after an owner-scoped repository failure", async () => {
+    await expect(
+      loadOpenRaceWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          listSessionEvidenceByOwner: async () => {
+            throw new Error("private Neon provider detail");
+          },
+        },
+        now,
+      }),
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "read_failed",
+    });
+  });
+
+  it("withholds valid sessions alongside any invalid accepted-source session", async () => {
+    await expect(
+      loadOpenRaceWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: repository([
+          evidence,
+          { ...evidence, field: { ...evidence.field, capturedAt: "invalid" } },
+        ]),
+        now,
+      }),
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
+  });
+
   it("returns fail-closed connection states without reading evidence", async () => {
     await expect(
       loadOpenRaceWorkspacePageState({
@@ -375,7 +411,10 @@ describe("Open Race workspace service", () => {
           repository: repository([invalid]),
           now,
         }),
-      ).rejects.toThrow();
+      ).resolves.toEqual({
+        sessions: [],
+        connectionStatus: "integrity_failed",
+      });
     }
   });
 
@@ -387,7 +426,10 @@ describe("Open Race workspace service", () => {
         repository: repository([evidence, evidence]),
         now,
       }),
-    ).rejects.toThrow("unique");
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -466,7 +508,10 @@ describe("Open Race workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow("Latest accepted Race Merge import is required");
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
     await expect(
       loadOpenRaceWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -474,7 +519,10 @@ describe("Open Race workspace service", () => {
         repository: staleVersion,
         now,
       }),
-    ).rejects.toThrow("versions are stale");
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -507,7 +555,7 @@ describe("Open Race workspace service", () => {
       { field: { ...evidence.field, freshness: "stale" as const } },
       "server-derived freshness",
     ],
-  ])("rejects %s", async (_, changes, message) => {
+  ])("rejects %s", async (_, changes, _message) => {
     await expect(
       loadOpenRaceWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -515,7 +563,10 @@ describe("Open Race workspace service", () => {
         repository: repository([{ ...evidence, ...changes }]),
         now,
       }),
-    ).rejects.toThrow(message);
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it("rejects stage-version disagreement", async () => {
@@ -531,7 +582,10 @@ describe("Open Race workspace service", () => {
         ]),
         now,
       }),
-    ).rejects.toThrow("comparison evidence and version must agree");
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 
   it.each([
@@ -597,6 +651,9 @@ describe("Open Race workspace service", () => {
         repository: repository([{ ...evidence, ...changes }]),
         now,
       }),
-    ).rejects.toThrow();
+    ).resolves.toEqual({
+      sessions: [],
+      connectionStatus: "integrity_failed",
+    });
   });
 });

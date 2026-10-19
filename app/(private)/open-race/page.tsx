@@ -25,17 +25,20 @@ export default async function OpenRacePage() {
     }),
     now: new Date(),
   });
-  const predictionState = await loadOpenRacePredictionPageState({
-    authenticatedOwnerId,
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: neonOpenRacePredictionRepositoryFromEnvironment({
-      databaseUrl: process.env.DATABASE_URL,
-      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
-      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
-      authenticatedOwnerId,
-    }),
-    sessions: state.sessions,
-  });
+  const predictionState =
+    state.connectionStatus === "read_model_connected"
+      ? await loadOpenRacePredictionPageState({
+          authenticatedOwnerId,
+          configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+          repository: neonOpenRacePredictionRepositoryFromEnvironment({
+            databaseUrl: process.env.DATABASE_URL,
+            databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+            runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+            authenticatedOwnerId,
+          }),
+          sessions: state.sessions,
+        })
+      : ({ connectionStatus: "workspace_unavailable", evidence: [] } as const);
 
   return (
     <OpenRaceWorkspace

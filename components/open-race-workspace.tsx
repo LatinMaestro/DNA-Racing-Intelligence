@@ -24,6 +24,16 @@ const connectionCopy: Record<
     detail:
       "Owner verification is available, but private field capture and compact historical evidence are not configured. No live game data or raw race history is read on this page.",
   },
+  read_failed: {
+    heading: "Open Race evidence temporarily unavailable",
+    detail:
+      "The private owner-scoped Open Race session read could not be completed. Stage A rankings, locked fields and Stage B observations are withheld; no stale or inferred replacements are shown.",
+  },
+  integrity_failed: {
+    heading: "Open Race evidence failed validation",
+    detail:
+      "Saved Open Race sessions failed accepted-source, freshness or field-lock validation. All sessions remain withheld until the accepted evidence is repaired.",
+  },
   read_model_connected: {
     heading: "Open Race review evidence connected",
     detail:
@@ -70,6 +80,15 @@ function unavailablePredictionReason(
   }
   if (connectionStatus === "persistence_not_configured") {
     return "Private prediction persistence is not configured.";
+  }
+  if (connectionStatus === "workspace_unavailable") {
+    return "The Open Race session is unavailable; frozen evidence cannot be verified.";
+  }
+  if (connectionStatus === "read_failed") {
+    return "The owner-scoped frozen-prediction or accepted-result read failed. Both are withheld.";
+  }
+  if (connectionStatus === "integrity_failed") {
+    return "The frozen prediction or accepted-result evidence failed validation. All predictions and reconciliations are withheld.";
   }
   if (evidence?.reason === "FIELD_NOT_LOCKED") {
     return "Predictions are frozen only after the complete field is locked.";
@@ -554,11 +573,17 @@ export function OpenRaceWorkspace({
 
         {sessions.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-            <h3 className="font-semibold">No accepted Open Race session</h3>
+            <h3 className="font-semibold">
+              {connectionStatus === "read_failed" ||
+              connectionStatus === "integrity_failed"
+                ? "Open Race evidence withheld"
+                : "No accepted Open Race session"}
+            </h3>
             <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-              No ranking, avoid advice, current-field star inference or entry
-              action is available until a complete owner-scoped field and
-              historical evidence set is accepted.
+              {connectionStatus === "read_failed" ||
+              connectionStatus === "integrity_failed"
+                ? "The owner-scoped session read failed or its saved evidence was invalid. No Stage A recommendation, frozen result or Stage B observation is displayed."
+                : "No ranking, avoid advice, current-field star inference or entry action is available until a complete owner-scoped field and historical evidence set is accepted."}
             </p>
           </div>
         ) : (

@@ -210,4 +210,64 @@ describe("Open Race prediction page service", () => {
     expect(listReconciliationsByOwner).toHaveBeenCalledOnce();
     expect(listReconciliationsByOwner).toHaveBeenCalledWith("owner");
   });
+  it.each(["snapshots", "reconciliations"] as const)(
+    "withholds all frozen evidence when the %s repository read fails",
+    async (failedSource) => {
+      const listSnapshotsByOwner = vi.fn(async () => {
+        if (failedSource === "snapshots") {
+          throw new Error("private prediction storage detail");
+        }
+        return [snapshot];
+      });
+      const listReconciliationsByOwner = vi.fn(async () => {
+        if (failedSource === "reconciliations") {
+          throw new Error("private accepted-result detail");
+        }
+        return [reconciliation];
+      });
+      await expect(
+        loadOpenRacePredictionPageState({
+          authenticatedOwnerId: "owner",
+          configuredOwnerId: "owner",
+          repository: {
+            status: "ready",
+            publishSnapshotByOwner: vi.fn(),
+            listSnapshotsByOwner,
+            publishReconciliationByOwner: vi.fn(),
+            listReconciliationsByOwner,
+          },
+          sessions: [session],
+        }),
+      ).resolves.toEqual({ connectionStatus: "read_failed", evidence: [] });
+      expect(listSnapshotsByOwner).toHaveBeenCalledOnce();
+      expect(listReconciliationsByOwner).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["snapshot", "reconciliation"] as const)(
+    "withholds all evidence when the %s read-model is ambiguous",
+    async (family) => {
+      await expect(
+        loadOpenRacePredictionPageState({
+          authenticatedOwnerId: "owner",
+          configuredOwnerId: "owner",
+          repository: {
+            status: "ready",
+            publishSnapshotByOwner: vi.fn(),
+            listSnapshotsByOwner: async () =>
+              family === "snapshot" ? [snapshot, snapshot] : [snapshot],
+            publishReconciliationByOwner: vi.fn(),
+            listReconciliationsByOwner: async () =>
+              family === "reconciliation"
+                ? [reconciliation, reconciliation]
+                : [reconciliation],
+          },
+          sessions: [session],
+        }),
+      ).resolves.toEqual({
+        connectionStatus: "integrity_failed",
+        evidence: [],
+      });
+    },
+  );
 });
