@@ -112,7 +112,12 @@ describe("compact Maiden allocation evidence snapshots", () => {
         configuredOwnerId: "synthetic-owner",
         repository: {
           status: "ready",
-          loadAllocationEvidenceByOwner: async () => stored,
+          loadAllocationEvidenceByOwner: async () => ({
+            evidence: stored,
+            sourceEvidenceSha256,
+            snapshotSha256: encode().sha256,
+            materializedAt,
+          }),
         },
         now,
       }),

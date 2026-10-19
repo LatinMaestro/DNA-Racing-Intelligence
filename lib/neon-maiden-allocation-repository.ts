@@ -2,7 +2,7 @@ import {
   unavailableMaidenAllocationRepository,
   type MaidenAllocationRepository,
 } from "./maiden-workspace-service";
-import { decodeMaidenAllocationEvidenceSnapshot } from "./maiden-allocation-evidence-snapshot";
+import { decodeMaidenAllocationEvidenceSnapshotEnvelope } from "./maiden-allocation-evidence-snapshot";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -25,6 +25,8 @@ const VERIFY_SQL = `
     owner.clerk_user_id AS authenticated_owner_id,
     snapshot.relrowsecurity AS row_security_enabled,
     snapshot.relforcerowsecurity AS force_row_security_enabled,
+    source.relrowsecurity AS source_row_security_enabled,
+    source.relforcerowsecurity AS source_force_row_security_enabled,
     session_user::text AS session_user_name,
     current_user::text AS current_user_name,
     role.rolsuper AS runtime_is_superuser,
@@ -36,17 +38,28 @@ const VERIFY_SQL = `
       'MEMBER'), false) AS runtime_is_neon_superuser_member,
     has_table_privilege(session_user, snapshot.oid,
       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
-      AS runtime_has_direct_table_access
+      AS runtime_has_direct_table_access,
+    has_table_privilege(session_user, source.oid,
+      'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      AS runtime_has_direct_source_access,
+    has_function_privilege(session_user,
+      'dna.read_maiden_allocation_accepted_source_identity(uuid)', 'EXECUTE')
+      AS runtime_can_read_accepted_identity
   FROM dna.app_owner owner
   JOIN pg_catalog.pg_class snapshot
     ON snapshot.oid = 'dna.maiden_allocation_evidence_snapshot'::regclass
+  JOIN pg_catalog.pg_class source
+    ON source.oid = 'dna.maiden_allocation_accepted_generation'::regclass
   JOIN pg_catalog.pg_roles role ON role.rolname = session_user
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2::text
 `;
 
 const READ_SQL = `
-  SELECT source_evidence_sha256, snapshot_json, snapshot_sha256
-  FROM dna.read_maiden_allocation_evidence_snapshot($1::uuid)
+  SELECT snapshot.source_evidence_sha256, snapshot.snapshot_json,
+    snapshot.snapshot_sha256
+  FROM dna.read_maiden_allocation_evidence_snapshot($1::uuid) snapshot
+  JOIN dna.read_maiden_allocation_accepted_source_identity($1::uuid) accepted
+    ON accepted.source_evidence_sha256 = snapshot.source_evidence_sha256
 `;
 
 function fail(): never {
@@ -128,6 +141,9 @@ export function createNeonMaidenAllocationRepository(
           evidence.current_user_name !== runtimeRole ||
           evidence.row_security_enabled !== true ||
           evidence.force_row_security_enabled !== true ||
+          evidence.source_row_security_enabled !== true ||
+          evidence.source_force_row_security_enabled !== true ||
+          evidence.runtime_can_read_accepted_identity !== true ||
           [
             "runtime_is_superuser",
             "runtime_bypasses_rls",
@@ -135,6 +151,7 @@ export function createNeonMaidenAllocationRepository(
             "runtime_can_create_databases",
             "runtime_is_neon_superuser_member",
             "runtime_has_direct_table_access",
+            "runtime_has_direct_source_access",
           ].some((key) => evidence[key] !== false)
         )
           fail();
@@ -151,13 +168,19 @@ export function createNeonMaidenAllocationRepository(
             typeof snapshot.snapshot_sha256 !== "string"
           )
             fail();
-          allocation = decodeMaidenAllocationEvidenceSnapshot({
+          const decoded = decodeMaidenAllocationEvidenceSnapshotEnvelope({
             json: snapshot.snapshot_json,
             sha256: snapshot.snapshot_sha256,
             databaseOwnerId,
             sourceEvidenceSha256: snapshot.source_evidence_sha256,
             now,
           });
+          allocation = {
+            evidence: decoded.evidence,
+            sourceEvidenceSha256: decoded.sourceEvidenceSha256,
+            snapshotSha256: snapshot.snapshot_sha256,
+            materializedAt: decoded.materializedAt,
+          };
         }
         await session.client.query("COMMIT");
         started = false;

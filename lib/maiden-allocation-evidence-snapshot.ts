@@ -59,6 +59,12 @@ type Snapshot = Readonly<{
   evidence: MaidenAllocationEvidence;
 }>;
 
+export type DecodedMaidenAllocationEvidenceSnapshot = Readonly<{
+  sourceEvidenceSha256: string;
+  materializedAt: string;
+  evidence: MaidenAllocationEvidence;
+}>;
+
 function fail(): never {
   // Never interpolate owner identities, source evidence or candidate values.
   throw new Error("Invalid Maiden allocation evidence snapshot.");
@@ -209,7 +215,7 @@ export function encodeMaidenAllocationEvidenceSnapshot(
   }
 }
 
-export function decodeMaidenAllocationEvidenceSnapshot(
+export function decodeMaidenAllocationEvidenceSnapshotEnvelope(
   input: Readonly<{
     json: string;
     sha256: string;
@@ -217,7 +223,7 @@ export function decodeMaidenAllocationEvidenceSnapshot(
     sourceEvidenceSha256: string;
     now: Date;
   }>,
-): MaidenAllocationEvidence {
+): DecodedMaidenAllocationEvidenceSnapshot {
   try {
     if (
       typeof input.json !== "string" ||
@@ -234,10 +240,20 @@ export function decodeMaidenAllocationEvidenceSnapshot(
       canonical(snapshot) !== input.json
     )
       fail();
-    return orderedEvidence(
-      normalizeMaidenAllocationEvidence(snapshot.evidence, input.now),
-    );
+    return {
+      sourceEvidenceSha256: snapshot.sourceEvidenceSha256,
+      materializedAt: snapshot.materializedAt,
+      evidence: orderedEvidence(
+        normalizeMaidenAllocationEvidence(snapshot.evidence, input.now),
+      ),
+    };
   } catch {
     return fail();
   }
+}
+
+export function decodeMaidenAllocationEvidenceSnapshot(
+  input: Parameters<typeof decodeMaidenAllocationEvidenceSnapshotEnvelope>[0],
+): MaidenAllocationEvidence {
+  return decodeMaidenAllocationEvidenceSnapshotEnvelope(input).evidence;
 }

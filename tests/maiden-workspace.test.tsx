@@ -10,6 +10,9 @@ describe("Maiden workspace", () => {
         allocation={null}
         connectionStatus="persistence_not_configured"
         lastImportedAt={null}
+        materializedAt={null}
+        snapshotSha256={null}
+        sourceEvidenceSha256={null}
       />,
     );
 
@@ -68,6 +71,9 @@ describe("Maiden workspace", () => {
         allocation={allocation}
         connectionStatus="read_model_connected"
         lastImportedAt="2026-07-20T01:00:00.000Z"
+        materializedAt="2026-07-20T02:00:00.000Z"
+        snapshotSha256={"b".repeat(64)}
+        sourceEvidenceSha256={"a".repeat(64)}
       />,
     );
 
@@ -85,6 +91,9 @@ describe("Maiden workspace", () => {
     expect(html).toContain("Snapshot snapshot-v9");
     expect(html).toContain("Projection projection-v4");
     expect(html).toContain("Current Maiden review evidence connected");
+    expect(html).toContain(`Accepted source SHA-256: ${"a".repeat(64)}`);
+    expect(html).toContain(`Snapshot ${"b".repeat(64)}`);
+    expect(html).toContain("Materialized 2026-07-20T02:00:00.000Z");
     expect(html).toContain("no entitlement mutation");
     expect(html).not.toContain("85%");
   });

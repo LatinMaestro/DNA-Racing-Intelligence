@@ -52,10 +52,16 @@ function valueIndex(basisPoints: number): string {
 export function MaidenWorkspace({
   allocation,
   lastImportedAt,
+  materializedAt,
+  snapshotSha256,
+  sourceEvidenceSha256,
   connectionStatus,
 }: Readonly<{
   allocation: MaidenVaultAllocation | null;
   lastImportedAt: string | null;
+  materializedAt: string | null;
+  snapshotSha256: string | null;
+  sourceEvidenceSha256: string | null;
   connectionStatus: MaidenWorkspaceConnectionStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
@@ -105,6 +111,12 @@ export function MaidenWorkspace({
               Current replacement snapshot · Last imported{" "}
               {timestamp(lastImportedAt)}
             </p>
+            {sourceEvidenceSha256 === null ? null : (
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Accepted source SHA-256: {sourceEvidenceSha256} · Snapshot{" "}
+                {snapshotSha256} · Materialized {materializedAt}
+              </p>
+            )}
           </div>
           <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
             Gates C and D not passed

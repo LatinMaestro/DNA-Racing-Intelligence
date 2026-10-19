@@ -5,10 +5,20 @@ import type {
 } from "@/domain/maiden-vault-allocation";
 import {
   loadMaidenWorkspacePageState,
+  type MaidenAllocationEvidence,
   unavailableMaidenAllocationRepository,
 } from "@/lib/maiden-workspace-service";
 
 const now = new Date("2026-07-28T00:00:00.000Z");
+const publication = {
+  sourceEvidenceSha256: "a".repeat(64),
+  snapshotSha256: "b".repeat(64),
+  materializedAt: "2026-07-28T00:00:00.000Z",
+} as const;
+
+function envelope(evidence: MaidenAllocationEvidence) {
+  return { evidence, ...publication };
+}
 const versions = {
   configurationVersion: "config-v3",
   candidateSnapshotVersion: "snapshot-v9",
@@ -51,11 +61,8 @@ function repository(
 ) {
   return {
     status: "ready" as const,
-    loadAllocationEvidenceByOwner: async () => ({
-      brackets: [bracket],
-      candidates,
-      lastImportedAt,
-    }),
+    loadAllocationEvidenceByOwner: async () =>
+      envelope({ brackets: [bracket], candidates, lastImportedAt }),
   };
 }
 
@@ -71,6 +78,9 @@ describe("Maiden workspace service", () => {
     ).resolves.toEqual({
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "identity_not_connected",
     });
     await expect(
@@ -83,16 +93,21 @@ describe("Maiden workspace service", () => {
     ).resolves.toEqual({
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "persistence_not_configured",
     });
   });
 
   it("denies a different owner before persistence", async () => {
-    const loadAllocationEvidenceByOwner = vi.fn(async () => ({
-      brackets: [bracket],
-      candidates: [candidate],
-      lastImportedAt: "2026-07-28T00:00:00.000Z",
-    }));
+    const loadAllocationEvidenceByOwner = vi.fn(async () =>
+      envelope({
+        brackets: [bracket],
+        candidates: [candidate],
+        lastImportedAt: "2026-07-28T00:00:00.000Z",
+      }),
+    );
     await expect(
       loadMaidenWorkspacePageState({
         authenticatedOwnerId: "other-owner",
@@ -115,6 +130,9 @@ describe("Maiden workspace service", () => {
     ).resolves.toMatchObject({
       connectionStatus: "read_model_connected",
       lastImportedAt: "2026-07-28T00:00:00.000Z",
+      sourceEvidenceSha256: publication.sourceEvidenceSha256,
+      snapshotSha256: publication.snapshotSha256,
+      materializedAt: publication.materializedAt,
       allocation: {
         assignments: [],
         entitlementMutationsPerformed: false,
@@ -203,6 +221,9 @@ describe("Maiden workspace service", () => {
     ).resolves.toEqual({
       allocation: null,
       lastImportedAt: null,
+      sourceEvidenceSha256: null,
+      snapshotSha256: null,
+      materializedAt: null,
       connectionStatus: "read_model_connected",
     });
 
@@ -212,11 +233,8 @@ describe("Maiden workspace service", () => {
         configuredOwnerId: "owner",
         repository: {
           status: "ready",
-          loadAllocationEvidenceByOwner: async () => ({
-            brackets: [],
-            candidates: [],
-            lastImportedAt: null,
-          }),
+          loadAllocationEvidenceByOwner: async () =>
+            envelope({ brackets: [], candidates: [], lastImportedAt: null }),
         },
         now,
       }),
@@ -231,11 +249,12 @@ describe("Maiden workspace service", () => {
         configuredOwnerId: "owner",
         repository: {
           status: "ready",
-          loadAllocationEvidenceByOwner: async () => ({
-            brackets: [],
-            candidates: [candidate],
-            lastImportedAt: null,
-          }),
+          loadAllocationEvidenceByOwner: async () =>
+            envelope({
+              brackets: [],
+              candidates: [candidate],
+              lastImportedAt: null,
+            }),
         },
         now,
       }),
