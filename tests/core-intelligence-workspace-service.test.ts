@@ -192,7 +192,7 @@ describe("Core Intelligence workspace service", () => {
     });
   });
 
-  it("rejects Esports evidence that follows its durable sync cutoff", async () => {
+  it("withholds Esports evidence that follows its durable sync cutoff", async () => {
     await expect(
       loadCoreIntelligencePageState({
         authenticatedOwnerId: "owner",
@@ -223,7 +223,41 @@ describe("Core Intelligence workspace service", () => {
         },
         now,
       }),
-    ).rejects.toThrow(/cannot follow its sync timestamp/);
+    ).resolves.toMatchObject({
+      connectionStatus: "persistence_not_configured",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "integrity_failed",
+    });
+  });
+
+  it("keeps normal profiles available when the separate Esports read fails", async () => {
+    await expect(
+      loadCoreIntelligencePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          listProfilesByOwner: async () => ({
+            profiles: [profile],
+            lastImportedAt: "2026-07-23T01:00:00.000Z",
+          }),
+        },
+        esportsRepository: {
+          status: "ready",
+          listRaceObservationsByOwner: async () => {
+            throw new Error("private provider detail");
+          },
+        },
+        now,
+      }),
+    ).resolves.toMatchObject({
+      profiles: [profile],
+      connectionStatus: "read_model_connected",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "read_failed",
+    });
   });
 
   it("derives freshness at read time instead of trusting persistence", async () => {
@@ -271,7 +305,7 @@ describe("Core Intelligence workspace service", () => {
     });
   });
 
-  it("rejects malformed, inconsistent or duplicate persisted projections", async () => {
+  it("withholds malformed, inconsistent or duplicate persisted projections", async () => {
     const malformed = {
       ...profile,
       raceCount: 10,
@@ -322,8 +356,35 @@ describe("Core Intelligence workspace service", () => {
           },
           now,
         }),
-      ).rejects.toThrow(/Invalid|Duplicate/);
+      ).resolves.toMatchObject({
+        profiles: [],
+        lastImportedAt: null,
+        connectionStatus: "integrity_failed",
+      });
     }
+  });
+
+  it("withholds failed normal reads without exposing provider errors", async () => {
+    await expect(
+      loadCoreIntelligencePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          listProfilesByOwner: async () => {
+            throw new Error("private provider detail");
+          },
+        },
+        now,
+      }),
+    ).resolves.toEqual({
+      profiles: [],
+      lastImportedAt: null,
+      connectionStatus: "read_failed",
+      esportsProfiles: [],
+      esportsLastSyncedAt: null,
+      esportsConnectionStatus: "not_configured",
+    });
   });
 
   it("rejects invalid time and repository capabilities", async () => {

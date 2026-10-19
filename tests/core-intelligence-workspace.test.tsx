@@ -6,6 +6,27 @@ import { buildCorePerformanceProfiles } from "@/domain/core-performance";
 import { refreshStarProfiles } from "@/domain/star-signals";
 
 describe("Core Intelligence historical workspace", () => {
+  it.each([
+    ["read_failed", "Core Intelligence evidence temporarily unavailable"],
+    ["integrity_failed", "Core Intelligence evidence failed validation"],
+  ] as const)(
+    "renders the %s normal-profile boundary without fabricated evidence",
+    (connectionStatus, heading) => {
+      const html = renderToStaticMarkup(
+        <CoreIntelligenceWorkspace
+          connectionStatus={connectionStatus}
+          lastImportedAt={null}
+          profiles={[]}
+        />,
+      );
+
+      expect(html).toContain(heading);
+      expect(html).toContain("No commissioned Core evidence");
+      expect(html).not.toContain("View Core profile");
+      expect(html).not.toContain("0.000 s");
+    },
+  );
+
   it("renders an honest empty state without fabricated performance", () => {
     const html = renderToStaticMarkup(
       <CoreIntelligenceWorkspace
@@ -272,4 +293,31 @@ describe("Core Intelligence historical workspace", () => {
     expect(html).toContain("never a zero-race claim");
     expect(html).toContain("evidence=esports");
   });
+
+  it.each([
+    ["read_failed", "Esports evidence temporarily unavailable"],
+    ["integrity_failed", "Esports evidence failed validation"],
+  ] as const)(
+    "renders the %s Esports boundary without hiding independent normal evidence",
+    (esportsConnectionStatus, heading) => {
+      const html = renderToStaticMarkup(
+        <CoreIntelligenceWorkspace
+          connectionStatus="read_model_connected"
+          esportsConnectionStatus={esportsConnectionStatus}
+          esportsLastSyncedAt={null}
+          esportsProfiles={[]}
+          lastImportedAt="2026-07-20T01:00:00Z"
+          profiles={[]}
+          selectedEvidenceView="esports"
+        />,
+      );
+
+      expect(html).toContain(heading);
+      expect(html).toContain("all Esports profiles are withheld");
+      expect(html).toContain(
+        "Normal-racing evidence remains independently auditable",
+      );
+      expect(html).not.toContain("zero-race claim");
+    },
+  );
 });
