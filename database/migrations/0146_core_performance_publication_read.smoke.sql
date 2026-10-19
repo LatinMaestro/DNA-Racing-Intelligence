@@ -1,5 +1,27 @@
 BEGIN;
 
+-- Aggregate-publication schema is exercised by a separate migration workflow.
+-- Recreate only the receipt columns consumed here when that workflow has not
+-- run in this isolated CI database; this is a no-op on a fully migrated schema.
+CREATE TABLE IF NOT EXISTS dna.race_archive_aggregate_publication_receipt (
+  owner_id uuid NOT NULL,
+  refresh_id uuid NOT NULL,
+  target_dataset_version_id uuid NOT NULL,
+  race_dataset_version_id uuid NOT NULL,
+  source_version_set_sha256 character(64) NOT NULL,
+  payload_sha256 character(64) NOT NULL,
+  core_performance_profile_count bigint NOT NULL,
+  validated_event_count bigint NOT NULL,
+  core_star_profile_count bigint NOT NULL,
+  discovery_benchmark_count bigint NOT NULL,
+  accepted_format_entry_count bigint NOT NULL,
+  payout_format_profile_count bigint NOT NULL,
+  materialized_row_count bigint NOT NULL,
+  refreshed_at timestamptz NOT NULL,
+  published_at timestamptz NOT NULL,
+  PRIMARY KEY (owner_id, refresh_id)
+);
+
 INSERT INTO dna.app_owner(id, clerk_user_id) VALUES
   ('a1460000-0000-4000-8000-000000000001', 'smoke_core_publication_owner'),
   ('a1460000-0000-4000-8000-000000000002', 'smoke_core_publication_other');
