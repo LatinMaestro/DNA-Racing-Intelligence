@@ -471,6 +471,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.down.sql
       - name: Verify Tournament Horse opponent pool snapshot removal
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0144_tournament_horse_opponent_pool_snapshot.removal.sql
+      - name: Apply Discovery benchmark publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.up.sql
+      - name: Run Discovery benchmark publication read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.smoke.sql
+      - name: Reverse Discovery benchmark publication read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.down.sql
+      - name: Verify Discovery benchmark publication read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0145_discovery_benchmark_publication_read.removal.sql
       - name: Reverse Tournament Horse screening snapshot migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0143_tournament_horse_screening_snapshot.down.sql
       - name: Verify Tournament Horse screening snapshot removal

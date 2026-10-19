@@ -14,7 +14,10 @@ import {
 import { deriveFreshness } from "@/domain/freshness";
 import { tournamentDiscoveryRelevanceForExactDistance } from "@/domain/tournament-candidate-ranking";
 import type { CorePerformanceProfileRepository } from "./core-intelligence-workspace-service";
-import type { DiscoveryBenchmarkRepository } from "./neon-discovery-benchmark-repository";
+import type {
+  DiscoveryBenchmarkPublication,
+  DiscoveryBenchmarkRepository,
+} from "./neon-discovery-benchmark-repository";
 import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 import type { TournamentCandidateRepository } from "./tournament-workspace-service";
@@ -27,6 +30,7 @@ export type DiscoveryProbeRepository =
         Readonly<{
           candidates: readonly DiscoveryProbeCandidateInput[];
           benchmarks: readonly DiscoveryExactDistanceBenchmarkEvidence[];
+          publication: DiscoveryBenchmarkPublication | null;
           lastImportedAt: string | null;
         }>
       >;
@@ -40,6 +44,7 @@ export type DiscoveryWorkspaceConnectionStatus =
 export type DiscoveryWorkspacePageState = Readonly<{
   candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
+  publication: DiscoveryBenchmarkPublication | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
 }>;
 
@@ -196,7 +201,8 @@ export function createDiscoveryProbeRepository(
 
       return {
         candidates: [...directCandidates, ...lineageCandidates],
-        benchmarks,
+        benchmarks: benchmarks.benchmarks,
+        publication: benchmarks.publication,
         lastImportedAt,
       };
     },
@@ -225,6 +231,66 @@ function validNow(value: Date): Date {
     throw new Error("Discovery now must be valid.");
   }
   return value;
+}
+
+function validatedPublication(
+  value: unknown,
+  benchmarkCount: number,
+  now: Date,
+): DiscoveryBenchmarkPublication | null {
+  if (value === null) {
+    if (benchmarkCount > 0) {
+      throw new Error("Discovery benchmark publication is unavailable.");
+    }
+    return null;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Discovery benchmark publication is invalid.");
+  }
+  const publication = value as Record<string, unknown>;
+  const refreshId = publication.refreshId;
+  const raceDatasetVersionId = publication.raceDatasetVersionId;
+  const sourceVersionSetSha256 = publication.sourceVersionSetSha256;
+  const payloadSha256 = publication.payloadSha256;
+  const acceptedCount = publication.benchmarkCount;
+  const refreshedAt = canonicalTimestamp(
+    publication.refreshedAt,
+    "Discovery benchmark refresh",
+  );
+  const publishedAt = canonicalTimestamp(
+    publication.publishedAt,
+    "Discovery benchmark publication",
+  );
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (
+    typeof refreshId !== "string" ||
+    !uuidPattern.test(refreshId) ||
+    typeof raceDatasetVersionId !== "string" ||
+    !uuidPattern.test(raceDatasetVersionId) ||
+    typeof sourceVersionSetSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(sourceVersionSetSha256) ||
+    typeof payloadSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(payloadSha256) ||
+    typeof acceptedCount !== "number" ||
+    !Number.isSafeInteger(acceptedCount) ||
+    acceptedCount !== benchmarkCount ||
+    refreshedAt === null ||
+    publishedAt === null ||
+    Date.parse(refreshedAt) > Date.parse(publishedAt) ||
+    Date.parse(publishedAt) > now.getTime()
+  ) {
+    throw new Error("Discovery benchmark publication is invalid.");
+  }
+  return {
+    refreshId,
+    raceDatasetVersionId,
+    sourceVersionSetSha256,
+    payloadSha256,
+    benchmarkCount: acceptedCount,
+    refreshedAt,
+    publishedAt,
+  };
 }
 
 function normalizeFreshness(
@@ -285,6 +351,7 @@ export async function loadDiscoveryWorkspacePageState(
     return {
       candidates: [],
       lastImportedAt: null,
+      publication: null,
       connectionStatus: "identity_not_connected",
     };
   }
@@ -302,6 +369,7 @@ export async function loadDiscoveryWorkspacePageState(
     return {
       candidates: [],
       lastImportedAt: null,
+      publication: null,
       connectionStatus: "persistence_not_configured",
     };
   }
@@ -315,7 +383,8 @@ export async function loadDiscoveryWorkspacePageState(
     typeof evidence !== "object" ||
     evidence === null ||
     !Array.isArray(evidence.candidates) ||
-    !Array.isArray(evidence.benchmarks)
+    !Array.isArray(evidence.benchmarks) ||
+    !("publication" in evidence)
   ) {
     throw new Error("Discovery evidence is invalid.");
   }
@@ -323,6 +392,22 @@ export async function loadDiscoveryWorkspacePageState(
     evidence.lastImportedAt,
     "Discovery import timestamp",
   );
+  const publication = validatedPublication(
+    evidence.publication,
+    evidence.benchmarks.length,
+    now,
+  );
+  if (
+    publication !== null &&
+    evidence.benchmarks.some(
+      (benchmark) =>
+        benchmark.refreshedAt !== publication.refreshedAt ||
+        Date.parse(benchmark.dataCurrentThrough) >
+          Date.parse(publication.refreshedAt),
+    )
+  ) {
+    throw new Error("Discovery benchmark publication is inconsistent.");
+  }
   const probePlan = buildDiscoveryProbePlan(
     normalizeFreshness(evidence.candidates, lastImportedAt, now),
   );
@@ -333,6 +418,7 @@ export async function loadDiscoveryWorkspacePageState(
   return {
     candidates: deriveDiscoveryDecisionGuidance(benchmarkedPlan),
     lastImportedAt,
+    publication,
     connectionStatus: "read_model_connected",
   };
 }

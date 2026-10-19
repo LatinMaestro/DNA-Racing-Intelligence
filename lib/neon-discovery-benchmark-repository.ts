@@ -20,13 +20,28 @@ export type DiscoveryExactDistanceBenchmark = Readonly<{
   refreshedAt: string;
 }>;
 
+export type DiscoveryBenchmarkPublication = Readonly<{
+  refreshId: string;
+  raceDatasetVersionId: string;
+  sourceVersionSetSha256: string;
+  payloadSha256: string;
+  benchmarkCount: number;
+  refreshedAt: string;
+  publishedAt: string;
+}>;
+
+export type DiscoveryBenchmarkEvidence = Readonly<{
+  benchmarks: readonly DiscoveryExactDistanceBenchmark[];
+  publication: DiscoveryBenchmarkPublication | null;
+}>;
+
 export type DiscoveryBenchmarkRepository =
   | Readonly<{ status: "not_configured" }>
   | Readonly<{
       status: "ready";
       listBenchmarksByOwner: (
         ownerId: string,
-      ) => Promise<readonly DiscoveryExactDistanceBenchmark[]>;
+      ) => Promise<DiscoveryBenchmarkEvidence>;
     }>;
 
 const UUID_PATTERN =
@@ -46,6 +61,7 @@ const VERIFY_OWNER_SQL = `
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 `;
 const LIST_SQL = `SELECT * FROM dna.list_discovery_exact_distance_benchmarks($1::uuid, $2::integer)`;
+const PUBLICATION_SQL = `SELECT * FROM dna.read_discovery_benchmark_publication($1::uuid)`;
 
 type QueryResult = Readonly<{ rows: readonly unknown[] }>;
 
@@ -74,6 +90,28 @@ function positiveInteger(value: unknown, label: string): number {
     throw new Error(`${label} is invalid.`);
   }
   return parsed as number;
+}
+
+function nonNegativeInteger(value: unknown, label: string): number {
+  const parsed = typeof value === "string" ? Number(value) : value;
+  if (!Number.isSafeInteger(parsed) || (parsed as number) < 0) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return parsed as number;
+}
+
+function uuid(value: unknown, label: string): string {
+  const parsed = text(value, label);
+  if (!UUID_PATTERN.test(parsed)) throw new Error(`${label} is invalid.`);
+  return parsed;
+}
+
+function sha256(value: unknown, label: string): string {
+  const parsed = text(value, label);
+  if (!/^[a-f0-9]{64}$/.test(parsed)) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return parsed;
 }
 
 function positiveFinite(value: unknown, label: string): number {
@@ -156,6 +194,9 @@ export function createNeonDiscoveryBenchmarkRepository(
           owner,
           5000,
         ])) as QueryResult;
+        const publicationResult = (await session.client.query(PUBLICATION_SQL, [
+          owner,
+        ])) as QueryResult;
         const benchmarks = result.rows.map(
           (value): DiscoveryExactDistanceBenchmark => {
             const record = row(value);
@@ -225,9 +266,58 @@ export function createNeonDiscoveryBenchmarkRepository(
             return benchmark;
           },
         );
+        if (publicationResult.rows.length > 1) {
+          throw new Error("Discovery benchmark publication is ambiguous.");
+        }
+        const publication =
+          publicationResult.rows.length === 0
+            ? null
+            : (() => {
+                const record = row(publicationResult.rows[0]);
+                const evidence: DiscoveryBenchmarkPublication = {
+                  refreshId: uuid(record.refresh_id, "refresh_id"),
+                  raceDatasetVersionId: uuid(
+                    record.race_dataset_version_id,
+                    "race_dataset_version_id",
+                  ),
+                  sourceVersionSetSha256: sha256(
+                    record.source_version_set_sha256,
+                    "source_version_set_sha256",
+                  ),
+                  payloadSha256: sha256(
+                    record.payload_sha256,
+                    "payload_sha256",
+                  ),
+                  benchmarkCount: nonNegativeInteger(
+                    record.discovery_benchmark_count,
+                    "discovery_benchmark_count",
+                  ),
+                  refreshedAt: timestamp(record.refreshed_at, "refreshed_at"),
+                  publishedAt: timestamp(record.published_at, "published_at"),
+                };
+                if (
+                  evidence.benchmarkCount !== benchmarks.length ||
+                  Date.parse(evidence.publishedAt) <
+                    Date.parse(evidence.refreshedAt) ||
+                  benchmarks.some(
+                    (benchmark) =>
+                      benchmark.refreshedAt !== evidence.refreshedAt ||
+                      Date.parse(benchmark.dataCurrentThrough) >
+                        Date.parse(evidence.refreshedAt),
+                  )
+                ) {
+                  throw new Error(
+                    "Discovery benchmark publication is inconsistent.",
+                  );
+                }
+                return evidence;
+              })();
+        if (benchmarks.length > 0 && publication === null) {
+          throw new Error("Discovery benchmark publication is unavailable.");
+        }
         await session.client.query("COMMIT");
         transactionStarted = false;
-        return benchmarks;
+        return { benchmarks, publication };
       } catch (error) {
         if (transactionStarted) {
           await session.client.query("ROLLBACK").catch(() => undefined);
