@@ -59,6 +59,9 @@ export default async function BreedingPage({
             : "persistence_not_configured"
       }
       rankings={state.rankings}
+      generationId={state.generationId}
+      payloadSha256={state.payloadSha256}
+      publishedAt={state.publishedAt}
       filters={evidenceViewFilters({
         mode: params.mode,
         distance: params.distance,

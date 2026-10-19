@@ -454,6 +454,9 @@ export function createNeonProLeagueBreedingRankingRepository(
               rankings: [],
               latestAcceptedPerformanceImportAt: null,
               latestAcceptedArenaImportAt: null,
+              generationId: null,
+              payloadSha256: null,
+              publishedAt: null,
             };
           }
           if (result.rows.length !== 1) {
@@ -573,6 +576,12 @@ export function createNeonProLeagueBreedingRankingRepository(
             latestAcceptedPerformanceImportAt:
               authority.latestAcceptedPerformanceImportAt,
             latestAcceptedArenaImportAt: authority.latestAcceptedArenaImportAt,
+            generationId: text(
+              generation.generation_id,
+              "active generation ID",
+            ),
+            payloadSha256: expectedDigest,
+            publishedAt: authority.publishedAt,
           };
         },
       );

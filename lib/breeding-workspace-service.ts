@@ -9,6 +9,9 @@ type BreedingRankingEvidence = Readonly<{
   rankings: readonly BreedingPairRankingInput[];
   latestAcceptedPerformanceImportAt: string | null;
   latestAcceptedArenaImportAt: string | null;
+  generationId: string | null;
+  payloadSha256: string | null;
+  publishedAt: string | null;
 }>;
 
 export type BreedingRankingRepository =
@@ -30,6 +33,9 @@ export type BreedingWorkspaceConnectionStatus =
 export type BreedingWorkspacePageState = Readonly<{
   rankings: readonly BreedingPairRankingResult[];
   connectionStatus: BreedingWorkspaceConnectionStatus;
+  generationId: string | null;
+  payloadSha256: string | null;
+  publishedAt: string | null;
 }>;
 
 export const unavailableBreedingRankingRepository: BreedingRankingRepository =
@@ -38,7 +44,13 @@ export const unavailableBreedingRankingRepository: BreedingRankingRepository =
 function withheldEvidence(
   connectionStatus: "read_failed" | "integrity_failed",
 ): BreedingWorkspacePageState {
-  return { rankings: [], connectionStatus };
+  return {
+    rankings: [],
+    connectionStatus,
+    generationId: null,
+    payloadSha256: null,
+    publishedAt: null,
+  };
 }
 
 function normalizedIdentity(value: string | null): string | null {
@@ -140,7 +152,13 @@ export async function loadBreedingWorkspacePageState(
   const configuredOwnerId = normalizedIdentity(input.configuredOwnerId);
 
   if (authenticatedOwnerId === null || configuredOwnerId === null) {
-    return { rankings: [], connectionStatus: "identity_not_connected" };
+    return {
+      rankings: [],
+      connectionStatus: "identity_not_connected",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
+    };
   }
   if (authenticatedOwnerId !== configuredOwnerId) {
     throw new Error("Breeding workspace access denied.");
@@ -153,7 +171,13 @@ export async function loadBreedingWorkspacePageState(
     throw new Error("Breeding repository status is invalid.");
   }
   if (input.repository.status === "not_configured") {
-    return { rankings: [], connectionStatus: "persistence_not_configured" };
+    return {
+      rankings: [],
+      connectionStatus: "persistence_not_configured",
+      generationId: null,
+      payloadSha256: null,
+      publishedAt: null,
+    };
   }
   if (typeof input.repository.loadRankingEvidenceByOwner !== "function") {
     throw new Error("Breeding repository is invalid.");
@@ -179,9 +203,36 @@ export async function loadBreedingWorkspacePageState(
     if (
       typeof evidence !== "object" ||
       evidence === null ||
-      !Array.isArray(evidence.rankings)
+      !Array.isArray(evidence.rankings) ||
+      !("generationId" in evidence) ||
+      !("payloadSha256" in evidence) ||
+      !("publishedAt" in evidence)
     ) {
       throw new Error("Breeding ranking evidence is invalid.");
+    }
+    const generationId = evidence.generationId;
+    const payloadSha256 = evidence.payloadSha256;
+    const publishedAt = canonicalTimestamp(
+      evidence.publishedAt,
+      "Breeding publication time",
+    );
+    const hasPublicationIdentity =
+      generationId !== null || payloadSha256 !== null || publishedAt !== null;
+    if (
+      hasPublicationIdentity &&
+      (typeof generationId !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          generationId,
+        ) ||
+        typeof payloadSha256 !== "string" ||
+        !/^[a-f0-9]{64}$/.test(payloadSha256) ||
+        publishedAt === null ||
+        Date.parse(publishedAt) > now.getTime())
+    ) {
+      throw new Error("Breeding publication identity is invalid.");
+    }
+    if (!hasPublicationIdentity && evidence.rankings.length > 0) {
+      throw new Error("Breeding rankings require publication identity.");
     }
     const performanceImportAt = canonicalTimestamp(
       evidence.latestAcceptedPerformanceImportAt,
@@ -197,6 +248,15 @@ export async function loadBreedingWorkspacePageState(
       )
     ) {
       throw new Error("Breeding accepted import cannot be future.");
+    }
+    if (
+      publishedAt !== null &&
+      [performanceImportAt, arenaImportAt].some(
+        (value) =>
+          value !== null && Date.parse(value) > Date.parse(publishedAt),
+      )
+    ) {
+      throw new Error("Breeding accepted import cannot postdate publication.");
     }
     const rankings = evidence.rankings.map((ranking) =>
       rankBreedingPairs(
@@ -215,12 +275,23 @@ export async function loadBreedingWorkspacePageState(
     ) {
       throw new Error("Breeding ranking labels must map to unique IDs.");
     }
+    if (
+      publishedAt !== null &&
+      rankings.some(
+        ({ evaluatedAt }) => Date.parse(evaluatedAt) > Date.parse(publishedAt),
+      )
+    ) {
+      throw new Error("Breeding evaluation cannot postdate publication.");
+    }
 
     return {
       rankings: rankings.sort((left, right) =>
         left.rankingId.localeCompare(right.rankingId),
       ),
       connectionStatus: "read_model_connected",
+      generationId,
+      payloadSha256,
+      publishedAt,
     };
   } catch {
     // Invalid or mixed-version evidence is not a partly usable ranking.
