@@ -9,6 +9,27 @@ const cappedResultsNotice =
   `The owner-scoped Vault list reached its ${OWNER_VAULT_LIST_LIMIT.toLocaleString("en-AU")}-core limit. ` +
   "Active and ME-eligible counts describe returned records, not verified totals; additional owned cores may be omitted.";
 
+const unavailableCopy = {
+  identity_not_connected: {
+    badge: "Owner setup pending",
+    detail: null,
+  },
+  persistence_not_configured: {
+    badge: "Owner setup pending",
+    detail: null,
+  },
+  read_failed: {
+    badge: "Vault read unavailable",
+    detail:
+      "The owner-scoped Vault read failed. Counts are withheld rather than shown as zero or recovered from historical races.",
+  },
+  integrity_failed: {
+    badge: "Vault validation failed",
+    detail:
+      "The saved Vault projection failed validation. Counts are withheld until the owner registry is repaired.",
+  },
+} as const;
+
 export function OwnerVaultStatus({
   state,
 }: Readonly<{ state: OwnerVaultCataloguePageState }>) {
@@ -16,6 +37,9 @@ export function OwnerVaultStatus({
   const meEligible = state.cores.filter((core) => core.meEligible).length;
   const atResultLimit =
     connected && state.cores.length >= OWNER_VAULT_LIST_LIMIT;
+  const unavailable = connected
+    ? null
+    : unavailableCopy[state.connectionStatus];
 
   return (
     <section
@@ -32,7 +56,7 @@ export function OwnerVaultStatus({
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-          {connected ? "Owner registry connected" : "Owner setup pending"}
+          {connected ? "Owner registry connected" : unavailable?.badge}
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -57,6 +81,14 @@ export function OwnerVaultStatus({
           role="status"
         >
           {cappedResultsNotice}
+        </p>
+      ) : null}
+      {unavailable?.detail ? (
+        <p
+          className="mt-4 text-xs leading-5 text-[var(--warning)]"
+          role="status"
+        >
+          {unavailable.detail}
         </p>
       ) : null}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">

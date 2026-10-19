@@ -59,4 +59,20 @@ describe("Dashboard owner-maintained Vault counts", () => {
     expect(html.match(/Not available/g)).toHaveLength(2);
     expect(html).not.toContain("list reached its");
   });
+
+  it.each([
+    ["read_failed", "Vault read unavailable", "rather than shown as zero"],
+    ["integrity_failed", "Vault validation failed", "failed validation"],
+  ] as const)("withholds Dashboard counts for %s", (status, badge, detail) => {
+    const html = renderToStaticMarkup(
+      <OwnerVaultStatus
+        state={{ ...state(0), connectionStatus: status, cores: [] }}
+      />,
+    );
+
+    expect(html).toContain(badge);
+    expect(html).toContain(detail);
+    expect(html.match(/Not available/g)).toHaveLength(2);
+    expect(html).toContain('role="status"');
+  });
 });

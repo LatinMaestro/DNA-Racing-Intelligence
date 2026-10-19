@@ -10,7 +10,11 @@ import type { RaceArchiveCoreHistoryService } from "./race-archive-core-history-
 
 export type SearchCorePageState = Readonly<{
   connectionStatus:
-    "identity_not_connected" | "persistence_not_configured" | "connected";
+    | "identity_not_connected"
+    | "persistence_not_configured"
+    | "read_failed"
+    | "integrity_failed"
+    | "connected";
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
@@ -183,6 +187,17 @@ export async function loadSearchCorePageState(
     filters: { scope: "catalogue", query: lookup },
   });
 
+  if (catalogue.connectionStatus !== "connected") {
+    return {
+      connectionStatus: catalogue.connectionStatus,
+      query,
+      results: [],
+      selectedCore: null,
+      ...noPerformance,
+      ...noArchiveHistory,
+    };
+  }
+
   let selectedCore: OwnerVaultCatalogueCore | null = null;
   if (selectedId !== null) {
     selectedCore =
@@ -194,6 +209,16 @@ export async function loadSearchCorePageState(
         repository: input.repository,
         filters: { scope: "catalogue", query: selectedId },
       });
+      if (exact.connectionStatus !== "connected") {
+        return {
+          connectionStatus: exact.connectionStatus,
+          query,
+          results: [],
+          selectedCore: null,
+          ...noPerformance,
+          ...noArchiveHistory,
+        };
+      }
       selectedCore =
         exact.cores.find((core) => core.sourceCoreId === selectedId) ?? null;
     }

@@ -81,4 +81,23 @@ describe("My Vault to existing Search Core navigation", () => {
     expect(html).not.toContain("View race evidence");
     expect(html).toContain("Vault data not connected");
   });
+
+  it.each([
+    ["read_failed", "Vault records temporarily unavailable"],
+    ["integrity_failed", "Vault records failed validation"],
+  ] as const)(
+    "renders the %s state without rows or controls",
+    (status, copy) => {
+      const html = renderToStaticMarkup(
+        <OwnerVaultWorkspace
+          state={{ ...connectedState, connectionStatus: status, cores: [] }}
+        />,
+      );
+
+      expect(html).toContain(copy);
+      expect(html).toContain("withheld");
+      expect(html).not.toContain("View race evidence");
+      expect(html).not.toContain("In My Vault");
+    },
+  );
 });

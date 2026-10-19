@@ -49,7 +49,11 @@ export type OwnerVaultCatalogueRepository =
 
 export type OwnerVaultCataloguePageState = Readonly<{
   connectionStatus:
-    "identity_not_connected" | "persistence_not_configured" | "connected";
+    | "identity_not_connected"
+    | "persistence_not_configured"
+    | "read_failed"
+    | "integrity_failed"
+    | "connected";
   filters: OwnerVaultCatalogueFilters;
   cores: readonly OwnerVaultCatalogueCore[];
 }>;
@@ -191,19 +195,31 @@ export async function loadOwnerVaultCataloguePageState(
   if (typeof input.repository.listCoresByOwner !== "function") {
     throw new Error("Vault catalogue repository is invalid.");
   }
-  const cores = (
-    await input.repository.listCoresByOwner(authenticatedOwnerId, filters)
-  ).map(validateCore);
-  const seen = new Set<string>();
-  for (const core of cores) {
-    if (seen.has(core.sourceCoreId))
-      throw new Error("Vault catalogue contains a duplicate core.");
-    seen.add(core.sourceCoreId);
-    if (filters.scope === "vault" && !core.inMyVault) {
-      throw new Error(
-        "Vault catalogue returned an inactive core for My Vault.",
-      );
-    }
+  let persistedCores: readonly OwnerVaultCatalogueCore[];
+  try {
+    persistedCores = await input.repository.listCoresByOwner(
+      authenticatedOwnerId,
+      filters,
+    );
+  } catch {
+    return { connectionStatus: "read_failed", filters, cores: [] };
   }
-  return { connectionStatus: "connected", filters, cores };
+  try {
+    const cores = persistedCores.map(validateCore);
+    const seen = new Set<string>();
+    for (const core of cores) {
+      if (seen.has(core.sourceCoreId)) {
+        throw new Error("Vault catalogue contains a duplicate core.");
+      }
+      seen.add(core.sourceCoreId);
+      if (filters.scope === "vault" && !core.inMyVault) {
+        throw new Error(
+          "Vault catalogue returned an inactive core for My Vault.",
+        );
+      }
+    }
+    return { connectionStatus: "connected", filters, cores };
+  } catch {
+    return { connectionStatus: "integrity_failed", filters, cores: [] };
+  }
 }

@@ -96,6 +96,33 @@ describe("Core evidence navigation", () => {
     expect(html).not.toContain("77.777 s");
   });
 
+  it.each([
+    ["read_failed", "Core catalogue temporarily unavailable"],
+    ["integrity_failed", "Core catalogue failed validation"],
+  ] as const)("withholds all evidence for %s", (status, copy) => {
+    const html = renderToStaticMarkup(
+      <SearchCoreWorkspace
+        state={{
+          ...state,
+          connectionStatus: status,
+          results: [],
+          selectedCore: null,
+          performanceStatus: "not_connected",
+          performanceProfiles: [],
+          performanceLastImportedAt: null,
+          archiveHistoryStatus: "not_connected",
+          archiveHistoryVersionCount: 0,
+          archiveHistoryPartitionCount: 0,
+          archiveHistoryRowCount: 0,
+        }}
+      />,
+    );
+
+    expect(html).toContain(copy);
+    expect(html).toContain("withheld");
+    expect(html).not.toContain("Core racing evidence");
+  });
+
   it("parses filters without rounding, accepting ambiguous arrays or unsafe numeric values", () => {
     expect(evidenceViewFilters({ mode: "car", distance: "1050" })).toEqual({
       mode: "car",
