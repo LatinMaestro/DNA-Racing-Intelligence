@@ -225,6 +225,23 @@ const reconciliation = applyRacePredictionReconciliation({
 }).reconciliation;
 
 describe("Open Race workspace", () => {
+  it.each([
+    ["read_failed", "Open Race evidence temporarily unavailable"],
+    ["integrity_failed", "Open Race evidence failed validation"],
+  ] as const)("renders %s without partial stages", (connectionStatus, heading) => {
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus={connectionStatus}
+        predictionConnectionStatus="workspace_unavailable"
+        sessions={[]}
+      />,
+    );
+    expect(html).toContain(heading);
+    expect(html).toContain("Open Race evidence withheld");
+    expect(html).not.toContain("Confirm field lock");
+    expect(html).not.toContain("Predicted win");
+  });
+
   it("renders fail-closed identity and empty evidence states", () => {
     const html = renderToStaticMarkup(
       <OpenRaceWorkspace

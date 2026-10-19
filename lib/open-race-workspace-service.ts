@@ -125,6 +125,8 @@ export type OpenRaceWorkspaceRepository =
 export type OpenRaceWorkspaceConnectionStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "read_failed"
+  | "integrity_failed"
   | "read_model_connected";
 
 export type OpenRaceWorkspacePageState = Readonly<{
@@ -134,6 +136,12 @@ export type OpenRaceWorkspacePageState = Readonly<{
 
 export const unavailableOpenRaceWorkspaceRepository: OpenRaceWorkspaceRepository =
   Object.freeze({ status: "not_configured" });
+
+function withheldOpenRaceEvidence(
+  connectionStatus: "read_failed" | "integrity_failed",
+): OpenRaceWorkspacePageState {
+  return { sessions: [], connectionStatus };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -512,156 +520,169 @@ export async function loadOpenRaceWorkspacePageState(
     throw new Error("Open Race server time must be valid.");
   }
 
-  const readModel =
-    await input.repository.listSessionEvidenceByOwner(authenticatedOwnerId);
-  if (
-    readModel === null ||
-    typeof readModel !== "object" ||
-    !Array.isArray(readModel.sessions)
-  ) {
-    throw new Error("Open Race repository evidence is invalid.");
+  let readModel: Awaited<
+    ReturnType<typeof input.repository.listSessionEvidenceByOwner>
+  >;
+  try {
+    readModel =
+      await input.repository.listSessionEvidenceByOwner(authenticatedOwnerId);
+  } catch {
+    // Never expose a private provider error or display stale partial sessions.
+    return withheldOpenRaceEvidence("read_failed");
   }
-  if (readModel.sessions.length === 0) {
-    return { sessions: [], connectionStatus: "read_model_connected" };
-  }
-  const latestAcceptedRaceImportAt = canonicalTimestamp(
-    readModel.latestAcceptedRaceImportAt,
-    "Latest accepted Race Merge import",
-  );
-  const latestAcceptedVaultImportAt = canonicalTimestamp(
-    readModel.latestAcceptedVaultImportAt,
-    "Latest accepted Vault import",
-  );
-  const latestAcceptedRaceImportVersion = required(
-    readModel.latestAcceptedRaceImportVersion,
-    "Latest accepted Race Merge version",
-  );
-  const latestAcceptedVaultSnapshotVersion = required(
-    readModel.latestAcceptedVaultSnapshotVersion,
-    "Latest accepted Vault snapshot version",
-  );
-  const latestPublishedHistoricalAggregateVersion = required(
-    readModel.latestPublishedHistoricalAggregateVersion,
-    "Latest published historical aggregate version",
-  );
-  if (
-    Date.parse(latestAcceptedRaceImportAt) > input.now.getTime() ||
-    Date.parse(latestAcceptedVaultImportAt) > input.now.getTime()
-  ) {
-    throw new Error("Accepted Open Race imports cannot be in the future.");
-  }
-
-  const evidence = readModel.sessions.map((session) => {
-    if (session === null || typeof session !== "object") {
-      throw new Error("Open Race session evidence is invalid.");
+  try {
+    if (
+      readModel === null ||
+      typeof readModel !== "object" ||
+      !Array.isArray(readModel.sessions)
+    ) {
+      throw new Error("Open Race repository evidence is invalid.");
     }
-    const fieldCapturedAt = canonicalTimestamp(
-      session.field?.capturedAt,
-      "Field capture time",
+    if (readModel.sessions.length === 0) {
+      return { sessions: [], connectionStatus: "read_model_connected" };
+    }
+    const latestAcceptedRaceImportAt = canonicalTimestamp(
+      readModel.latestAcceptedRaceImportAt,
+      "Latest accepted Race Merge import",
     );
-    const raceCutoff = canonicalTimestamp(
-      session.field?.dataCurrentThrough,
-      "Race data current through",
+    const latestAcceptedVaultImportAt = canonicalTimestamp(
+      readModel.latestAcceptedVaultImportAt,
+      "Latest accepted Vault import",
     );
-    const fieldLastImported = canonicalTimestamp(
-      session.field?.lastImported,
-      "Field last imported",
+    const latestAcceptedRaceImportVersion = required(
+      readModel.latestAcceptedRaceImportVersion,
+      "Latest accepted Race Merge version",
     );
-    const eligibilityEvaluatedAt = canonicalTimestamp(
-      session.eligibility?.evaluatedAt,
-      "Eligibility evaluation time",
+    const latestAcceptedVaultSnapshotVersion = required(
+      readModel.latestAcceptedVaultSnapshotVersion,
+      "Latest accepted Vault snapshot version",
     );
-    const vaultCutoff = canonicalTimestamp(
-      session.eligibility?.vaultDataCurrentThrough,
-      "Vault data current through",
+    const latestPublishedHistoricalAggregateVersion = required(
+      readModel.latestPublishedHistoricalAggregateVersion,
+      "Latest published historical aggregate version",
     );
-    for (const [value, label] of [
-      [session.ranking?.evaluatedAt, "Ranking evaluation time"],
-      [session.ranking?.dataCurrentThrough, "Ranking data current through"],
-      [session.lock?.fieldCapturedAt, "Locked field capture time"],
-      [session.lock?.rankingEvaluatedAt, "Locked ranking evaluation time"],
-      [session.lock?.lockedAt, "Field lock time"],
-      [session.observation?.lockedAt, "Observation lock time"],
-      [session.observation?.observedAt, "Star observation time"],
-      [session.comparison?.rankingEvaluatedAt, "Comparison ranking time"],
-      [session.comparison?.lockedAt, "Comparison lock time"],
-      [session.comparison?.observedAt, "Comparison observation time"],
-      [session.comparison?.comparedAt, "Star comparison time"],
-    ] as const) {
-      if (value !== undefined) {
-        const canonical = canonicalTimestamp(value, label);
-        if (Date.parse(canonical) > input.now.getTime()) {
-          throw new Error(`${label} cannot be in the future.`);
+    if (
+      Date.parse(latestAcceptedRaceImportAt) > input.now.getTime() ||
+      Date.parse(latestAcceptedVaultImportAt) > input.now.getTime()
+    ) {
+      throw new Error("Accepted Open Race imports cannot be in the future.");
+    }
+
+    const evidence = readModel.sessions.map((session) => {
+      if (session === null || typeof session !== "object") {
+        throw new Error("Open Race session evidence is invalid.");
+      }
+      const fieldCapturedAt = canonicalTimestamp(
+        session.field?.capturedAt,
+        "Field capture time",
+      );
+      const raceCutoff = canonicalTimestamp(
+        session.field?.dataCurrentThrough,
+        "Race data current through",
+      );
+      const fieldLastImported = canonicalTimestamp(
+        session.field?.lastImported,
+        "Field last imported",
+      );
+      const eligibilityEvaluatedAt = canonicalTimestamp(
+        session.eligibility?.evaluatedAt,
+        "Eligibility evaluation time",
+      );
+      const vaultCutoff = canonicalTimestamp(
+        session.eligibility?.vaultDataCurrentThrough,
+        "Vault data current through",
+      );
+      for (const [value, label] of [
+        [session.ranking?.evaluatedAt, "Ranking evaluation time"],
+        [session.ranking?.dataCurrentThrough, "Ranking data current through"],
+        [session.lock?.fieldCapturedAt, "Locked field capture time"],
+        [session.lock?.rankingEvaluatedAt, "Locked ranking evaluation time"],
+        [session.lock?.lockedAt, "Field lock time"],
+        [session.observation?.lockedAt, "Observation lock time"],
+        [session.observation?.observedAt, "Star observation time"],
+        [session.comparison?.rankingEvaluatedAt, "Comparison ranking time"],
+        [session.comparison?.lockedAt, "Comparison lock time"],
+        [session.comparison?.observedAt, "Comparison observation time"],
+        [session.comparison?.comparedAt, "Star comparison time"],
+      ] as const) {
+        if (value !== undefined) {
+          const canonical = canonicalTimestamp(value, label);
+          if (Date.parse(canonical) > input.now.getTime()) {
+            throw new Error(`${label} cannot be in the future.`);
+          }
         }
       }
-    }
+      if (
+        Date.parse(fieldCapturedAt) > input.now.getTime() ||
+        Date.parse(eligibilityEvaluatedAt) > input.now.getTime()
+      ) {
+        throw new Error(
+          "Open Race capture and evaluation times cannot be in the future.",
+        );
+      }
+      if (
+        fieldLastImported !== latestAcceptedRaceImportAt ||
+        Date.parse(raceCutoff) > Date.parse(fieldLastImported) ||
+        Date.parse(vaultCutoff) > Date.parse(latestAcceptedVaultImportAt) ||
+        Date.parse(eligibilityEvaluatedAt) <
+          Date.parse(latestAcceptedVaultImportAt)
+      ) {
+        throw new Error(
+          "Open Race evidence is not bound to accepted import cutoffs.",
+        );
+      }
+      if (
+        session.bindings?.raceImportVersion !== latestAcceptedRaceImportVersion ||
+        session.bindings?.vaultSnapshotVersion !==
+          latestAcceptedVaultSnapshotVersion ||
+        session.bindings?.historicalAggregateVersion !==
+          latestPublishedHistoricalAggregateVersion
+      ) {
+        throw new Error("Open Race evidence versions are stale or inconsistent.");
+      }
+      const raceFreshness = deriveOpenRaceFreshness(raceCutoff, input.now);
+      const vaultFreshness = deriveOpenRaceFreshness(vaultCutoff, input.now);
+      if (
+        session.field.freshness !== raceFreshness ||
+        (session.ranking?.freshness !== undefined &&
+          session.ranking.freshness !== raceFreshness) ||
+        session.eligibility.freshness !== vaultFreshness
+      ) {
+        throw new Error(
+          "Stored Open Race freshness does not match server-derived freshness.",
+        );
+      }
+      return {
+        ...session,
+        field: { ...session.field, freshness: raceFreshness },
+        eligibility: { ...session.eligibility, freshness: vaultFreshness },
+        ranking:
+          session.ranking === null
+            ? null
+            : { ...session.ranking, freshness: raceFreshness },
+      };
+    });
+
+    const requestIds = evidence.map(({ field }) => field.requestId.trim());
     if (
-      Date.parse(fieldCapturedAt) > input.now.getTime() ||
-      Date.parse(eligibilityEvaluatedAt) > input.now.getTime()
+      requestIds.some((requestId) => requestId === "") ||
+      new Set(requestIds).size !== requestIds.length
     ) {
       throw new Error(
-        "Open Race capture and evaluation times cannot be in the future.",
+        "Open Race session request IDs must be non-empty and unique.",
       );
     }
-    if (
-      fieldLastImported !== latestAcceptedRaceImportAt ||
-      Date.parse(raceCutoff) > Date.parse(fieldLastImported) ||
-      Date.parse(vaultCutoff) > Date.parse(latestAcceptedVaultImportAt) ||
-      Date.parse(eligibilityEvaluatedAt) <
-        Date.parse(latestAcceptedVaultImportAt)
-    ) {
-      throw new Error(
-        "Open Race evidence is not bound to accepted import cutoffs.",
-      );
-    }
-    if (
-      session.bindings?.raceImportVersion !== latestAcceptedRaceImportVersion ||
-      session.bindings?.vaultSnapshotVersion !==
-        latestAcceptedVaultSnapshotVersion ||
-      session.bindings?.historicalAggregateVersion !==
-        latestPublishedHistoricalAggregateVersion
-    ) {
-      throw new Error("Open Race evidence versions are stale or inconsistent.");
-    }
-    const raceFreshness = deriveOpenRaceFreshness(raceCutoff, input.now);
-    const vaultFreshness = deriveOpenRaceFreshness(vaultCutoff, input.now);
-    if (
-      session.field.freshness !== raceFreshness ||
-      (session.ranking?.freshness !== undefined &&
-        session.ranking.freshness !== raceFreshness) ||
-      session.eligibility.freshness !== vaultFreshness
-    ) {
-      throw new Error(
-        "Stored Open Race freshness does not match server-derived freshness.",
-      );
-    }
+
     return {
-      ...session,
-      field: { ...session.field, freshness: raceFreshness },
-      eligibility: { ...session.eligibility, freshness: vaultFreshness },
-      ranking:
-        session.ranking === null
-          ? null
-          : { ...session.ranking, freshness: raceFreshness },
+      sessions: evidence
+        .map(composeOpenRaceWorkspaceSession)
+        .sort((left, right) =>
+          right.field.capturedAt.localeCompare(left.field.capturedAt),
+        ),
+      connectionStatus: "read_model_connected",
     };
-  });
-
-  const requestIds = evidence.map(({ field }) => field.requestId.trim());
-  if (
-    requestIds.some((requestId) => requestId === "") ||
-    new Set(requestIds).size !== requestIds.length
-  ) {
-    throw new Error(
-      "Open Race session request IDs must be non-empty and unique.",
-    );
+  } catch {
+    // Bad imports, version drift or any invalid session invalidate the entire view.
+    return withheldOpenRaceEvidence("integrity_failed");
   }
-
-  return {
-    sessions: evidence
-      .map(composeOpenRaceWorkspaceSession)
-      .sort((left, right) =>
-        right.field.capturedAt.localeCompare(left.field.capturedAt),
-      ),
-    connectionStatus: "read_model_connected",
-  };
 }

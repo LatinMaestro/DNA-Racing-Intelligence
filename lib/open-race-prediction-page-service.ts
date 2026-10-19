@@ -23,6 +23,9 @@ export type OpenRacePredictionPageState = Readonly<{
   connectionStatus:
     | "identity_not_connected"
     | "persistence_not_configured"
+    | "workspace_unavailable"
+    | "read_failed"
+    | "integrity_failed"
     | "read_model_connected";
   evidence: readonly OpenRaceSessionPredictionEvidence[];
 }>;
@@ -188,19 +191,37 @@ export async function loadOpenRacePredictionPageState(
   if (input.repository.status === "not_configured") {
     return { connectionStatus: "persistence_not_configured", evidence: [] };
   }
+  if (input.repository.status !== "ready") {
+    throw new Error("Open Race prediction repository status is invalid.");
+  }
   if (input.sessions.length === 0) {
     return { connectionStatus: "read_model_connected", evidence: [] };
   }
-  const [snapshots, reconciliations] = await Promise.all([
-    input.repository.listSnapshotsByOwner(authenticatedOwnerId),
-    input.repository.listReconciliationsByOwner(authenticatedOwnerId),
-  ]);
-  return {
-    connectionStatus: "read_model_connected",
-    evidence: composeOpenRacePredictionPageEvidence(
-      input.sessions,
-      snapshots,
-      reconciliations,
-    ),
-  };
+  let snapshots: readonly FrozenRacePredictionSnapshot[];
+  let reconciliations: readonly RacePredictionReconciliation[];
+  try {
+    [snapshots, reconciliations] = await Promise.all([
+      input.repository.listSnapshotsByOwner(authenticatedOwnerId),
+      input.repository.listReconciliationsByOwner(authenticatedOwnerId),
+    ]);
+  } catch {
+    // Neither source is complete if either owner-scoped repository read fails.
+    return { connectionStatus: "read_failed", evidence: [] };
+  }
+  try {
+    if (!Array.isArray(snapshots) || !Array.isArray(reconciliations)) {
+      throw new Error("Open Race prediction read-model evidence is invalid.");
+    }
+    return {
+      connectionStatus: "read_model_connected",
+      evidence: composeOpenRacePredictionPageEvidence(
+        input.sessions,
+        snapshots,
+        reconciliations,
+      ),
+    };
+  } catch {
+    // Ambiguous revisions and mixed event/version evidence must fail closed.
+    return { connectionStatus: "integrity_failed", evidence: [] };
+  }
 }
