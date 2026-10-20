@@ -117,7 +117,7 @@ describeConnected("hosted Preview Vault Performance commissioning", () => {
     );
     expect(markup).toContain("Vault Performance");
     expect(markup).toContain("Historical economic summary connected");
-    expect(markup).toContain("Record economic evidence");
+    expect(markup).toContain("Manual economic evidence");
     if (economicWriteStatus === "asset_registry_unavailable") {
       expect(markup).toContain("Accepted assets unavailable");
       expect(markup.match(/<fieldset[^>]*disabled/g)).toHaveLength(2);
