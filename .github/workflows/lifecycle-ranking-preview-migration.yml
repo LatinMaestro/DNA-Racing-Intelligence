@@ -1,0 +1,157 @@
+name: Lifecycle ranking Preview migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit containing the reviewed migration
+        required: true
+        type: string
+      apply_private_preview_migration:
+        description: Confirm reviewed Lifecycle ranking migration apply to private Preview
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifecycle-ranking-preview-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migration:
+    name: Apply reviewed Lifecycle ranking migration to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit Preview migration arm
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$EXPECTED_MAIN_SHA" == "$GITHUB_SHA" ]]
+          [[ "${{ inputs.apply_private_preview_migration }}" == "true" ]]
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_MAIN_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$EXPECTED_MAIN_SHA" ]]
+      - name: Validate approved private Preview database binding without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = ["DATABASE_URL", "NEON_API_KEY", "NEON_PROJECT_ID"];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error(
+              "Missing or invalid private Preview migration settings: " +
+                invalid.join(", "),
+            );
+          }
+          if (process.env.NEON_PROJECT_ID !== "fancy-bar-26534950") {
+            throw new Error("The private Preview Neon project is not approved.");
+          }
+          const parsed = new URL(process.env.DATABASE_URL);
+          const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (database !== "neondb" || endpoint !== "ep-misty-paper-a796pgn0") {
+            throw new Error("The private Preview database target is not approved.");
+          }
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          process.stdout.write(`${name}\t${endpoint}`);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "$runtime_identity"
+          export DNA_RUNTIME_ENDPOINT_ID="$endpoint_id"
+          branch_id="$(npx --yes neon@6.0.0 api \
+            "/projects/${NEON_PROJECT_ID}/endpoints" \
+            --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  matches[0]?.branch_id !== "br-floral-haze-a7bvs9lu") {
+                throw new Error("The runtime Preview branch is not approved.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "$branch_id" \
+            --project-id "$NEON_PROJECT_ID" \
+            --role-name neondb_owner \
+            --database-name "$database_name" \
+            --no-color 2>/dev/null)"
+          [[ "$migration_url" =~ ^postgres(ql)?://[^[:space:]]+$ ]]
+          echo "::add-mask::$migration_url"
+          echo "DNA_MIGRATION_DATABASE_URL=$migration_url" >> "$GITHUB_ENV"
+      - name: Fail closed unless Lifecycle ranking read is absent
+        shell: bash
+        run: |
+          psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          BEGIN
+            IF to_regclass('dna.lifecycle_ranking_evidence_snapshot') IS NOT NULL
+              OR to_regprocedure(
+                'dna.read_lifecycle_ranking_evidence_snapshot(uuid)'
+              ) IS NOT NULL
+            THEN
+              RAISE EXCEPTION 'Lifecycle ranking read is not wholly absent';
+            END IF;
+          END
+          $contract$;
+          SQL
+      - name: Apply and prove Lifecycle ranking migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+            database/migrations/0130_lifecycle_ranking_evidence_snapshot.up.sql
+          if ! psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+            database/migrations/0130_lifecycle_ranking_evidence_snapshot.smoke.sql; then
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0130_lifecycle_ranking_evidence_snapshot.down.sql
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0130_lifecycle_ranking_evidence_snapshot.removal.sql
+            exit 1
+          fi
+      - name: Clear short-lived Preview migration binding
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "$GITHUB_ENV"
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_MAIN_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$EXPECTED_MAIN_SHA" ]]
