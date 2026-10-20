@@ -932,6 +932,27 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "open-race-verification":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "verified_at",
+                "execute_private_preview_verification",
+              ]);
+              if (
+                !exactTimestamp(payload.verified_at) ||
+                payload.execute_private_preview_verification !== true
+              ) {
+                throw new Error(
+                  "Open Race verification authority is invalid.",
+                );
+              }
+              workflow = "open-race-private-preview-verification.yml";
+              inputs = {
+                verified_at: payload.verified_at,
+                execute_private_preview_verification: true,
+              };
+              break;
             case "lifecycle-ranking-migration":
               exactKeys([
                 "kind",
