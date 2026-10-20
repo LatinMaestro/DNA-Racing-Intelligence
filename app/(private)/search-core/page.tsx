@@ -3,7 +3,7 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { evidenceViewFilters } from "@/lib/evidence-view-filters";
 import { hostedRaceArchiveCoreHistoryRuntime } from "@/lib/hosted-race-archive-core-history-runtime";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
-import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadSearchCorePageState } from "@/lib/search-core-service";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,7 @@ export default async function SearchCorePage({
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   };
+  const now = new Date();
   const archiveRuntime = hostedRaceArchiveCoreHistoryRuntime({
     environment: {
       authorizedOwnerId: process.env.AUTHORIZED_CLERK_USER_ID,
@@ -50,13 +51,15 @@ export default async function SearchCorePage({
   const state = await loadSearchCorePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository:
-      neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
+    repository: ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
+      databaseEnvironment,
+      now.toISOString(),
+    ),
     performanceRepository:
       neonCorePerformanceProfileRepositoryFromEnvironment(databaseEnvironment),
     archiveHistoryService:
       archiveRuntime.status === "ready" ? archiveRuntime.service : null,
-    now: new Date(),
+    now,
     query: single(params, "q"),
     selectedCoreId: single(params, "coreId"),
   });

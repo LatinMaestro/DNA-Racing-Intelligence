@@ -39,6 +39,7 @@ export function OwnerVaultMutationForm({
     updateVaultCoreFormAction,
     "idle" as MutationStatus,
   );
+  if (core.version === null || core.meEligible === null) return null;
   const message = ownerVaultMutationMessage(status);
   const statusClassName =
     status === "updated" ? "text-[var(--muted)]" : "text-[var(--warning)]";

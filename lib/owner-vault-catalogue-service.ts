@@ -32,9 +32,20 @@ export type OwnerVaultCatalogueCore = Readonly<{
   fNumber: number;
   sex: OwnerVaultSex;
   inMyVault: boolean;
-  meEligible: boolean;
-  version: number;
+  meEligible: boolean | null;
+  version: number | null;
   updatedAt: string | null;
+  source?: "owner_registry" | "accepted_owner_api_snapshot";
+}>;
+
+export type OwnerVaultCatalogueCoverage =
+  "accepted_core_details_catalogue" | "accepted_owner_api_snapshot";
+
+export type OwnerVaultApiSnapshot = Readonly<{
+  generationId: string;
+  coreCount: number;
+  oldestObservedAt: string;
+  newestObservedAt: string;
 }>;
 
 export type OwnerVaultCataloguePublication = Readonly<{
@@ -53,7 +64,9 @@ export type OwnerVaultCataloguePublication = Readonly<{
 
 export type OwnerVaultCatalogueRead = Readonly<{
   cores: readonly OwnerVaultCatalogueCore[];
-  publication: OwnerVaultCataloguePublication;
+  publication: OwnerVaultCataloguePublication | null;
+  coverage?: OwnerVaultCatalogueCoverage;
+  apiSnapshot?: OwnerVaultApiSnapshot | null;
 }>;
 
 export type OwnerVaultCatalogueRepository =
@@ -80,6 +93,8 @@ export type OwnerVaultCataloguePageState = Readonly<{
   filters: OwnerVaultCatalogueFilters;
   cores: readonly OwnerVaultCatalogueCore[];
   publication?: OwnerVaultCataloguePublication | null;
+  coverage?: OwnerVaultCatalogueCoverage;
+  apiSnapshot?: OwnerVaultApiSnapshot | null;
 }>;
 
 const SAFE_OWNER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -161,10 +176,10 @@ function validateCore(value: OwnerVaultCatalogueCore): OwnerVaultCatalogueCore {
     !Number.isSafeInteger(value.fNumber) ||
     value.fNumber <= 0 ||
     typeof value.inMyVault !== "boolean" ||
-    typeof value.meEligible !== "boolean" ||
-    !Number.isSafeInteger(value.version) ||
-    value.version < 0 ||
-    (!value.inMyVault && value.meEligible)
+    (value.meEligible !== null && typeof value.meEligible !== "boolean") ||
+    (value.version !== null &&
+      (!Number.isSafeInteger(value.version) || value.version < 0)) ||
+    (!value.inMyVault && value.meEligible === true)
   ) {
     throw new Error("Vault catalogue core is invalid.");
   }
@@ -177,10 +192,41 @@ function validateCore(value: OwnerVaultCatalogueCore): OwnerVaultCatalogueCore {
       throw new Error("Vault catalogue timestamp is invalid.");
     }
   }
+  const source = value.source ?? "owner_registry";
+  if (
+    (source !== "owner_registry" && source !== "accepted_owner_api_snapshot") ||
+    (source === "owner_registry" &&
+      (value.meEligible === null || value.version === null)) ||
+    (source === "accepted_owner_api_snapshot" &&
+      (!value.inMyVault || value.meEligible !== null || value.version !== null))
+  ) {
+    throw new Error("Vault catalogue source state is invalid.");
+  }
   if (value.version === 0 && value.updatedAt !== null) {
     throw new Error(
       "Unedited Vault catalogue core cannot have an update timestamp.",
     );
+  }
+  return value;
+}
+
+function validateApiSnapshot(
+  value: OwnerVaultApiSnapshot,
+  coreCount: number,
+): OwnerVaultApiSnapshot {
+  const oldest = new Date(value.oldestObservedAt);
+  const newest = new Date(value.newestObservedAt);
+  if (
+    !UUID_PATTERN.test(value.generationId) ||
+    !Number.isSafeInteger(value.coreCount) ||
+    value.coreCount < coreCount ||
+    Number.isNaN(oldest.getTime()) ||
+    oldest.toISOString() !== value.oldestObservedAt ||
+    Number.isNaN(newest.getTime()) ||
+    newest.toISOString() !== value.newestObservedAt ||
+    oldest.getTime() > newest.getTime()
+  ) {
+    throw new Error("Owner API snapshot is invalid.");
   }
   return value;
 }
@@ -262,6 +308,9 @@ export async function loadOwnerVaultCataloguePageState(
   }
   let persistedCores: readonly OwnerVaultCatalogueCore[];
   let persistedPublication: OwnerVaultCataloguePublication | null = null;
+  let persistedCoverage: OwnerVaultCatalogueCoverage =
+    "accepted_core_details_catalogue";
+  let persistedApiSnapshot: OwnerVaultApiSnapshot | null = null;
   try {
     if (input.repository.readCataloguePageByOwner) {
       const read = await input.repository.readCataloguePageByOwner(
@@ -270,6 +319,8 @@ export async function loadOwnerVaultCataloguePageState(
       );
       persistedCores = read.cores;
       persistedPublication = read.publication;
+      persistedCoverage = read.coverage ?? "accepted_core_details_catalogue";
+      persistedApiSnapshot = read.apiSnapshot ?? null;
     } else {
       persistedCores = await input.repository.listCoresByOwner(
         authenticatedOwnerId,
@@ -297,7 +348,26 @@ export async function loadOwnerVaultCataloguePageState(
       persistedPublication === null
         ? null
         : validatePublication(persistedPublication, cores.length);
-    return { connectionStatus: "connected", filters, cores, publication };
+    const apiSnapshot =
+      persistedApiSnapshot === null
+        ? null
+        : validateApiSnapshot(persistedApiSnapshot, cores.length);
+    if (
+      (persistedCoverage === "accepted_core_details_catalogue" &&
+        apiSnapshot !== null) ||
+      (persistedCoverage === "accepted_owner_api_snapshot" &&
+        (publication !== null || apiSnapshot === null))
+    ) {
+      throw new Error("Vault catalogue coverage authority is invalid.");
+    }
+    return {
+      connectionStatus: "connected",
+      filters,
+      cores,
+      publication,
+      coverage: persistedCoverage,
+      apiSnapshot,
+    };
   } catch {
     return { connectionStatus: "integrity_failed", filters, cores: [] };
   }

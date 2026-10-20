@@ -233,6 +233,8 @@ export function SearchCoreWorkspace({
   filters = { mode: "all", distance: null },
 }: Readonly<{ state: SearchCorePageState; filters?: EvidenceViewFilters }>) {
   const connected = state.connectionStatus === "connected";
+  const ownerApiCoverage =
+    state.catalogueCoverage === "accepted_owner_api_snapshot";
   const unavailable = connected
     ? null
     : catalogueConnectionCopy[state.connectionStatus];
@@ -309,11 +311,12 @@ export function SearchCoreWorkspace({
         </section>
       ) : state.query === null ? (
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-          <h2 className="font-semibold">Search the game catalogue</h2>
+          <h2 className="font-semibold">Search accepted Core sources</h2>
           <p className="mt-3 max-w-3xl leading-7 text-[var(--muted)]">
-            Enter part of a core name or its durable Core ID. Results are drawn
-            from the latest accepted Core Details snapshot and are not live
-            marketplace listings.
+            Enter part of a core name or its durable Core ID. The accepted Core
+            Details catalogue is used when published; otherwise results are
+            limited to the current owner-scoped API snapshot. Neither source is
+            a live marketplace listing.
           </p>
         </section>
       ) : (
@@ -324,6 +327,16 @@ export function SearchCoreWorkspace({
           <p className="mt-2 text-sm text-[var(--muted)]">
             {`${state.results.length.toLocaleString("en-AU")} core${state.results.length === 1 ? "" : "s"} shown`}
           </p>
+          {ownerApiCoverage ? (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+              Results cover only the accepted current owner API snapshot
+              {state.catalogueApiSnapshot
+                ? ` (${state.catalogueApiSnapshot.coreCount.toLocaleString("en-AU")} owner Cores, generation ${state.catalogueApiSnapshot.generationId})`
+                : ""}
+              . Game-wide catalogue coverage and registry-only Maiden state are
+              unavailable.
+            </p>
+          ) : null}
 
           {state.results.length >= OWNER_CORE_CATALOGUE_LIST_LIMIT ? (
             <p
@@ -336,7 +349,9 @@ export function SearchCoreWorkspace({
 
           {state.results.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
-              No known Core Details match this search.
+              {ownerApiCoverage
+                ? "No current owned API Core matches this search."
+                : "No known Core Details match this search."}
             </div>
           ) : (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">

@@ -83,4 +83,18 @@ describe("My Vault mutation feedback", () => {
     ];
     expect(messages.join(" ")).not.toMatch(/postgresql|stack|secret-host/i);
   });
+
+  it("renders no mutation form for an API-only ownership row", () => {
+    const html = renderToStaticMarkup(
+      <OwnerVaultMutationForm
+        core={{
+          ...core,
+          meEligible: null,
+          version: null,
+          source: "accepted_owner_api_snapshot",
+        }}
+      />,
+    );
+    expect(html).toBe("");
+  });
 });

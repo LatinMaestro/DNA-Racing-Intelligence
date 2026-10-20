@@ -5,6 +5,8 @@ import type {
 } from "./core-intelligence-workspace-service";
 import { loadCoreIntelligencePageState } from "./core-intelligence-workspace-service";
 import type {
+  OwnerVaultApiSnapshot,
+  OwnerVaultCatalogueCoverage,
   OwnerVaultCatalogueCore,
   OwnerVaultCatalogueRepository,
 } from "./owner-vault-catalogue-service";
@@ -21,6 +23,8 @@ export type SearchCorePageState = Readonly<{
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
+  catalogueCoverage?: OwnerVaultCatalogueCoverage;
+  catalogueApiSnapshot?: OwnerVaultApiSnapshot | null;
   performanceStatus: "not_connected" | "connected";
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
@@ -190,6 +194,12 @@ export async function loadSearchCorePageState(
     repository: input.repository,
     filters: { scope: "catalogue", query: lookup },
   });
+  const catalogueAuthority = {
+    ...(catalogue.coverage ? { catalogueCoverage: catalogue.coverage } : {}),
+    ...(catalogue.apiSnapshot !== undefined
+      ? { catalogueApiSnapshot: catalogue.apiSnapshot }
+      : {}),
+  };
 
   if (catalogue.connectionStatus !== "connected") {
     return {
@@ -234,6 +244,7 @@ export async function loadSearchCorePageState(
       query,
       results: catalogue.cores,
       selectedCore,
+      ...catalogueAuthority,
       ...noPerformance,
       ...noArchiveHistory,
     };
@@ -251,6 +262,7 @@ export async function loadSearchCorePageState(
       query,
       results: catalogue.cores,
       selectedCore,
+      ...catalogueAuthority,
       ...noPerformance,
       ...archived,
     };
@@ -278,6 +290,7 @@ export async function loadSearchCorePageState(
     query,
     results: catalogue.cores,
     selectedCore,
+    ...catalogueAuthority,
     performanceStatus:
       performance.connectionStatus === "read_model_connected"
         ? "connected"
