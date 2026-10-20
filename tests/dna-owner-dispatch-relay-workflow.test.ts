@@ -244,6 +244,13 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("open-race-private-preview-verification.yml");
     expect(workflow).toContain('"open-race-verification"');
     expect(workflow).toContain("Open Race verification authority is invalid.");
+    expect(workflow).toContain(
+      "dashboard-readiness-private-preview-verification.yml",
+    );
+    expect(workflow).toContain('"dashboard-readiness-verification"');
+    expect(workflow).toContain(
+      "Dashboard and Readiness verification authority is invalid.",
+    );
     expect(workflow).toContain("open-race-preview-migrations.yml");
     expect(workflow).toContain('"open-race-migrations"');
     expect(workflow).toContain(
