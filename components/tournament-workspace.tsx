@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { TournamentCandidateRankingResult } from "@/domain/tournament-candidate-ranking";
+import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
 import type { TournamentWorkspaceConnectionStatus } from "@/lib/tournament-workspace-service";
 
 const connectionCopy: Record<
@@ -55,6 +56,28 @@ function timestamp(value: string | null) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Not available";
   return <time dateTime={value}>{timestampFormatter.format(parsed)} UTC</time>;
+}
+
+function configuredValues(values: readonly (string | number)[]): string {
+  return values.length === 0 ? "Not restricted" : values.join(", ");
+}
+
+function fNumberRules(
+  eligibility: TournamentRuleConfiguration["eligibility"],
+): string {
+  const values = eligibility.fNumbers.map((value) => `F${value}`);
+  const ranges = eligibility.fNumberRanges.map(
+    ({ minimum, maximum }) => `F${minimum}–F${maximum}`,
+  );
+  return configuredValues([...values, ...ranges]);
+}
+
+function qualificationTarget(
+  target: TournamentRuleConfiguration["qualification"]["target"],
+): string {
+  return target.kind === "count"
+    ? `${target.value.toLocaleString("en-AU")} places`
+    : `${target.value}% of leaderboard`;
 }
 
 const missingOptimizerEvidence = [
@@ -205,6 +228,139 @@ export function TournamentWorkspace({
                               .join(" · ")}`
                           : ""}
                       </p>
+                    ) : null}
+                    {bracket.ruleConfiguration ? (
+                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                          <dt className="text-[var(--muted)]">Season</dt>
+                          <dd className="mt-1 font-semibold">
+                            {bracket.ruleConfiguration.seasonLabel}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">
+                            Qualification window
+                          </dt>
+                          <dd className="mt-1 font-semibold">
+                            {timestamp(
+                              bracket.ruleConfiguration.qualificationStartsAt,
+                            )}{" "}
+                            –{" "}
+                            {timestamp(
+                              bracket.ruleConfiguration.qualificationEndsAt,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Race format</dt>
+                          <dd className="mt-1 font-semibold">
+                            {bracket.ruleConfiguration.raceFormat}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Gate map</dt>
+                          <dd className="mt-1 font-semibold">
+                            {bracket.ruleConfiguration.gateCount.toLocaleString(
+                              "en-AU",
+                            )}{" "}
+                            gates
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Entry fee</dt>
+                          <dd className="mt-1 font-semibold">
+                            {bracket.ruleConfiguration.entryFee.amount}{" "}
+                            {bracket.ruleConfiguration.entryFee.asset}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Breeds</dt>
+                          <dd className="mt-1 font-semibold">
+                            {configuredValues(
+                              bracket.ruleConfiguration.eligibility.breeds,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Classes</dt>
+                          <dd className="mt-1 font-semibold">
+                            {configuredValues(
+                              bracket.ruleConfiguration.eligibility.classes,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">Elements</dt>
+                          <dd className="mt-1 font-semibold">
+                            {configuredValues(
+                              bracket.ruleConfiguration.eligibility.elements,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">F groups</dt>
+                          <dd className="mt-1 font-semibold">
+                            {fNumberRules(
+                              bracket.ruleConfiguration.eligibility,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">
+                            Eligibility groups
+                          </dt>
+                          <dd className="mt-1 font-semibold">
+                            {configuredValues(
+                              bracket.ruleConfiguration.eligibility.groups.map(
+                                (group) => group.label,
+                              ),
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">
+                            Leaderboard split
+                          </dt>
+                          <dd className="mt-1 font-semibold">
+                            {
+                              bracket.ruleConfiguration.leaderboard
+                                .splitDimension
+                            }
+                            {" · "}
+                            {label(
+                              bracket.ruleConfiguration.leaderboard
+                                .qualifyingRaceSemantics,
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">
+                            Leaderboard groups
+                          </dt>
+                          <dd className="mt-1 font-semibold">
+                            {configuredValues(
+                              bracket.ruleConfiguration.leaderboard.groups.map(
+                                (group) => group.label,
+                              ),
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--muted)]">
+                            Qualification safeguard
+                          </dt>
+                          <dd className="mt-1 font-semibold">
+                            Minimum{" "}
+                            {bracket.ruleConfiguration.qualification.minimumRaceCount.toLocaleString(
+                              "en-AU",
+                            )}{" "}
+                            races ·{" "}
+                            {qualificationTarget(
+                              bracket.ruleConfiguration.qualification.target,
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
                     ) : null}
                   </div>
                   <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">

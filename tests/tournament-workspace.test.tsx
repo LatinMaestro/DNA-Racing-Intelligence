@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TournamentWorkspace } from "@/components/tournament-workspace";
 import { Season12TournamentSchedule } from "@/components/season-12-tournament-schedule";
 import { rankTournamentCandidates } from "@/domain/tournament-candidate-ranking";
+import type { TournamentRuleConfiguration } from "@/domain/tournament-configuration";
 
 describe("Tournament workspace", () => {
   it("renders the official Season 12 schedule without inventing missing rules", () => {
@@ -168,4 +169,107 @@ describe("Tournament workspace", () => {
     expect(html).toContain("Core preserved:core");
     expect(html).not.toContain("Positive-EV recommendation");
   });
+
+  it.each([
+    ["bike", "Sprint Battles", 8, "Bike", "Fire, Water", "F1–F3"],
+    ["car", "Double Up", 6, "Car", "Earth", "F4"],
+    ["horse", "Spliced", 2, "Horse", "Air", "F5–F7"],
+  ] as const)(
+    "renders the persisted %s format, gates, groupings and qualification safeguards",
+    (mode, raceFormat, gateCount, coreClass, elements, fRule) => {
+      const ruleConfiguration = {
+        tournamentId: `${mode}-event`,
+        tournamentLabel: `${mode} event`,
+        seasonLabel: "Season 12",
+        qualificationStartsAt: "2026-09-14T00:00:00.000Z",
+        qualificationEndsAt: "2026-09-20T23:59:59.000Z",
+        bracketId: `${mode}-split`,
+        splitLabel: `${mode} split`,
+        mode,
+        eligibleDistancesMetres: [1_200, 1_800],
+        gateCount,
+        entryFee: { amount: "12.5", asset: "BGC" },
+        raceFormat,
+        eligibility: {
+          breeds: mode === "horse" ? ["Genesis"] : [],
+          classes: [coreClass],
+          elements: elements.split(", "),
+          fNumbers: mode === "car" ? [4] : [],
+          fNumberRanges:
+            mode === "bike"
+              ? [{ minimum: 1, maximum: 3 }]
+              : mode === "horse"
+                ? [{ minimum: 5, maximum: 7 }]
+                : [],
+          groups: [
+            {
+              id: "eligible-alpha",
+              label: `${mode} eligible Alpha`,
+              breeds: [],
+              classes: [coreClass],
+              elements: elements.split(", "),
+              fNumbers: [],
+              fNumberRanges: [],
+            },
+          ],
+        },
+        leaderboard: {
+          splitDimension: "element",
+          groups: [{ id: "alpha", label: "Alpha" }],
+          qualifyingRaceSemantics: "separate",
+        },
+        qualification: {
+          minimumRaceCount: 5,
+          target: { kind: "percentage", value: "25" },
+          rankingMetric: "median_time",
+          topFinishPosition: null,
+          pointsTable: {},
+          customScoringConfiguration: {},
+        },
+        discoveryRelevance: "eligible",
+        evidence: {
+          status: "confirmed",
+          notes: "Accepted fixture evidence.",
+          sourceEvidence: "Accepted fixture source.",
+          provenance: {},
+        },
+        campaignAction: null,
+        configurationVersion: `${mode}-config-v1`,
+        candidateSnapshotVersion: `${mode}-snapshot-v1`,
+        updatedAt: "2026-10-19T00:00:00.000Z",
+      } satisfies TournamentRuleConfiguration;
+      const bracket = rankTournamentCandidates({
+        tournamentId: ruleConfiguration.tournamentId,
+        tournamentLabel: ruleConfiguration.tournamentLabel,
+        bracketId: ruleConfiguration.bracketId,
+        splitLabel: ruleConfiguration.splitLabel,
+        mode,
+        eligibleDistancesMetres: ruleConfiguration.eligibleDistancesMetres,
+        discoveryRelevance: "eligible",
+        qualificationMetricLabel: "median_time",
+        configurationVersion: ruleConfiguration.configurationVersion,
+        candidateSnapshotVersion: ruleConfiguration.candidateSnapshotVersion!,
+        ruleConfiguration,
+        candidates: [],
+      });
+      const html = renderToStaticMarkup(
+        <TournamentWorkspace
+          brackets={[bracket]}
+          connectionStatus="read_model_connected"
+          lastImportedAt="2026-10-19T00:00:00.000Z"
+        />,
+      );
+
+      expect(html).toContain(raceFormat);
+      expect(html).toContain(`${gateCount} gates`);
+      expect(html).toContain("12.5 BGC");
+      expect(html).toContain(coreClass);
+      expect(html).toContain(elements);
+      expect(html).toContain(fRule);
+      expect(html).toContain(`${mode} eligible Alpha`);
+      expect(html).toContain("Alpha");
+      expect(html).toContain("element · Separate");
+      expect(html).toContain("Minimum 5 races · 25% of leaderboard");
+    },
+  );
 });
