@@ -8,6 +8,7 @@ function render(connectionStatus: ImportWorkspaceConnectionStatus): string {
   return renderToStaticMarkup(
     <ImportWorkspacePanel
       connectionStatus={connectionStatus}
+      rollbackActionStatus="not_configured"
       workspace={buildImportWorkspace([], new Date("2026-07-24T08:00:00.000Z"))}
     />,
   );

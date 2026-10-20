@@ -5,6 +5,9 @@ import {
   type ImportProgressStage,
   type ImportProgressStageState,
 } from "@/domain/import-progress";
+import { ImportRollbackControl } from "@/components/import-rollback-control";
+
+export type ImportRollbackActionStatus = "ready" | "not_configured";
 
 const sourceLabels: Record<ImportProgressBatch["sourceType"], string> = {
   race_merge: "Race Merge",
@@ -40,7 +43,11 @@ function count(value: number): string {
 
 export function ImportProgressPanel({
   batches,
-}: Readonly<{ batches: readonly ImportProgressBatch[] }>) {
+  rollbackActionStatus,
+}: Readonly<{
+  batches: readonly ImportProgressBatch[];
+  rollbackActionStatus: ImportRollbackActionStatus;
+}>) {
   const progress = projectRecentImportProgress(batches);
 
   return (
@@ -60,15 +67,17 @@ export function ImportProgressPanel({
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
-          Provider actions unavailable
+          {rollbackActionStatus === "ready"
+            ? "Rollback connected"
+            : "Recovery actions unavailable"}
         </span>
       </div>
 
       {progress.length === 0 ? (
         <p className="mt-5 leading-7 text-[var(--muted)]">
-          No private update progress is available. Upload, confirmation,
-          aggregate retry and rollback remain disabled until the approved
-          owner-scoped providers are configured.
+          No private update progress is available. Provider-backed actions are
+          shown only when an eligible accepted dataset and its owner-scoped
+          capability are both available.
         </p>
       ) : (
         <div className="mt-5 space-y-4">
@@ -165,15 +174,19 @@ export function ImportProgressPanel({
                     ? "Retry unavailable"
                     : "Aggregate retry not required"}
                 </button>
-                <button
-                  className="cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)]"
-                  disabled
-                  type="button"
-                >
-                  {item.rollbackAvailable
-                    ? "Rollback unavailable"
-                    : "No rollback action"}
-                </button>
+                {item.rollbackAvailable && rollbackActionStatus === "ready" ? (
+                  <ImportRollbackControl batchId={item.key} />
+                ) : (
+                  <button
+                    className="cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)]"
+                    disabled
+                    type="button"
+                  >
+                    {item.rollbackAvailable
+                      ? "Rollback unavailable"
+                      : "No rollback action"}
+                  </button>
+                )}
               </div>
             </article>
           ))}

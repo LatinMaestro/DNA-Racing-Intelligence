@@ -5,6 +5,7 @@ import type {
   RecoveryQueueItem,
 } from "@/domain/import-workflow";
 import type { ImportWorkspaceConnectionStatus } from "@/lib/import-workspace-service";
+import type { ImportRollbackActionStatus } from "@/components/import-progress-panel";
 
 const sourceLabels: Record<HistoricalImportSource, string> = {
   race_merge: "Race Merge",
@@ -76,9 +77,11 @@ function count(value: number | null): string {
 export function ImportWorkspacePanel({
   workspace,
   connectionStatus,
+  rollbackActionStatus,
 }: Readonly<{
   workspace: ImportWorkspace;
   connectionStatus: ImportWorkspaceConnectionStatus;
+  rollbackActionStatus: ImportRollbackActionStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const evidenceConnected = connectionStatus === "read_model_connected";
@@ -233,7 +236,10 @@ export function ImportWorkspacePanel({
       </section>
 
       {evidenceConnected ? (
-        <ImportProgressPanel batches={workspace.recentBatches} />
+        <ImportProgressPanel
+          batches={workspace.recentBatches}
+          rollbackActionStatus={rollbackActionStatus}
+        />
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">

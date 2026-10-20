@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import {
   retryOwnerAggregateRefresh,
@@ -21,6 +23,7 @@ import {
   rollbackOwnerImport,
   type ImportRecoveryActionDependencies,
 } from "@/lib/import-recovery-action-service";
+import { neonImportRollbackRepositoryFromEnvironment } from "@/lib/neon-import-rollback-repository";
 import {
   beginOwnerImportUpload,
   completeOwnerImportUpload,
@@ -236,8 +239,70 @@ function recoveryActionDependencies(): ImportRecoveryActionDependencies {
       }),
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
     now: () => new Date(),
-    rollbackRepository: { status: "not_configured" },
+    rollbackRepository: neonImportRollbackRepositoryFromEnvironment({
+      databaseUrl: process.env.DATABASE_URL,
+      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+    }),
   };
+}
+
+export type ImportRollbackFormState = Readonly<{
+  status: "success" | "error";
+  title: string;
+  detail: string;
+}>;
+
+function formText(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+export async function submitImportRollbackFormAction(
+  _previousState: ImportRollbackFormState | null,
+  formData: FormData,
+): Promise<ImportRollbackFormState> {
+  try {
+    const result = await rollbackImportAction({
+      batchId: formText(formData, "batchId"),
+      rollbackReason: formText(formData, "rollbackReason"),
+      idempotencyKey: `rollback:${randomUUID()}`,
+      explicitlyConfirmed: formData.get("explicitlyConfirmed") === "yes",
+    });
+
+    if (result.status === "restored") {
+      revalidatePath("/imports");
+      return {
+        status: "success",
+        title:
+          result.disposition === "existing"
+            ? "Rollback already recorded"
+            : "Rollback recorded",
+        detail: `The prior accepted ${result.sourceType.replaceAll("_", " ")} dataset is active. Its aggregate refresh is pending; readiness remains unavailable until publication completes.`,
+      };
+    }
+
+    const detail = {
+      identity_not_connected:
+        "The signed-in owner could not be verified. No dataset changed.",
+      persistence_not_configured:
+        "Preview rollback persistence is not configured. No dataset changed.",
+      not_found: "The accepted import could not be found. No dataset changed.",
+      not_active:
+        "That import is no longer the active accepted dataset. Refresh the page before trying again.",
+      no_prior_version:
+        "No prior accepted dataset is available to restore. No dataset changed.",
+    }[result.status];
+    return { status: "error", title: "Rollback not recorded", detail };
+  } catch (error) {
+    const detail =
+      error instanceof Error &&
+      (error.message.startsWith("Rollback reason must") ||
+        error.message === "Explicit owner confirmation is required.")
+        ? error.message
+        : "The rollback request could not be completed. No dataset change is claimed; refresh the page before retrying.";
+    return { status: "error", title: "Rollback not recorded", detail };
+  }
 }
 
 export async function beginImportUploadAction(

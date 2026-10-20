@@ -3,6 +3,7 @@ import { RaceMergeSourceEvidenceUploader } from "@/components/race-merge-source-
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { loadImportWorkspacePageState } from "@/lib/import-workspace-service";
 import { importBatchRepositoryFromEnvironment } from "@/lib/neon-import-batch-repository";
+import { neonImportRollbackRepositoryFromEnvironment } from "@/lib/neon-import-rollback-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -22,11 +23,17 @@ export default async function ImportsPage() {
     }),
     now: new Date(),
   });
+  const rollbackRepository = neonImportRollbackRepositoryFromEnvironment({
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  });
 
   return (
     <div className="space-y-8">
       <ImportWorkspacePanel
         connectionStatus={state.connectionStatus}
+        rollbackActionStatus={rollbackRepository.status}
         workspace={state.workspace}
       />
       {state.connectionStatus === "read_model_connected" ? (

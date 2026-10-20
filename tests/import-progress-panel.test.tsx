@@ -23,24 +23,48 @@ const readyBatch: ImportProgressBatch = {
 describe("import progress panel", () => {
   it("renders an accessible historical completion summary with disabled actions", () => {
     const markup = renderToStaticMarkup(
-      <ImportProgressPanel batches={[readyBatch]} />,
+      <ImportProgressPanel
+        batches={[readyBatch]}
+        rollbackActionStatus="ready"
+      />,
     );
 
     expect(markup).toContain("Update progress &amp; completion");
     expect(markup).toContain("Historical views ready");
     expect(markup).toContain("Data current through");
-    expect(markup).toContain("Provider actions unavailable");
+    expect(markup).toContain("Rollback connected");
+    expect(markup).toContain("Restore prior accepted dataset");
+    expect(markup).toContain("Rollback reason");
+    expect(markup).toContain("Restore the prior accepted version");
     expect(markup).toContain("disabled");
     expect(markup).not.toMatch(/\blive\b/i);
-    expect(markup).not.toContain("synthetic-batch-1");
+    expect(markup).toContain('name="batchId" value="synthetic-batch-1"');
   });
 
   it("renders a fail-closed empty state", () => {
-    const markup = renderToStaticMarkup(<ImportProgressPanel batches={[]} />);
+    const markup = renderToStaticMarkup(
+      <ImportProgressPanel
+        batches={[]}
+        rollbackActionStatus="not_configured"
+      />,
+    );
 
     expect(markup).toContain("No private update progress is available");
     expect(markup).toContain(
-      "Upload, confirmation, aggregate retry and rollback remain disabled",
+      "Provider-backed actions are shown only when an eligible accepted dataset",
     );
+  });
+
+  it("keeps rollback disabled when owner-scoped persistence is not configured", () => {
+    const markup = renderToStaticMarkup(
+      <ImportProgressPanel
+        batches={[readyBatch]}
+        rollbackActionStatus="not_configured"
+      />,
+    );
+
+    expect(markup).toContain("Recovery actions unavailable");
+    expect(markup).toContain("Rollback unavailable");
+    expect(markup).not.toContain("Rollback reason");
   });
 });
