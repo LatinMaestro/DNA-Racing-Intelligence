@@ -7,6 +7,7 @@ on:
       - "database/migrations/0017_discovery_extended_lineage.*.sql"
       - "database/migrations/0018_discovery_wider_lineage.*.sql"
       - "database/migrations/0019_discovery_population_patterns.*.sql"
+      - "database/migrations/0149_discovery_lineage_mode_ambiguity.*.sql"
       - ".github/workflows/discovery-lineage-migration.yml"
 
 permissions:
@@ -61,6 +62,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.up.sql
       - name: Run population-pattern Discovery smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.smoke.sql
+      - name: Apply Discovery lineage mode ambiguity repair
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.up.sql
+      - name: Run Discovery lineage mode ambiguity smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.smoke.sql
+      - name: Reverse Discovery lineage mode ambiguity repair
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.down.sql
+      - name: Verify Discovery lineage mode ambiguity repair reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.removal.sql
       - name: Reverse population-pattern Discovery migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0019_discovery_population_patterns.down.sql
       - name: Verify wider-lineage function restored
