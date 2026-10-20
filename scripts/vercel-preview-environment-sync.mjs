@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const MAXIMUM_VALUE_LENGTH = 4096;
+const APPROVED_PREVIEW_NEON_ENDPOINT = "ep-misty-paper-a796pgn0";
+const APPROVED_PREVIEW_DATABASE = "neondb";
 const INHERITED_PRODUCTION_KEYS = [
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   "CLERK_SECRET_KEY",
@@ -52,6 +54,18 @@ export function previewEnvironmentSpecification(environment) {
     !databaseUrl.hostname.endsWith(".neon.tech")
   ) {
     throw new Error("DATABASE_URL is not a pooled Neon connection");
+  }
+  if (
+    !databaseUrl.hostname.startsWith(
+      `${APPROVED_PREVIEW_NEON_ENDPOINT}-pooler.`,
+    )
+  ) {
+    throw new Error("DATABASE_URL is not the approved Preview Neon endpoint");
+  }
+  if (
+    decodeURIComponent(databaseUrl.pathname) !== `/${APPROVED_PREVIEW_DATABASE}`
+  ) {
+    throw new Error("DATABASE_URL is not the approved Preview database");
   }
   if (databaseUrl.searchParams.get("sslmode") !== "require") {
     throw new Error("DATABASE_URL must require TLS");

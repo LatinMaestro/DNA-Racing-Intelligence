@@ -12,7 +12,7 @@ import type {
 const validEnvironment = {
   AUTHORIZED_CLERK_USER_ID: "user_owner-value",
   DATABASE_URL:
-    "postgresql://dna_app_runtime:private@ep-example-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require",
+    "postgresql://dna_app_runtime:private@ep-misty-paper-a796pgn0-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require",
   DNA_DATABASE_OWNER_ID: "database-owner-id",
   DNA_DATABASE_RUNTIME_ROLE: "dna_app_runtime",
   ENABLE_PHASE0_REVIEW: "true",
@@ -211,6 +211,20 @@ describe("Vercel Preview environment synchronization", () => {
           "postgresql://production_admin:private@ep-example.us-east-2.aws.neon.tech/neondb?sslmode=require",
       }),
     ).toThrow("runtime role");
+    expect(() =>
+      previewEnvironmentSpecification({
+        ...validEnvironment,
+        DATABASE_URL:
+          "postgresql://dna_app_runtime:private@ep-another-branch-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require",
+      }),
+    ).toThrow("approved Preview Neon endpoint");
+    expect(() =>
+      previewEnvironmentSpecification({
+        ...validEnvironment,
+        DATABASE_URL:
+          "postgresql://dna_app_runtime:private@ep-misty-paper-a796pgn0-pooler.ap-southeast-2.aws.neon.tech/another_database?sslmode=require",
+      }),
+    ).toThrow("approved Preview database");
     expect(() =>
       previewEnvironmentSpecification({
         ...validEnvironment,
