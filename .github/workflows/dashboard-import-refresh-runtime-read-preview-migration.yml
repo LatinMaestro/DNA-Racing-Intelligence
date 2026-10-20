@@ -135,6 +135,7 @@ jobs:
           psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
             --file database/migrations/0149_dashboard_import_refresh_runtime_read.up.sql
           if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 \
             --file database/migrations/0149_dashboard_import_refresh_runtime_read.smoke.sql; then
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
               --file database/migrations/0149_dashboard_import_refresh_runtime_read.down.sql
