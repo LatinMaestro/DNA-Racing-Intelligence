@@ -63,5 +63,7 @@ export default async function VaultPage({
       }),
   });
 
-  return <OwnerVaultWorkspace state={state} selectedHistory={selectedHistory} />;
+  return (
+    <OwnerVaultWorkspace state={state} selectedHistory={selectedHistory} />
+  );
 }

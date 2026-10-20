@@ -116,7 +116,10 @@ export function OwnerVaultWorkspace({
           id="selected-vault-history"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold" id="selected-vault-history-heading">
+            <h2
+              className="text-xl font-semibold"
+              id="selected-vault-history-heading"
+            >
               {selectedHistory.selectedCore
                 ? `Accepted race history — ${selectedHistory.selectedCore.displayName} (Core ${selectedHistory.selectedCore.sourceCoreId})`
                 : "Selected Vault Core unavailable"}

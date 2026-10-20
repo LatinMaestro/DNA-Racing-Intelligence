@@ -125,7 +125,10 @@ describe("My Vault selected accepted history", () => {
       { catalogue, selectedCoreId: undefined },
       { catalogue, selectedCoreId: "104570" },
       { catalogue: unowned, selectedCoreId: "10457" },
-      { catalogue: { ...catalogue, connectionStatus: "read_failed" as const }, selectedCoreId: "10457" },
+      {
+        catalogue: { ...catalogue, connectionStatus: "read_failed" as const },
+        selectedCoreId: "10457",
+      },
     ]) {
       const state = await loadOwnerVaultSelectedHistory({
         ...selection,

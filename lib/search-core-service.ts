@@ -182,9 +182,7 @@ async function archiveHistory(input: {
 
 export type AcceptedCoreHistoryRead = Pick<
   SearchCorePageState,
-  | "acceptedHistoryStatus"
-  | "acceptedHistoryGeneration"
-  | "acceptedHistoryRows"
+  "acceptedHistoryStatus" | "acceptedHistoryGeneration" | "acceptedHistoryRows"
 >;
 
 export async function readAcceptedCoreHistory(input: {

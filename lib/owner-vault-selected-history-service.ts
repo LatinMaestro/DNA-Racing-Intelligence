@@ -19,16 +19,22 @@ export type OwnerVaultSelectedHistory = Readonly<{
  * after the authenticated owner has a matching owned Core in the validated
  * catalogue. The existing Search Core reader pins source generation/hash.
  */
-export async function loadOwnerVaultSelectedHistory(input: Readonly<{
-  catalogue: OwnerVaultCataloguePageState;
-  selectedCoreId?: unknown;
-  authenticatedOwnerId: string | null;
-  configuredOwnerId: string | null;
-  acceptedHistoryRepository: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
-}>): Promise<OwnerVaultSelectedHistory> {
+export async function loadOwnerVaultSelectedHistory(
+  input: Readonly<{
+    catalogue: OwnerVaultCataloguePageState;
+    selectedCoreId?: unknown;
+    authenticatedOwnerId: string | null;
+    configuredOwnerId: string | null;
+    acceptedHistoryRepository: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
+  }>,
+): Promise<OwnerVaultSelectedHistory> {
   const raw = input.selectedCoreId;
   if (raw === undefined || raw === null || raw === "") {
-    return { selectionRequested: false, selectedCore: null, acceptedHistory: null };
+    return {
+      selectionRequested: false,
+      selectedCore: null,
+      acceptedHistory: null,
+    };
   }
   if (
     typeof raw !== "string" ||
@@ -43,7 +49,11 @@ export async function loadOwnerVaultSelectedHistory(input: Readonly<{
     input.authenticatedOwnerId === null ||
     input.configuredOwnerId === null
   ) {
-    return { selectionRequested: true, selectedCore: null, acceptedHistory: null };
+    return {
+      selectionRequested: true,
+      selectedCore: null,
+      acceptedHistory: null,
+    };
   }
   if (input.authenticatedOwnerId !== input.configuredOwnerId) {
     throw new Error("Selected Vault Core access denied.");
@@ -53,7 +63,11 @@ export async function loadOwnerVaultSelectedHistory(input: Readonly<{
       (core) => core.inMyVault && core.sourceCoreId === raw,
     ) ?? null;
   if (selectedCore === null) {
-    return { selectionRequested: true, selectedCore: null, acceptedHistory: null };
+    return {
+      selectionRequested: true,
+      selectedCore: null,
+      acceptedHistory: null,
+    };
   }
   return {
     selectionRequested: true,
