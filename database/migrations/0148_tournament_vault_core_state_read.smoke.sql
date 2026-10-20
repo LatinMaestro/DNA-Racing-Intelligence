@@ -61,7 +61,10 @@ BEGIN
 END
 $permissions$;
 
+\if :{?skip_runtime_role}
+\else
 SET LOCAL ROLE dna_app_runtime;
+\endif
 SET LOCAL app.owner_id = 'a1480000-0000-4000-8000-000000000001';
 
 DO $read$
@@ -92,5 +95,8 @@ BEGIN
 END
 $read$;
 
+\if :{?skip_runtime_role}
+\else
 RESET ROLE;
+\endif
 ROLLBACK;

@@ -39,9 +39,21 @@ describe("Tournament Vault Core state Preview migration workflow", () => {
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=${migration_url}");
     expect(workflow).toContain('psql "${DNA_MIGRATION_DATABASE_URL}"');
+    expect(workflow).toContain("--set skip_runtime_role=1");
     expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=");
     expect(workflow).not.toMatch(
       /echo .*"\$\{(?:DATABASE_URL|NEON_API_KEY|NEON_PROJECT_ID)\}"|printenv|env\s*$/mu,
     );
+  });
+
+  it("keeps CI runtime-role proof while supporting connected owner-role smoke", async () => {
+    const smoke = await readFile(
+      "database/migrations/0148_tournament_vault_core_state_read.smoke.sql",
+      "utf8",
+    );
+
+    expect(smoke.match(/\\if :\{\?skip_runtime_role\}/gu)).toHaveLength(2);
+    expect(smoke).toContain("SET LOCAL ROLE dna_app_runtime;");
+    expect(smoke).toContain("RESET ROLE;");
   });
 });
