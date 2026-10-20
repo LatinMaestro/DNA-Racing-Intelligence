@@ -257,7 +257,7 @@ describe("Vercel Preview environment synchronization", () => {
     ).toThrow("explicitly arm");
   });
 
-  it("redacts every direct environment value if Vercel rejects a transfer", async () => {
+  it("redacts direct secret values if Vercel rejects a transfer", async () => {
     const runner = vi.fn<PreviewEnvironmentRunner>(() => ({
       status: 1,
       stdout: "",
@@ -279,5 +279,21 @@ describe("Vercel Preview environment synchronization", () => {
         fetcher,
       }),
     ).rejects.toThrow(/rejected \[REDACTED\] \[REDACTED\]/u);
+  });
+
+  it("preserves an actionable metadata HTTP status", async () => {
+    const fetcher = vi.fn<PreviewEnvironmentFetcher>(async () =>
+      response({ error: "forbidden" }, 403),
+    );
+
+    await expect(
+      syncPreviewEnvironment({
+        environment: validEnvironment,
+        runner: vi.fn<PreviewEnvironmentRunner>(),
+        fetcher,
+      }),
+    ).rejects.toThrow(
+      "Vercel environment metadata lookup failed with HTTP 403",
+    );
   });
 });
