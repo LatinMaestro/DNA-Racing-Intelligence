@@ -180,7 +180,14 @@ async function archiveHistory(input: {
   });
 }
 
-async function acceptedHistory(input: {
+export type AcceptedCoreHistoryRead = Pick<
+  SearchCorePageState,
+  | "acceptedHistoryStatus"
+  | "acceptedHistoryGeneration"
+  | "acceptedHistoryRows"
+>;
+
+export async function readAcceptedCoreHistory(input: {
   repository: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
   ownerId: string | null;
   sourceCoreId: string;
@@ -356,7 +363,7 @@ export async function loadSearchCorePageState(
       ownerId: input.authenticatedOwnerId,
       sourceCoreId: selectedCore.sourceCoreId,
     }),
-    acceptedHistory({
+    readAcceptedCoreHistory({
       repository: input.acceptedHistoryRepository ?? null,
       ownerId: input.authenticatedOwnerId,
       sourceCoreId: selectedCore.sourceCoreId,

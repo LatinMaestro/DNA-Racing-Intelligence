@@ -8,7 +8,10 @@ import {
 } from "@/domain/core-performance";
 import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import { OWNER_CORE_CATALOGUE_LIST_LIMIT } from "@/lib/owner-vault-catalogue-service";
-import type { SearchCorePageState } from "@/lib/search-core-service";
+import type {
+  AcceptedCoreHistoryRead,
+  SearchCorePageState,
+} from "@/lib/search-core-service";
 
 const catalogueConnectionCopy = {
   identity_not_connected: {
@@ -235,11 +238,11 @@ const publishedCellCopy = {
   unpublished_cell: "Unavailable: unpublished analytical cell",
 } as const;
 
-function AcceptedApiHistory({
+export function AcceptedApiHistory({
   state,
   filters,
 }: Readonly<{
-  state: SearchCorePageState;
+  state: AcceptedCoreHistoryRead;
   filters: EvidenceViewFilters;
 }>) {
   if (state.acceptedHistoryStatus === "not_connected") {
