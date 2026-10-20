@@ -222,6 +222,13 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "Tournament workspace verification authority is invalid.",
     );
+    expect(workflow).toContain(
+      "core-intelligence-private-preview-verification.yml",
+    );
+    expect(workflow).toContain('"core-intelligence-verification"');
+    expect(workflow).toContain(
+      "Core Intelligence verification authority is invalid.",
+    );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
