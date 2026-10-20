@@ -304,7 +304,12 @@ export async function syncPreviewEnvironment({
 } = {}) {
   const specification = previewEnvironmentSpecification(environment);
   const token = requiredValue(environment, "VERCEL_TOKEN");
-  const sensitiveValues = [token, ...specification.map(({ value }) => value)];
+  const sensitiveValues = [
+    token,
+    ...specification
+      .filter(({ visibility }) => visibility === "secret")
+      .map(({ value }) => value),
+  ];
 
   try {
     let entries = await fetchEnvironmentMetadata(environment, fetcher);
