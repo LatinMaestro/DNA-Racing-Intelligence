@@ -9,6 +9,7 @@ import {
 export type VaultPerformanceEconomicWriteStatus =
   | "identity_not_connected"
   | "persistence_not_configured"
+  | "asset_registry_unavailable"
   | "manual_ledger_ready"
   | "tournament_payout_ready";
 
@@ -25,6 +26,11 @@ const statusCopy: Record<
     label: "Economic writes not connected",
     detail:
       "The forms are staged for review, but owner-scoped persistence is not configured. Nothing entered here can be recorded yet.",
+  },
+  asset_registry_unavailable: {
+    label: "Accepted assets unavailable",
+    detail:
+      "No accepted owner asset registry is available. Manual ledger and tournament payout entry remain disabled; missing assets and transactions are not treated as zeros.",
   },
   manual_ledger_ready: {
     label: "Manual ledger ready",

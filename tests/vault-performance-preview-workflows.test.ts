@@ -14,6 +14,15 @@ describe("Vault Performance Preview workflows", () => {
     expect(workflow).toContain(
       "hosted-preview-connected-vault-performance-commissioning.test.tsx",
     );
+    for (const identity of [
+      "fancy-bar-26534950",
+      "br-floral-haze-a7bvs9lu",
+      "ep-misty-paper-a796pgn0",
+      "neondb",
+    ]) {
+      expect(workflow).toContain(identity);
+    }
+    expect(workflow).toContain('branch_id}" != "${APPROVED_NEON_BRANCH_ID}');
     expect(workflow).not.toMatch(/VERCEL|production/iu);
   });
 
@@ -31,6 +40,15 @@ describe("Vault Performance Preview workflows", () => {
     expect(workflow).toContain("--role-name neondb_owner");
     expect(workflow).toContain("rollback() {");
     expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=");
+    for (const identity of [
+      "fancy-bar-26534950",
+      "br-floral-haze-a7bvs9lu",
+      "ep-misty-paper-a796pgn0",
+      "neondb",
+    ]) {
+      expect(workflow).toContain(identity);
+    }
+    expect(workflow).toContain('branch_id}" != "${APPROVED_NEON_BRANCH_ID}');
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toMatch(
       /echo .*"\$\{(?:DATABASE_URL|NEON_API_KEY|NEON_PROJECT_ID)\}"|printenv|env\s*$/mu,

@@ -39,6 +39,19 @@ describe("Vault Performance economic forms", () => {
     expect(identityHtml).toContain("disabled");
   });
 
+  it("keeps writes disabled when the accepted asset registry is unavailable", () => {
+    const html = renderToStaticMarkup(
+      <VaultPerformanceEconomicForms status="asset_registry_unavailable" />,
+    );
+
+    expect(html).toContain("Accepted assets unavailable");
+    expect(html).toContain(
+      "missing assets and transactions are not treated as zeros",
+    );
+    expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(2);
+    expect(html.match(/<button[^>]*disabled/g)).toHaveLength(2);
+  });
+
   it("enables only the connected manual ledger boundary", () => {
     const html = renderToStaticMarkup(
       <VaultPerformanceEconomicForms status="manual_ledger_ready" />,

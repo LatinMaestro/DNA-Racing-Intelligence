@@ -3,6 +3,7 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonManualLedgerPersistenceFromEnvironment } from "@/lib/neon-manual-ledger-write-repository";
 import { neonManualTournamentPayoutPersistenceFromEnvironment } from "@/lib/neon-manual-tournament-payout-write-repository";
 import { neonVaultPerformanceSummaryRepositoryFromEnvironment } from "@/lib/neon-vault-performance-summary-repository";
+import { resolveVaultPerformanceEconomicWriteStatus } from "@/lib/vault-performance-economic-write-status-service";
 import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
 export const dynamic = "force-dynamic";
@@ -36,21 +37,18 @@ export default async function VaultPerformancePage() {
       databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
       runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
     });
+  const economicWriteStatus = await resolveVaultPerformanceEconomicWriteStatus({
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    manualLedgerPersistence,
+    tournamentPayoutPersistence,
+  });
 
   return (
     <VaultPerformanceWorkspace
       acceptedEvidence={state.acceptedEvidence}
       connectionStatus={state.connectionStatus}
-      economicWriteStatus={
-        authenticatedOwnerId === null ||
-        authenticatedOwnerId !== (process.env.AUTHORIZED_CLERK_USER_ID ?? null)
-          ? "identity_not_connected"
-          : manualLedgerPersistence.status === "ready"
-            ? tournamentPayoutPersistence.status === "ready"
-              ? "tournament_payout_ready"
-              : "manual_ledger_ready"
-            : "persistence_not_configured"
-      }
+      economicWriteStatus={economicWriteStatus}
       summary={state.summary}
     />
   );

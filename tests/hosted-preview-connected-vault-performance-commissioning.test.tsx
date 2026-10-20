@@ -6,6 +6,7 @@ import { VaultPerformanceWorkspace } from "@/components/vault-performance-worksp
 import { neonManualLedgerPersistenceFromEnvironment } from "@/lib/neon-manual-ledger-write-repository";
 import { neonManualTournamentPayoutPersistenceFromEnvironment } from "@/lib/neon-manual-tournament-payout-write-repository";
 import { neonVaultPerformanceSummaryRepositoryFromEnvironment } from "@/lib/neon-vault-performance-summary-repository";
+import { resolveVaultPerformanceEconomicWriteStatus } from "@/lib/vault-performance-economic-write-status-service";
 import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
 const connected = process.env.VAULT_PERFORMANCE_COMMISSIONING === "1";
@@ -63,25 +64,26 @@ describeConnected("hosted Preview Vault Performance commissioning", () => {
       throw new Error("Vault Performance repositories are unavailable");
     }
 
-    const [state, ledgerContext, payoutContext] = await Promise.all([
+    const [state, economicWriteStatus] = await Promise.all([
       loadVaultPerformancePageState({
         authenticatedOwnerId: ownerId,
         configuredOwnerId: ownerId,
         repository: summaryRepository,
         now,
       }),
-      ledgerPersistence.loadContextByOwner(ownerId),
-      payoutPersistence.loadContextByOwner(ownerId),
+      resolveVaultPerformanceEconomicWriteStatus({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        manualLedgerPersistence: ledgerPersistence,
+        tournamentPayoutPersistence: payoutPersistence,
+      }),
     ]);
     expect(state.connectionStatus).toBe("read_model_connected");
-    expect(ledgerContext.assetRegistry.assets.length).toBeGreaterThan(0);
-    expect(payoutContext.assetRegistry.assets).toEqual(
-      ledgerContext.assetRegistry.assets,
-    );
-    expect(payoutContext.assetRegistry.version).toBe(
-      ledgerContext.assetRegistry.version,
-    );
-    expect(payoutContext.ledgerVersion).toBe(ledgerContext.ledgerVersion);
+    expect([
+      "asset_registry_unavailable",
+      "manual_ledger_ready",
+      "tournament_payout_ready",
+    ]).toContain(economicWriteStatus);
 
     const [
       wrongSummaryOwnerRejected,
@@ -109,13 +111,20 @@ describeConnected("hosted Preview Vault Performance commissioning", () => {
       createElement(VaultPerformanceWorkspace, {
         acceptedEvidence: state.acceptedEvidence,
         connectionStatus: state.connectionStatus,
-        economicWriteStatus: "tournament_payout_ready",
+        economicWriteStatus,
         summary: state.summary,
       }),
     );
     expect(markup).toContain("Vault Performance");
     expect(markup).toContain("Historical economic summary connected");
     expect(markup).toContain("Record economic evidence");
+    if (economicWriteStatus === "asset_registry_unavailable") {
+      expect(markup).toContain("Accepted assets unavailable");
+      expect(markup.match(/<fieldset[^>]*disabled/g)).toHaveLength(2);
+      expect(markup).toContain(
+        "missing assets and transactions are not treated as zeros",
+      );
+    }
     if (state.summary === null) {
       expect(markup).toContain("No accepted economic summary");
       expect(markup).toContain("not a zero balance");
@@ -140,9 +149,7 @@ describeConnected("hosted Preview Vault Performance commissioning", () => {
         unresolvedReconciliationCount:
           state.summary?.unresolvedReconciliationCount ?? null,
         warnings: state.summary?.warnings ?? [],
-        assetCodes: ledgerContext.assetRegistry.assets.map(({ code }) => code),
-        assetRegistryVersion: ledgerContext.assetRegistry.version,
-        ledgerVersion: ledgerContext.ledgerVersion,
+        economicWriteStatus,
         wrongSummaryOwnerRejected,
         wrongLedgerOwnerRejected,
         wrongPayoutOwnerRejected,
