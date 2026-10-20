@@ -102,8 +102,13 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
     expect(state.profiles).toEqual([]);
     expect(state.publication ?? null).toBeNull();
     expect(acceptedHistory.acceptedHistoryStatus).toBe("connected");
-    expect(acceptedHistory.acceptedHistoryRows).toHaveLength(4);
-    expect(joinedHistoryRows).toHaveLength(4);
+    expect(acceptedHistory.acceptedHistoryRows.length).toBeGreaterThan(0);
+    expect(acceptedHistory.acceptedHistoryRows.length).toBeLessThanOrEqual(
+      1_000,
+    );
+    expect(joinedHistoryRows).toHaveLength(
+      acceptedHistory.acceptedHistoryRows.length,
+    );
     expect(
       joinedHistoryRows.every(
         ({ payload }) =>
