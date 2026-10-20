@@ -136,7 +136,8 @@ jobs:
           set -euo pipefail
           psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
             database/migrations/0130_lifecycle_ranking_evidence_snapshot.up.sql
-          if ! psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+          if ! psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 --file \
             database/migrations/0130_lifecycle_ranking_evidence_snapshot.smoke.sql; then
             psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
               database/migrations/0130_lifecycle_ranking_evidence_snapshot.down.sql
