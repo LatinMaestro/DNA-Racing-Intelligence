@@ -1,0 +1,200 @@
+name: Vault Performance Preview migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit containing the reviewed migrations
+        required: true
+        type: string
+      apply_private_preview_migrations:
+        description: Confirm reviewed Vault Performance migrations on private Preview
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vault-performance-preview-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migrations:
+    name: Apply reviewed Vault Performance migrations to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main and explicit private Preview migration arm
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]] ||
+             [[ ! "${EXPECTED_MAIN_SHA}" =~ ^[a-f0-9]{40}$ ]] ||
+             [[ "${EXPECTED_MAIN_SHA}" != "${GITHUB_SHA}" ]] ||
+             [[ "${{ inputs.apply_private_preview_migrations }}" != "true" ]]; then
+            echo "Vault Performance private Preview migration authority is invalid."
+            exit 1
+          fi
+      - name: Checkout exact accepted head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+          fetch-depth: 0
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
+      - name: Validate private Preview database binding without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          for (const name of ["DATABASE_URL", "NEON_API_KEY", "NEON_PROJECT_ID"]) {
+            const value = process.env[name] ?? "";
+            if (value === "" || value.trim() !== value || value.length > 4096) {
+              throw new Error("Private Preview migration configuration is incomplete.");
+            }
+          }
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (!/^[a-zA-Z0-9_]{1,63}$/.test(database) ||
+              !/^ep-[a-z0-9-]{3,128}$/.test(endpoint ?? "")) {
+            throw new Error("Preview runtime database identity is invalid.");
+          }
+          process.stdout.write(database + "\t" + endpoint);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "${runtime_identity}"
+          export DNA_RUNTIME_ENDPOINT_ID="${endpoint_id}"
+          branch_id="$(npx --yes neon@6.0.0 api \
+            "/projects/${NEON_PROJECT_ID}/endpoints" \
+            --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  !/^[a-z0-9-]{3,128}$/.test(matches[0]?.branch_id ?? "")) {
+                throw new Error("Preview runtime branch is unavailable.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}" \
+            --project-id "${NEON_PROJECT_ID}" --role-name neondb_owner \
+            --database-name "${database_name}" --no-color 2>/dev/null)"
+          if [[ ! "${migration_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "Short-lived Preview migration binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${migration_url}"
+          echo "DNA_MIGRATION_DATABASE_URL=${migration_url}" >> "${GITHUB_ENV}"
+      - name: Fail closed unless the complete migration set is absent
+        shell: bash
+        run: |
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          BEGIN
+            IF to_regclass('dna.vault_performance_summary_snapshot') IS NOT NULL
+              OR to_regclass('dna.vault_performance_summary_source_state') IS NOT NULL
+              OR to_regclass('dna.manual_economic_entry') IS NOT NULL
+              OR to_regclass('dna.manual_tournament_payout_state') IS NOT NULL
+            THEN
+              RAISE EXCEPTION 'Vault Performance Preview migration set is not absent';
+            END IF;
+          END
+          $contract$;
+          SQL
+      - name: Apply and smoke reviewed Vault Performance migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          applied=0
+          rollback() {
+            set +e
+            if (( applied >= 4 )); then
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.down.sql
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.removal.sql
+            fi
+            if (( applied >= 3 )); then
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.down.sql
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.removal.sql
+            fi
+            if (( applied >= 2 )); then
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.down.sql
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.removal.sql
+            fi
+            if (( applied >= 1 )); then
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.down.sql
+              psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.removal.sql
+            fi
+          }
+          trap 'rollback' ERR
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0125_vault_performance_summary_snapshot.up.sql
+          applied=1
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0126_vault_performance_summary_publication.up.sql
+          applied=2
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0132_manual_economic_ledger_persistence.up.sql
+          applied=3
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file database/migrations/0133_manual_tournament_payout_persistence.up.sql
+          applied=4
+          psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $smoke$
+          DECLARE v_table regclass; v_function regprocedure;
+          BEGIN
+            FOREACH v_table IN ARRAY ARRAY[
+              'dna.vault_performance_summary_snapshot'::regclass,
+              'dna.vault_performance_summary_source_state'::regclass,
+              'dna.manual_economic_entry'::regclass,
+              'dna.manual_economic_reversal'::regclass,
+              'dna.manual_tournament_payout_state'::regclass
+            ] LOOP
+              IF NOT (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid=v_table)
+                OR has_table_privilege('dna_app_runtime',v_table,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+              THEN RAISE EXCEPTION 'Vault Performance table boundary failed'; END IF;
+            END LOOP;
+            FOREACH v_function IN ARRAY ARRAY[
+              'dna.read_vault_performance_summary_snapshot(uuid,text)'::regprocedure,
+              'dna.read_vault_performance_source_identity(uuid)'::regprocedure,
+              'dna.read_manual_economic_write_context(uuid)'::regprocedure,
+              'dna.read_manual_tournament_payout_write_context(uuid)'::regprocedure
+            ] LOOP
+              IF NOT has_function_privilege('dna_app_runtime',v_function,'EXECUTE')
+                OR has_function_privilege('PUBLIC',v_function,'EXECUTE')
+              THEN RAISE EXCEPTION 'Vault Performance function boundary failed'; END IF;
+            END LOOP;
+          END
+          $smoke$;
+          SQL
+          trap - ERR
+      - name: Clear short-lived Preview migration binding
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "${GITHUB_ENV}"
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "${EXPECTED_MAIN_SHA}"
+          test "$(git rev-parse origin/main)" = "${EXPECTED_MAIN_SHA}"
