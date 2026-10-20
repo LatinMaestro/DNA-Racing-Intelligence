@@ -37,7 +37,7 @@ function isolation(overrides: Record<string, unknown> = {}) {
 function payload() {
   return {
     sourceType: "joined_core_race_history_result",
-    naturalKey: "core-result:101:race-1",
+    naturalKey: "core-result:101:bike:race-1",
     resultEvidenceSha256: "b".repeat(64),
     raceDocumentEvidenceSha256: "c".repeat(64),
     sourceCoreId: "101",
@@ -272,6 +272,18 @@ function selectedRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function selectedJoinedRow(overrides: Record<string, unknown> = {}) {
+  const value = payload();
+  return {
+    generation_id: generationId,
+    ordinal: 0,
+    natural_key: value.naturalKey,
+    row_sha256: dnaOpenLabRawEvidenceSha256(value),
+    payload: value,
+    ...overrides,
+  };
+}
+
 function selectedHarness(rows: readonly unknown[]) {
   return harness([
     [{ owner_scope: databaseOwnerId }],
@@ -304,6 +316,26 @@ describe("generation-pinned selected Core result reads", () => {
     expect(test.events).toContain("SET LOCAL statement_timeout = '5s'");
     expect(test.events.at(-1)).toBe("COMMIT");
     expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("accepts the joined result shape retained by an existing accepted generation", async () => {
+    const test = selectedHarness([selectedJoinedRow()]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).resolves.toMatchObject({
+      status: "ready",
+      rows: [
+        {
+          naturalKey: "core-result:101:bike:race-1",
+          payload: {
+            sourceType: "joined_core_race_history_result",
+            mode: "bike",
+            distanceMetres: 1_200,
+            gateCount: 12,
+          },
+        },
+      ],
+    });
   });
 
   it.each([
@@ -377,14 +409,30 @@ describe("generation-pinned selected Core result reads", () => {
     { ordinal: 1 },
     { row_sha256: "f".repeat(64) },
     { natural_key: "other-result" },
-    { payload: payload(), row_sha256: dnaOpenLabRawEvidenceSha256(payload()) },
-  ])("rejects drifted or legacy row evidence", async (invalid) => {
+  ])("rejects drifted row evidence", async (invalid) => {
     const test = selectedHarness([selectedRow(invalid)]);
     await expect(
       test.repository.readSelectedCoreRows(ownerId, selection),
     ).rejects.toThrow("row integrity");
     expect(test.events.at(-1)).toBe("ROLLBACK");
     expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a joined result with a natural key that omits its mode", async () => {
+    const value = {
+      ...payload(),
+      naturalKey: "core-result:101:race-1",
+    };
+    const test = selectedHarness([
+      selectedJoinedRow({
+        payload: value,
+        natural_key: value.naturalKey,
+        row_sha256: dnaOpenLabRawEvidenceSha256(value),
+      }),
+    ]);
+    await expect(
+      test.repository.readSelectedCoreRows(ownerId, selection),
+    ).rejects.toThrow("row integrity");
   });
 
   it("rejects a correctly hashed row belonging to an unrequested Core", async () => {
