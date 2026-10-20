@@ -206,15 +206,23 @@ export async function loadReadinessWorkspacePageState(
         "Readiness assessment SHA does not match the deployed exact head.",
       );
     }
+    // The accepted snapshot records freshness at assessment time. Verify
+    // that immutable claim as-of, then display its current age separately.
+    // An otherwise valid accepted snapshot must not become corrupt merely
+    // because calendar time has advanced since publication.
+    const assessedFreshness = deriveReadinessFreshness(
+      evidenceCurrentThrough,
+      new Date(assessedAt),
+    );
+    if (assessment.evidenceFreshness !== assessedFreshness) {
+      throw new Error(
+        "Stored readiness freshness does not match assessed-as-of freshness.",
+      );
+    }
     const evidenceFreshness = deriveReadinessFreshness(
       evidenceCurrentThrough,
       input.now,
     );
-    if (assessment.evidenceFreshness !== evidenceFreshness) {
-      throw new Error(
-        "Stored readiness freshness does not match server-derived freshness.",
-      );
-    }
     const readiness = assessPrivateProductionReadiness({
       ...assessment,
       exactHeadSha: expectedHeadSha,
