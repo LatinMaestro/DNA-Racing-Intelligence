@@ -18,6 +18,7 @@ export type ImportProgressBatch = Readonly<{
   importCompletedAt: string | null;
   dataCurrentThrough: string | null;
   aggregateRefreshedAt: string | null;
+  failedAggregateRefreshId?: string | null;
   sourceRows: number;
   acceptedRows: number;
   rejectedRows: number;
@@ -59,6 +60,7 @@ export type ImportProgressProjection = Readonly<{
   aggregateRefreshedAt: string | null;
   rollbackAvailable: boolean;
   aggregateRefreshPending: boolean;
+  failedAggregateRefreshId: string | null;
 }>;
 
 function assertNonNegativeSafeInteger(value: number, field: string): void {
@@ -226,6 +228,7 @@ export function projectImportProgress(
       batch.isActive &&
       batch.status === "accepted" &&
       batch.aggregateRefreshedAt === null,
+    failedAggregateRefreshId: batch.failedAggregateRefreshId ?? null,
   };
 }
 

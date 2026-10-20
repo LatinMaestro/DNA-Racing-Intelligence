@@ -139,6 +139,9 @@ const listImportBatchesSql = `
         'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
       )
     END AS aggregate_refreshed_at,
+    CASE WHEN version.is_active AND refresh.status = 'failed'
+      THEN refresh.id::text ELSE NULL END
+      AS failed_aggregate_refresh_id,
     batch.source_rows,
     batch.accepted_rows,
     batch.rejected_rows,
@@ -170,6 +173,14 @@ const listImportBatchesSql = `
   LEFT JOIN dna.dataset_version version
     ON version.owner_id = batch.owner_id
     AND version.import_batch_id = batch.id
+  LEFT JOIN LATERAL (
+    SELECT job.id, job.status
+    FROM dna.aggregate_refresh_job job
+    WHERE job.owner_id = version.owner_id
+      AND job.dataset_version_id = version.id
+    ORDER BY job.created_at DESC, job.id DESC
+    LIMIT 1
+  ) refresh ON true
   LEFT JOIN identity_counts
     ON identity_counts.import_batch_id = batch.id
   LEFT JOIN issue_counts
@@ -322,6 +333,14 @@ function importBatch(value: unknown): PrivateImportBatch {
       row.aggregate_refreshed_at,
       "aggregate_refreshed_at",
     ),
+    failedAggregateRefreshId:
+      row.failed_aggregate_refresh_id === null ||
+      row.failed_aggregate_refresh_id === undefined
+        ? null
+        : requiredString(
+            row.failed_aggregate_refresh_id,
+            "failed_aggregate_refresh_id",
+          ),
     sourceRows: nonNegativeInteger(row.source_rows, "source_rows"),
     acceptedRows: nonNegativeInteger(row.accepted_rows, "accepted_rows"),
     rejectedRows: nonNegativeInteger(row.rejected_rows, "rejected_rows"),
