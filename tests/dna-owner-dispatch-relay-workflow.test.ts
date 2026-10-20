@@ -241,6 +241,11 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("lifecycle-private-preview-verification.yml");
     expect(workflow).toContain('"lifecycle-verification"');
     expect(workflow).toContain("Lifecycle verification authority is invalid.");
+    expect(workflow).toContain("lifecycle-ranking-preview-migration.yml");
+    expect(workflow).toContain('"lifecycle-ranking-migration"');
+    expect(workflow).toContain(
+      "Lifecycle ranking migration authority is invalid.",
+    );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
