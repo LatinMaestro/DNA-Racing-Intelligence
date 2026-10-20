@@ -7,6 +7,7 @@ import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-own
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { createNeonProLeagueRosterVersionRepository } from "@/lib/neon-pro-league-roster-version-repository";
+import { createNeonProLeagueLineupRepository } from "@/lib/neon-pro-league-lineup-repository";
 import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import {
   loadProLeaguePlanPersistenceState,
@@ -39,6 +40,16 @@ export function createHostedProLeagueRosterWriteRepository(
     throw new Error("Pro League roster persistence is not configured.");
   }
   return createNeonProLeagueRosterVersionRepository(configuration);
+}
+
+export function createHostedProLeagueLineupWriteRepository(
+  environment: HostedProLeagueEnvironment,
+) {
+  const configuration = persistenceConfiguration(environment);
+  if (configuration === null) {
+    throw new Error("Pro League lineup persistence is not configured.");
+  }
+  return createNeonProLeagueLineupRepository(configuration);
 }
 
 export async function loadHostedProLeagueCommissioningState(
@@ -138,14 +149,19 @@ export async function loadHostedProLeaguePlanPersistenceState(
   }>,
 ): Promise<ProLeaguePlanPersistenceState> {
   const configuration = persistenceConfiguration(input.environment);
-  const repository =
+  const rosterRepository =
     configuration === null
       ? null
       : createNeonProLeagueRosterVersionRepository(configuration);
+  const lineupRepository =
+    configuration === null
+      ? null
+      : createNeonProLeagueLineupRepository(configuration);
   return loadProLeaguePlanPersistenceState({
     authenticatedOwnerId: input.authenticatedOwnerId,
     configuredOwnerId: input.environment.configuredOwnerId,
     commissioning: input.commissioning,
-    rosterRepository: repository,
+    rosterRepository,
+    lineupRepository,
   });
 }
