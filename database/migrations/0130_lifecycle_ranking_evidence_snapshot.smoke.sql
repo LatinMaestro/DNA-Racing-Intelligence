@@ -98,6 +98,39 @@ BEGIN
 END
 $checks$;
 
+\if :{?skip_runtime_role}
+SET LOCAL app.owner_id = '91300000-0000-4000-8000-000000000001';
+DO $managed_owner$
+BEGIN
+  IF (SELECT count(*) FROM dna.read_lifecycle_ranking_evidence_snapshot(dna.current_owner_id()))<>1 THEN
+    RAISE EXCEPTION 'owner Lifecycle evidence read failed';
+  END IF;
+  BEGIN
+    PERFORM * FROM dna.read_lifecycle_ranking_evidence_snapshot('91300000-0000-4000-8000-000000000002');
+    RAISE EXCEPTION 'cross-owner Lifecycle read accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM='cross-owner Lifecycle read accepted' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM * FROM dna.read_lifecycle_ranking_evidence_snapshot(NULL);
+    RAISE EXCEPTION 'null owner Lifecycle read accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM='null owner Lifecycle read accepted' THEN RAISE; END IF;
+  END;
+END
+$managed_owner$;
+SET LOCAL app.owner_id = '';
+DO $managed_missing_scope$
+BEGIN
+  BEGIN
+    PERFORM * FROM dna.read_lifecycle_ranking_evidence_snapshot('91300000-0000-4000-8000-000000000001');
+    RAISE EXCEPTION 'unscoped Lifecycle read accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM='unscoped Lifecycle read accepted' THEN RAISE; END IF;
+  END;
+END
+$managed_missing_scope$;
+\else
 SET LOCAL ROLE dna_app_runtime;
 SET LOCAL app.owner_id = '91300000-0000-4000-8000-000000000001';
 DO $runtime$
@@ -159,4 +192,5 @@ BEGIN
 END
 $rls$;
 RESET ROLE;
+\endif
 ROLLBACK;
