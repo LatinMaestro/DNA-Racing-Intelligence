@@ -953,6 +953,23 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "open-race-migrations":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "apply_private_preview_migrations",
+              ]);
+              if (payload.apply_private_preview_migrations !== true) {
+                throw new Error(
+                  "Open Race Preview migration authority is invalid.",
+                );
+              }
+              workflow = "open-race-preview-migrations.yml";
+              inputs = {
+                exact_main_sha: payload.expected_main_sha,
+                apply_private_preview_migrations: true,
+              };
+              break;
             case "lifecycle-ranking-migration":
               exactKeys([
                 "kind",

@@ -1,0 +1,233 @@
+name: Open Race Preview migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_main_sha:
+        description: Exact current main commit containing the reviewed migrations
+        required: true
+        type: string
+      apply_private_preview_migrations:
+        description: Confirm reviewed Open Race migration apply to private Preview
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: open-race-preview-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-reviewed-preview-migrations:
+    name: Apply reviewed Open Race migrations to Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EXPECTED_MAIN_SHA: ${{ inputs.exact_main_sha }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - name: Require exact main dispatch and explicit Preview migration arm
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$EXPECTED_MAIN_SHA" == "$GITHUB_SHA" ]]
+          [[ "${{ inputs.apply_private_preview_migrations }}" == "true" ]]
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_main_sha }}
+      - name: Prove dispatch head is current main
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_MAIN_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$EXPECTED_MAIN_SHA" ]]
+      - name: Validate approved private Preview database binding without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const required = ["DATABASE_URL", "NEON_API_KEY", "NEON_PROJECT_ID"];
+          const invalid = required.filter((name) => {
+            const value = process.env[name];
+            return !value || value.trim() !== value || value.length > 4096;
+          });
+          if (invalid.length > 0) {
+            throw new Error(
+              "Missing or invalid private Preview migration settings: " +
+                invalid.join(", "),
+            );
+          }
+          if (process.env.NEON_PROJECT_ID !== "fancy-bar-26534950") {
+            throw new Error("The private Preview Neon project is not approved.");
+          }
+          const parsed = new URL(process.env.DATABASE_URL);
+          const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          if (database !== "neondb" || endpoint !== "ep-misty-paper-a796pgn0") {
+            throw new Error("The private Preview database target is not approved.");
+          }
+          NODE
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Acquire masked short-lived Preview migration binding
+        shell: bash
+        run: |
+          runtime_identity="$(node --input-type=module <<'NODE'
+          const parsed = new URL(process.env.DATABASE_URL);
+          const name = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+          const endpoint = parsed.hostname.split(".")[0]?.replace(/-pooler$/, "");
+          process.stdout.write(`${name}\t${endpoint}`);
+          NODE
+          )"
+          IFS=$'\t' read -r database_name endpoint_id <<< "$runtime_identity"
+          export DNA_RUNTIME_ENDPOINT_ID="$endpoint_id"
+          branch_id="$(npx --yes neon@6.0.0 api \
+            "/projects/${NEON_PROJECT_ID}/endpoints" \
+            --output json --no-color 2>/dev/null | node --input-type=module -e '
+              let body = "";
+              for await (const chunk of process.stdin) body += chunk;
+              const parsed = JSON.parse(body);
+              const matches = (parsed.endpoints ?? []).filter(
+                (endpoint) => endpoint?.id === process.env.DNA_RUNTIME_ENDPOINT_ID,
+              );
+              if (matches.length !== 1 ||
+                  matches[0]?.branch_id !== "br-floral-haze-a7bvs9lu") {
+                throw new Error("The runtime Preview branch is not approved.");
+              }
+              process.stdout.write(matches[0].branch_id);
+            ')"
+          migration_url="$(npx --yes neon@6.0.0 connection-string "$branch_id" \
+            --project-id "$NEON_PROJECT_ID" \
+            --role-name neondb_owner \
+            --database-name "$database_name" \
+            --no-color 2>/dev/null)"
+          [[ "$migration_url" =~ ^postgres(ql)?://[^[:space:]]+$ ]]
+          echo "::add-mask::$migration_url"
+          echo "DNA_MIGRATION_DATABASE_URL=$migration_url" >> "$GITHUB_ENV"
+      - name: Fail closed unless the Open Race migration chain is wholly absent
+        shell: bash
+        run: |
+          psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          BEGIN
+            IF to_regclass('dna.open_race_workspace_session_snapshot') IS NOT NULL
+              OR to_regprocedure(
+                'dna.read_open_race_workspace_sessions(uuid,integer)'
+              ) IS NOT NULL
+              OR to_regprocedure(
+                'dna.publish_open_race_field_lock(uuid,text,text,text,timestamptz,text,text)'
+              ) IS NOT NULL
+              OR to_regprocedure(
+                'dna.publish_open_race_observation_comparison(uuid,text,text,text,timestamptz,text,text)'
+              ) IS NOT NULL
+              OR to_regclass('dna.open_race_prediction_snapshot') IS NOT NULL
+              OR to_regprocedure(
+                'dna.read_open_race_prediction_snapshots(uuid,integer)'
+              ) IS NOT NULL
+              OR to_regclass('dna.open_race_prediction_reconciliation') IS NOT NULL
+              OR to_regprocedure(
+                'dna.read_open_race_prediction_reconciliations(uuid,integer)'
+              ) IS NOT NULL
+            THEN
+              RAISE EXCEPTION 'Open Race migration chain is not wholly absent';
+            END IF;
+          END
+          $contract$;
+          SQL
+      - name: Apply and prove reviewed Open Race migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          rollback() {
+            if [[ "$(psql "$DNA_MIGRATION_DATABASE_URL" -Atc \
+              "SELECT to_regclass('dna.open_race_prediction_reconciliation') IS NOT NULL")" == "t" ]]; then
+              psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+                database/migrations/0140_open_race_prediction_reconciliation.down.sql
+            fi
+            if [[ "$(psql "$DNA_MIGRATION_DATABASE_URL" -Atc \
+              "SELECT to_regclass('dna.open_race_prediction_snapshot') IS NOT NULL")" == "t" ]]; then
+              psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+                database/migrations/0139_open_race_prediction_snapshot.down.sql
+            fi
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0135_open_race_observation_comparison_publication.down.sql
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0134_open_race_field_lock_publication.down.sql
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              database/migrations/0129_open_race_workspace_session_snapshot.down.sql
+            for removal in 0140 0139 0135 0134 0129; do
+              removal_file="$(find database/migrations -maxdepth 1 -name \
+                "${removal}_*.removal.sql" -print -quit)"
+              psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+                "$removal_file"
+            done
+          }
+          trap rollback ERR
+          for migration in 0129 0134 0135 0139 0140; do
+            migration_file="$(find database/migrations -maxdepth 1 -name \
+              "${migration}_*.up.sql" -print -quit)"
+            psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
+              "$migration_file"
+          done
+          psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          DO $contract$
+          DECLARE
+            table_name text;
+            function_name text;
+          BEGIN
+            FOREACH table_name IN ARRAY ARRAY[
+              'dna.open_race_workspace_session_snapshot',
+              'dna.open_race_prediction_snapshot',
+              'dna.open_race_prediction_reconciliation'
+            ] LOOP
+              IF NOT EXISTS (
+                SELECT 1 FROM pg_catalog.pg_class
+                WHERE oid = table_name::regclass
+                  AND relrowsecurity AND relforcerowsecurity
+              ) OR has_table_privilege(
+                'dna_app_runtime', table_name,
+                'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
+              ) THEN
+                RAISE EXCEPTION 'Open Race table contract failed';
+              END IF;
+            END LOOP;
+            FOREACH function_name IN ARRAY ARRAY[
+              'dna.read_open_race_workspace_sessions(uuid,integer)',
+              'dna.publish_open_race_field_lock(uuid,text,text,text,timestamptz,text,text)',
+              'dna.publish_open_race_observation_comparison(uuid,text,text,text,timestamptz,text,text)',
+              'dna.read_open_race_prediction_snapshots(uuid,integer)',
+              'dna.publish_open_race_prediction_snapshot(uuid,text,text,text,text)',
+              'dna.read_open_race_prediction_reconciliations(uuid,integer)',
+              'dna.publish_open_race_prediction_reconciliation(uuid,text,text,text)'
+            ] LOOP
+              IF NOT has_function_privilege(
+                'dna_app_runtime', function_name, 'EXECUTE'
+              ) OR has_function_privilege('PUBLIC', function_name, 'EXECUTE') THEN
+                RAISE EXCEPTION 'Open Race function contract failed';
+              END IF;
+            END LOOP;
+          END
+          $contract$;
+          SQL
+          trap - ERR
+      - name: Clear short-lived Preview migration binding
+        if: always()
+        shell: bash
+        run: echo "DNA_MIGRATION_DATABASE_URL=" >> "$GITHUB_ENV"
+      - name: Prove exact main remained unchanged
+        if: always()
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_MAIN_SHA" ]]
+          [[ "$(git rev-parse origin/main)" == "$EXPECTED_MAIN_SHA" ]]
