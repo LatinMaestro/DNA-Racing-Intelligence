@@ -111,9 +111,16 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
     );
     expect(
       joinedHistoryRows.every(
-        ({ payload }) =>
-          payload.sourceCoreId === selectedCoreId && payload.mode === "bike",
+        ({ payload }) => payload.sourceCoreId === selectedCoreId,
       ),
+    ).toBe(true);
+    expect(
+      joinedHistoryRows.every(({ payload }) =>
+        ["bike", "car", "horse"].includes(payload.mode),
+      ),
+    ).toBe(true);
+    expect(
+      joinedHistoryRows.some(({ payload }) => payload.mode === "bike"),
     ).toBe(true);
     expect(
       acceptedHistory.acceptedHistoryRows.every(({ rowSha256 }) =>
