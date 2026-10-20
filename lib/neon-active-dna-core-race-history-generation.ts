@@ -99,6 +99,10 @@ export type SelectedDnaCoreRaceHistoryReadRepository = Readonly<{
   >;
 }>;
 
+export type ActiveSelectedDnaCoreRaceHistoryReadRepository =
+  ActiveDnaCoreRaceHistoryGenerationReadRepository &
+    SelectedDnaCoreRaceHistoryReadRepository;
+
 function record(value: unknown, field: string): DbRow {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${field} must be a database record`);
@@ -350,8 +354,7 @@ export function createNeonActiveDnaCoreRaceHistoryGenerationReadRepository(input
   ownerId: string;
   runtimeRole: string;
   sessionFactory?: NeonImportPersistenceSessionFactory;
-}): ActiveDnaCoreRaceHistoryGenerationReadRepository &
-  SelectedDnaCoreRaceHistoryReadRepository {
+}): ActiveSelectedDnaCoreRaceHistoryReadRepository {
   const databaseUrl = input.databaseUrl.trim();
   if (databaseUrl === "") throw new Error("databaseUrl is required");
   const databaseOwnerId = uuid(input.databaseOwnerId, "databaseOwnerId");
@@ -491,16 +494,18 @@ export function createNeonActiveDnaCoreRaceHistoryGenerationReadRepository(input
           const naturalKey = text(row.natural_key, "naturalKey");
           const rowSha256 = sha256(row.row_sha256, "rowSha256");
           const ordinal = count(row.ordinal, "ordinal");
+          const expectedNaturalKey =
+            parsedPayload.sourceType === "joined_core_race_history_result"
+              ? `core-result:${parsedPayload.sourceCoreId}:${parsedPayload.mode}:${parsedPayload.sourceRaceId}`
+              : `core-result:${parsedPayload.sourceCoreId}:${parsedPayload.sourceRaceId}`;
           if (
             row.generation_id !== generationId ||
             ordinal <= previousOrdinal ||
             ordinal >= generation.observationCount ||
             seen.has(naturalKey) ||
-            parsedPayload.sourceType !== "core_race_history_outcome" ||
             !requestedCoreIds.includes(parsedPayload.sourceCoreId) ||
             parsedPayload.naturalKey !== naturalKey ||
-            naturalKey !==
-              `core-result:${parsedPayload.sourceCoreId}:${parsedPayload.sourceRaceId}` ||
+            naturalKey !== expectedNaturalKey ||
             dnaOpenLabRawEvidenceSha256(parsedPayload) !== rowSha256
           )
             throw new Error("Selected Core history row integrity is invalid");
@@ -560,4 +565,32 @@ export function createNeonActiveDnaCoreRaceHistoryGenerationReadRepository(input
       });
     },
   });
+}
+
+export function neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment(
+  environment: Readonly<{
+    databaseUrl?: string;
+    databaseOwnerId?: string;
+    ownerId?: string;
+    runtimeRole?: string;
+  }>,
+): ActiveSelectedDnaCoreRaceHistoryReadRepository | null {
+  if (
+    !environment.databaseUrl ||
+    !environment.databaseOwnerId ||
+    !environment.ownerId ||
+    !environment.runtimeRole
+  ) {
+    return null;
+  }
+  try {
+    return createNeonActiveDnaCoreRaceHistoryGenerationReadRepository({
+      databaseUrl: environment.databaseUrl,
+      databaseOwnerId: environment.databaseOwnerId,
+      ownerId: environment.ownerId,
+      runtimeRole: environment.runtimeRole,
+    });
+  } catch {
+    return null;
+  }
 }

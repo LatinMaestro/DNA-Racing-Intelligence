@@ -12,6 +12,10 @@ import type {
 } from "./owner-vault-catalogue-service";
 import { loadOwnerVaultCataloguePageState } from "./owner-vault-catalogue-service";
 import type { RaceArchiveCoreHistoryService } from "./race-archive-core-history-service";
+import type {
+  ActiveDnaCoreRaceHistoryGenerationRow,
+  ActiveSelectedDnaCoreRaceHistoryReadRepository,
+} from "./neon-active-dna-core-race-history-generation";
 
 export type SearchCorePageState = Readonly<{
   connectionStatus:
@@ -29,6 +33,20 @@ export type SearchCorePageState = Readonly<{
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
   performancePublication?: CorePerformancePublication | null;
+  acceptedHistoryStatus:
+    | "not_connected"
+    | "missing"
+    | "connected"
+    | "source_changed"
+    | "truncated"
+    | "unavailable";
+  acceptedHistoryGeneration: Readonly<{
+    generationId: string;
+    observationSetSha256: string;
+    publishedAt: string;
+    observationCount: number;
+  }> | null;
+  acceptedHistoryRows: readonly ActiveDnaCoreRaceHistoryGenerationRow[];
   archiveHistoryStatus:
     "not_connected" | "missing" | "connected" | "unavailable";
   archiveHistoryVersionCount: number;
@@ -102,6 +120,18 @@ const noArchiveHistory = Object.freeze({
   archiveHistoryRowCount: 0,
 });
 
+const noAcceptedHistory = Object.freeze({
+  acceptedHistoryStatus: "not_connected" as const,
+  acceptedHistoryGeneration: null,
+  acceptedHistoryRows: [] as readonly ActiveDnaCoreRaceHistoryGenerationRow[],
+});
+
+const unavailableAcceptedHistory = Object.freeze({
+  acceptedHistoryStatus: "unavailable" as const,
+  acceptedHistoryGeneration: null,
+  acceptedHistoryRows: [] as readonly ActiveDnaCoreRaceHistoryGenerationRow[],
+});
+
 const unavailableArchiveHistory = Object.freeze({
   archiveHistoryStatus: "unavailable" as const,
   archiveHistoryVersionCount: 0,
@@ -150,12 +180,77 @@ async function archiveHistory(input: {
   });
 }
 
+async function acceptedHistory(input: {
+  repository: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
+  ownerId: string | null;
+  sourceCoreId: string;
+}): Promise<
+  Pick<
+    SearchCorePageState,
+    | "acceptedHistoryStatus"
+    | "acceptedHistoryGeneration"
+    | "acceptedHistoryRows"
+  >
+> {
+  if (input.repository === null || input.ownerId === null)
+    return noAcceptedHistory;
+  try {
+    const generation = await input.repository.readActiveGeneration(
+      input.ownerId,
+    );
+    if (generation === null) {
+      return Object.freeze({
+        acceptedHistoryStatus: "missing" as const,
+        acceptedHistoryGeneration: null,
+        acceptedHistoryRows:
+          [] as readonly ActiveDnaCoreRaceHistoryGenerationRow[],
+      });
+    }
+    const selected = await input.repository.readSelectedCoreRows(
+      input.ownerId,
+      {
+        generationId: generation.generationId,
+        observationSetSha256: generation.observationSetSha256,
+        coreIds: [input.sourceCoreId],
+        maximumRows: 1_000,
+      },
+    );
+    const source = Object.freeze({
+      generationId: generation.generationId,
+      observationSetSha256: generation.observationSetSha256,
+      publishedAt: generation.publishedAt,
+      observationCount: generation.observationCount,
+    });
+    if (selected.status !== "ready") {
+      return Object.freeze({
+        acceptedHistoryStatus: selected.status,
+        acceptedHistoryGeneration: source,
+        acceptedHistoryRows:
+          [] as readonly ActiveDnaCoreRaceHistoryGenerationRow[],
+      });
+    }
+    return Object.freeze({
+      acceptedHistoryStatus:
+        selected.rows.length === 0
+          ? ("missing" as const)
+          : ("connected" as const),
+      acceptedHistoryGeneration: source,
+      acceptedHistoryRows: selected.rows,
+    });
+  } catch {
+    // Do not substitute stale or unrelated history when an owner-scoped read
+    // cannot be verified against its active accepted generation.
+    return unavailableAcceptedHistory;
+  }
+}
+
 export async function loadSearchCorePageState(
   input: Readonly<{
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: OwnerVaultCatalogueRepository;
     performanceRepository: CorePerformanceProfileRepository;
+    acceptedHistoryRepository?: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
     archiveHistoryService?: RaceArchiveCoreHistoryService | null;
     now: Date;
     query?: unknown;
@@ -173,6 +268,7 @@ export async function loadSearchCorePageState(
       results: [],
       selectedCore: null,
       ...noPerformance,
+      ...noAcceptedHistory,
       ...noArchiveHistory,
     };
   }
@@ -183,6 +279,7 @@ export async function loadSearchCorePageState(
       results: [],
       selectedCore: null,
       ...noPerformance,
+      ...noAcceptedHistory,
       ...noArchiveHistory,
     };
   }
@@ -208,6 +305,7 @@ export async function loadSearchCorePageState(
       results: [],
       selectedCore: null,
       ...noPerformance,
+      ...noAcceptedHistory,
       ...noArchiveHistory,
     };
   }
@@ -230,6 +328,7 @@ export async function loadSearchCorePageState(
           results: [],
           selectedCore: null,
           ...noPerformance,
+          ...noAcceptedHistory,
           ...noArchiveHistory,
         };
       }
@@ -246,15 +345,23 @@ export async function loadSearchCorePageState(
       selectedCore,
       ...catalogueAuthority,
       ...noPerformance,
+      ...noAcceptedHistory,
       ...noArchiveHistory,
     };
   }
 
-  const archived = await archiveHistory({
-    service: input.archiveHistoryService ?? null,
-    ownerId: input.authenticatedOwnerId,
-    sourceCoreId: selectedCore.sourceCoreId,
-  });
+  const [archived, accepted] = await Promise.all([
+    archiveHistory({
+      service: input.archiveHistoryService ?? null,
+      ownerId: input.authenticatedOwnerId,
+      sourceCoreId: selectedCore.sourceCoreId,
+    }),
+    acceptedHistory({
+      repository: input.acceptedHistoryRepository ?? null,
+      ownerId: input.authenticatedOwnerId,
+      sourceCoreId: selectedCore.sourceCoreId,
+    }),
+  ]);
 
   if (input.performanceRepository.status !== "ready") {
     return {
@@ -264,6 +371,7 @@ export async function loadSearchCorePageState(
       selectedCore,
       ...catalogueAuthority,
       ...noPerformance,
+      ...accepted,
       ...archived,
     };
   }
@@ -302,6 +410,7 @@ export async function loadSearchCorePageState(
     ...(performance.publication
       ? { performancePublication: performance.publication }
       : {}),
+    ...accepted,
     ...archived,
   };
 }

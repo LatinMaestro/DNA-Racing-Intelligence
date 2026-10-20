@@ -228,6 +228,153 @@ function ArchiveEvidence({ state }: Readonly<{ state: SearchCorePageState }>) {
   );
 }
 
+const publishedCellCopy = {
+  accepted: "Accepted analytical cell",
+  missing_format: "Unavailable: format missing",
+  unsupported_format: "Unavailable: unsupported format",
+  unpublished_cell: "Unavailable: unpublished analytical cell",
+} as const;
+
+function AcceptedApiHistory({
+  state,
+  filters,
+}: Readonly<{
+  state: SearchCorePageState;
+  filters: EvidenceViewFilters;
+}>) {
+  if (state.acceptedHistoryStatus === "not_connected") {
+    return (
+      <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+        Accepted API race history is not configured for this environment.
+      </p>
+    );
+  }
+  if (state.acceptedHistoryStatus === "missing") {
+    return (
+      <p className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--muted)]">
+        No row for this Core exists in the active accepted history generation.
+        This is not treated as evidence of zero races.
+      </p>
+    );
+  }
+  if (state.acceptedHistoryStatus !== "connected") {
+    const detail =
+      state.acceptedHistoryStatus === "truncated"
+        ? "The bounded Core history read exceeded 1,000 rows. Narrower pagination is required before rows can be shown."
+        : state.acceptedHistoryStatus === "source_changed"
+          ? "The accepted history generation changed during this read. Reload to use one point-in-time source."
+          : "Accepted API race history could not be read and verified for this Core.";
+    return (
+      <p
+        className="mt-2 rounded-xl border border-[var(--warning)]/50 bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--warning)]"
+        role="alert"
+      >
+        {detail} No history is substituted.
+      </p>
+    );
+  }
+
+  const matchingRows = state.acceptedHistoryRows.filter((row) => {
+    const payload = row.payload;
+    if (payload.sourceType !== "joined_core_race_history_result") {
+      return filters.mode === "all" && filters.distance === null;
+    }
+    return (
+      (filters.mode === "all" || payload.mode === filters.mode) &&
+      (filters.distance === null || payload.distanceMetres === filters.distance)
+    );
+  });
+  const shownRows = matchingRows.slice(0, 100);
+
+  return (
+    <div className="mt-2 space-y-3">
+      {state.acceptedHistoryGeneration ? (
+        <p className="text-xs leading-5 text-[var(--muted)]">
+          Active generation {state.acceptedHistoryGeneration.generationId} ·
+          observation set {state.acceptedHistoryGeneration.observationSetSha256}
+          {" · "}
+          published{" "}
+          {new Date(state.acceptedHistoryGeneration.publishedAt).toLocaleString(
+            "en-AU",
+          )}
+        </p>
+      ) : null}
+      <p className="text-sm text-[var(--muted)]" role="status">
+        Showing {shownRows.length.toLocaleString("en-AU")} of{" "}
+        {matchingRows.length.toLocaleString("en-AU")} matching rows
+        {matchingRows.length > shownRows.length ? " (first 100 shown)" : ""}.
+      </p>
+      {matchingRows.length === 0 ? (
+        <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6">
+          No accepted stored row matches this exact mode and distance. Missing
+          evidence remains unknown; no nearby distance is substituted.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {shownRows.map((row) => {
+            const payload = row.payload;
+            return (
+              <article
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+                key={row.rowSha256}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h4 className="font-semibold">Race {payload.sourceRaceId}</h4>
+                  <span className="text-xs font-semibold">
+                    {payload.sourceType === "joined_core_race_history_result"
+                      ? publishedCellCopy[payload.publishedCellStatus]
+                      : "Stored result; race context unavailable"}
+                  </span>
+                </div>
+                {payload.sourceType === "joined_core_race_history_result" ? (
+                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
+                    <div>
+                      <dt className="text-[var(--muted)]">Mode</dt>
+                      <dd className="font-semibold">{label(payload.mode)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Distance</dt>
+                      <dd className="font-semibold">
+                        {payload.distanceMetres.toLocaleString("en-AU")} m
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Gates</dt>
+                      <dd className="font-semibold">{payload.gateCount}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Format</dt>
+                      <dd className="font-semibold">
+                        {payload.sourceFormat ?? "Unavailable"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">Finish / time</dt>
+                      <dd className="font-semibold">
+                        {payload.finishPosition} ·{" "}
+                        {seconds(payload.elapsedMilliseconds)}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                    This compact accepted result retains elapsed time and
+                    finish, but this row does not carry exact mode, distance,
+                    gates or format. Those fields are not inferred.
+                  </p>
+                )}
+                <p className="mt-3 break-all font-mono text-xs text-[var(--muted)]">
+                  Row SHA-256 {row.rowSha256}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SearchCoreWorkspace({
   state,
   filters = { mode: "all", distance: null },
@@ -243,8 +390,18 @@ export function SearchCoreWorkspace({
       (filters.mode === "all" || profile.mode === filters.mode) &&
       (filters.distance === null || profile.distance === filters.distance),
   );
+  const joinedHistoryRows = state.acceptedHistoryRows.filter(
+    (row) => row.payload.sourceType === "joined_core_race_history_result",
+  );
   const distances = [
-    ...new Set(state.performanceProfiles.map((profile) => profile.distance)),
+    ...new Set([
+      ...state.performanceProfiles.map((profile) => profile.distance),
+      ...joinedHistoryRows.map((row) =>
+        row.payload.sourceType === "joined_core_race_history_result"
+          ? row.payload.distanceMetres
+          : 0,
+      ),
+    ]),
   ].sort((a, b) => a - b);
   if (filters.distance !== null && !distances.includes(filters.distance)) {
     distances.push(filters.distance);
@@ -433,6 +590,12 @@ export function SearchCoreWorkspace({
             </a>
             <a
               className="rounded-lg border border-[var(--border)] px-3 py-2"
+              href="#core-api-history"
+            >
+              Accepted API history
+            </a>
+            <a
+              className="rounded-lg border border-[var(--border)] px-3 py-2"
               href="#core-archive"
             >
               Archive coverage
@@ -579,6 +742,16 @@ export function SearchCoreWorkspace({
                 ))}
               </div>
             )}
+          </div>
+          <div className="mt-6 scroll-mt-6" id="core-api-history">
+            <h3 className="font-semibold">Accepted API race history</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Owner-scoped rows are read by exact Core ID from the active
+              persisted generation. Stored format and analytical publication
+              status are separate: unavailable cells are never presented as
+              validated methods.
+            </p>
+            <AcceptedApiHistory state={state} filters={filters} />
           </div>
           <div className="mt-6 scroll-mt-6" id="core-archive">
             <h3 className="font-semibold">Archived Race evidence</h3>

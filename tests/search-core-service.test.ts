@@ -4,6 +4,7 @@ import type { CorePerformanceProfile } from "../domain/core-performance";
 import type { CorePerformanceProfileRepository } from "../lib/core-intelligence-workspace-service";
 import type { OwnerVaultCatalogueRepository } from "../lib/owner-vault-catalogue-service";
 import type { RaceArchiveCoreHistoryService } from "../lib/race-archive-core-history-service";
+import type { ActiveSelectedDnaCoreRaceHistoryReadRepository } from "../lib/neon-active-dna-core-race-history-generation";
 import {
   loadSearchCorePageState,
   type SearchCorePageState,
@@ -125,6 +126,76 @@ describe("Search Core service", () => {
     expect(state.performanceProfiles).toEqual([profile]);
     expect(state.performanceLastImportedAt).toBe("2026-08-11T02:00:00.000Z");
     expect(listProfilesByOwner).toHaveBeenCalledWith(ownerId, "core-7");
+  });
+
+  it("loads generation-pinned accepted history only for the selected Core", async () => {
+    const readActiveGeneration = vi.fn(async () => ({
+      generationId: "a".repeat(64),
+      observationSetSha256: "b".repeat(64),
+      publishedAt: "2026-08-11T02:30:00.000Z",
+      observationCount: 93_089,
+    }));
+    const row = {
+      generationId: "a".repeat(64),
+      ordinal: 7,
+      naturalKey: "core-result:core-7:bike:race-9",
+      rowSha256: "c".repeat(64),
+      payload: {
+        sourceType: "joined_core_race_history_result",
+        naturalKey: "core-result:core-7:bike:race-9",
+        resultEvidenceSha256: "d".repeat(64),
+        raceDocumentEvidenceSha256: "e".repeat(64),
+        raceDocumentObservedAt: "2026-08-11T01:30:00.000Z",
+        sourceCoreId: "core-7",
+        sourceRaceId: "race-9",
+        mode: "bike",
+        distanceMetres: 2_300,
+        distanceAuthority: "result_and_race_document",
+        elapsedMilliseconds: 137_810,
+        finishPosition: 4,
+        eventAt: "2026-08-11T01:00:00.000Z",
+        gateCount: 6,
+        payoutMechanismSourceValue: null,
+        sourceFormat: "normal",
+        sourceRaceClass: null,
+        goldStar: null,
+        blueStar: null,
+        starEvidenceStatus: "missing",
+        publishedCellStatus: "unsupported_format",
+        raceType: null,
+        mapIds: [],
+      },
+    } as const;
+    const readSelectedCoreRows = vi.fn(async () => ({
+      status: "ready" as const,
+      rows: [row],
+    }));
+    const acceptedHistoryRepository = {
+      readActiveGeneration,
+      readSelectedCoreRows,
+      readActiveRows: vi.fn(),
+    } as unknown as ActiveSelectedDnaCoreRaceHistoryReadRepository;
+
+    const state = await loadSearchCorePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => [core]),
+      performanceRepository: noPerformance,
+      acceptedHistoryRepository,
+      now,
+      query: "Seven",
+      selectedCoreId: "core-7",
+    });
+
+    expect(readActiveGeneration).toHaveBeenCalledWith(ownerId);
+    expect(readSelectedCoreRows).toHaveBeenCalledWith(ownerId, {
+      generationId: "a".repeat(64),
+      observationSetSha256: "b".repeat(64),
+      coreIds: ["core-7"],
+      maximumRows: 1_000,
+    });
+    expect(state.acceptedHistoryStatus).toBe("connected");
+    expect(state.acceptedHistoryRows).toEqual([row]);
   });
 
   it("loads bounded immutable archive evidence only for the selected Core", async () => {
