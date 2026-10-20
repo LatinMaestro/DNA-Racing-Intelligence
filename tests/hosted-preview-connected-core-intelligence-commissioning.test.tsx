@@ -7,7 +7,12 @@ import {
   loadCoreIntelligencePageState,
   type CorePerformanceProfileRepository,
 } from "@/lib/core-intelligence-workspace-service";
+import {
+  neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment,
+  type ActiveDnaCoreRaceHistoryGenerationRow,
+} from "@/lib/neon-active-dna-core-race-history-generation";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
+import { readAcceptedCoreHistory } from "@/lib/search-core-service";
 
 const connected =
   process.env.CORE_INTELLIGENCE_COMMISSIONING_VERIFICATION === "1";
@@ -26,6 +31,17 @@ function requiredEnvironment(name: string): string {
     throw new Error(`${name} is missing or invalid`);
   }
   return value;
+}
+
+function isJoinedHistoryRow(
+  row: ActiveDnaCoreRaceHistoryGenerationRow,
+): row is ActiveDnaCoreRaceHistoryGenerationRow & {
+  payload: Extract<
+    ActiveDnaCoreRaceHistoryGenerationRow["payload"],
+    { sourceType: "joined_core_race_history_result" }
+  >;
+} {
+  return row.payload.sourceType === "joined_core_race_history_result";
 }
 
 describeConnected("hosted Preview Core Intelligence commissioning", () => {
@@ -67,26 +83,42 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
       now,
     });
 
+    const acceptedHistoryRepository =
+      neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment({
+        databaseUrl: requiredEnvironment("DATABASE_URL"),
+        databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
+        ownerId,
+        runtimeRole: "dna_app_runtime",
+      });
+    const acceptedHistory = await readAcceptedCoreHistory({
+      repository: acceptedHistoryRepository,
+      ownerId,
+      sourceCoreId: selectedCoreId,
+    });
+    const joinedHistoryRows =
+      acceptedHistory.acceptedHistoryRows.filter(isJoinedHistoryRow);
+
     expect(state.connectionStatus).toBe("read_model_connected");
-    expect(state.profiles.length).toBeGreaterThan(0);
-    expect(state.profiles.length).toBeLessThanOrEqual(250);
-    expect(
-      state.profiles.every(({ coreId }) => coreId === selectedCoreId),
-    ).toBe(true);
-    expect(state.profiles.every(({ mode }) => mode === "bike")).toBe(true);
+    expect(state.profiles).toEqual([]);
     expect(state.publication).not.toBeNull();
     expect(state.publication?.sourceVersionSetSha256).toMatch(
       /^[a-f0-9]{64}$/u,
     );
     expect(state.publication?.payloadSha256).toMatch(/^[a-f0-9]{64}$/u);
-
-    const selectedProfile = [...state.profiles].sort(
-      (left, right) => left.distance - right.distance,
-    )[0]!;
-    expect(selectedProfile.distance).toBeGreaterThan(0);
-    expect(selectedProfile.raceCount).toBeGreaterThan(0);
-    expect(selectedProfile.elapsedTime.bestMilliseconds).toBeGreaterThan(0);
-    expect(selectedProfile.elapsedTime.medianMilliseconds).toBeGreaterThan(0);
+    expect(acceptedHistory.acceptedHistoryStatus).toBe("connected");
+    expect(acceptedHistory.acceptedHistoryRows).toHaveLength(4);
+    expect(joinedHistoryRows).toHaveLength(4);
+    expect(
+      joinedHistoryRows.every(
+        ({ payload }) =>
+          payload.sourceCoreId === selectedCoreId && payload.mode === "bike",
+      ),
+    ).toBe(true);
+    expect(
+      acceptedHistory.acceptedHistoryRows.every(({ rowSha256 }) =>
+        /^[a-f0-9]{64}$/u.test(rowSha256),
+      ),
+    ).toBe(true);
 
     const wrongOwner = await loadCoreIntelligencePageState({
       authenticatedOwnerId: `${ownerId}-wrong`,
@@ -118,30 +150,40 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
         publication: state.publication ?? null,
         profiles: state.profiles,
         selectedEvidenceView: "normal",
-        selectedMode: selectedProfile.mode,
-        selectedDistance: selectedProfile.distance,
+        selectedMode: "bike",
+        selectedDistance: 1_000,
       }),
     );
     expect(overview).toContain("Accepted aggregate publication");
-    expect(overview).toContain(`Core ${selectedCoreId}`);
+    expect(overview).toContain("No commissioned Core evidence");
     expect(filtered).toContain("Normal-racing exact-distance profiles");
-    expect(filtered).toContain(
-      `${selectedProfile.distance.toLocaleString("en-AU")} m`,
-    );
-    expect(filtered).toContain(`Core ${selectedCoreId}`);
+    expect(filtered).toContain("No validated normal-racing profiles");
 
     console.log(
       JSON.stringify({
         status: state.connectionStatus,
         selectedCoreId,
         profileCount: state.profiles.length,
-        modes: [...new Set(state.profiles.map(({ mode }) => mode))],
-        distances: state.profiles.map(({ distance }) => distance),
-        selectedDistance: selectedProfile.distance,
-        selectedRaceCount: selectedProfile.raceCount,
-        selectedBestMilliseconds: selectedProfile.elapsedTime.bestMilliseconds,
-        selectedMedianMilliseconds:
-          selectedProfile.elapsedTime.medianMilliseconds,
+        acceptedHistoryRowCount: acceptedHistory.acceptedHistoryRows.length,
+        acceptedHistoryGeneration:
+          acceptedHistory.acceptedHistoryGeneration?.generationId ?? null,
+        acceptedHistoryObservationSetSha256:
+          acceptedHistory.acceptedHistoryGeneration?.observationSetSha256 ??
+          null,
+        modes: [
+          ...new Set(joinedHistoryRows.map(({ payload }) => payload.mode)),
+        ],
+        distances: joinedHistoryRows.map(
+          ({ payload }) => payload.distanceMetres,
+        ),
+        gates: joinedHistoryRows.map(({ payload }) => payload.gateCount),
+        formats: joinedHistoryRows.map(({ payload }) => payload.sourceFormat),
+        publishedCellStatuses: joinedHistoryRows.map(
+          ({ payload }) => payload.publishedCellStatus,
+        ),
+        rowSha256: acceptedHistory.acceptedHistoryRows.map(
+          ({ rowSha256 }) => rowSha256,
+        ),
         publicationProfileCount: state.publication?.profileCount ?? null,
         publicationPayloadSha256: state.publication?.payloadSha256 ?? null,
         sourceVersionSetSha256:
@@ -149,7 +191,9 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
         lastImportedAt: state.lastImportedAt,
         wrongOwnerRejected: wrongOwner.connectionStatus === "read_failed",
         renderedOverview: overview.includes("Accepted aggregate publication"),
-        renderedFilteredProfile: filtered.includes(`Core ${selectedCoreId}`),
+        renderedUnavailableProfile: filtered.includes(
+          "No validated normal-racing profiles",
+        ),
         persistentWritePerformed: false,
         exactCodeHeadSha: process.env.GITHUB_SHA ?? null,
         verifiedAt,
