@@ -199,5 +199,5 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
         verifiedAt,
       }),
     );
-  });
+  }, 15_000);
 });
