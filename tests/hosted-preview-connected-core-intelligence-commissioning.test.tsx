@@ -100,11 +100,7 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
 
     expect(state.connectionStatus).toBe("read_model_connected");
     expect(state.profiles).toEqual([]);
-    expect(state.publication).not.toBeNull();
-    expect(state.publication?.sourceVersionSetSha256).toMatch(
-      /^[a-f0-9]{64}$/u,
-    );
-    expect(state.publication?.payloadSha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(state.publication ?? null).toBeNull();
     expect(acceptedHistory.acceptedHistoryStatus).toBe("connected");
     expect(acceptedHistory.acceptedHistoryRows).toHaveLength(4);
     expect(joinedHistoryRows).toHaveLength(4);
@@ -154,7 +150,7 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
         selectedDistance: 1_000,
       }),
     );
-    expect(overview).toContain("Accepted aggregate publication");
+    expect(overview).not.toContain("Accepted aggregate publication");
     expect(overview).toContain("No commissioned Core evidence");
     expect(filtered).toContain("Normal-racing exact-distance profiles");
     expect(filtered).toContain("No validated normal-racing profiles");
@@ -190,7 +186,9 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
           state.publication?.sourceVersionSetSha256 ?? null,
         lastImportedAt: state.lastImportedAt,
         wrongOwnerRejected: wrongOwner.connectionStatus === "read_failed",
-        renderedOverview: overview.includes("Accepted aggregate publication"),
+        renderedUnavailableOverview: overview.includes(
+          "No commissioned Core evidence",
+        ),
         renderedUnavailableProfile: filtered.includes(
           "No validated normal-racing profiles",
         ),
