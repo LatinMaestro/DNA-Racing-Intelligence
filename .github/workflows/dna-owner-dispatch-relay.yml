@@ -848,6 +848,27 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "discovery-verification":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "verified_at",
+                "execute_private_preview_verification",
+              ]);
+              if (
+                !exactTimestamp(payload.verified_at) ||
+                payload.execute_private_preview_verification !== true
+              ) {
+                throw new Error(
+                  "Discovery verification authority is invalid.",
+                );
+              }
+              workflow = "discovery-private-preview-verification.yml";
+              inputs = {
+                verified_at: payload.verified_at,
+                execute_private_preview_verification: true,
+              };
+              break;
             default:
               throw new Error("Owner dispatch workflow is not allow-listed.");
           }
