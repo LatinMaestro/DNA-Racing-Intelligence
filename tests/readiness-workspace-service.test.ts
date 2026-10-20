@@ -179,18 +179,18 @@ describe("Readiness workspace service", () => {
   });
 
   it.each([
-    ["3-day boundary", "2026-07-23T00:00:00.000Z", "current"],
-    ["4-day boundary", "2026-07-22T00:00:00.000Z", "ageing"],
-    ["7-day boundary", "2026-07-19T00:00:00.000Z", "ageing"],
-    ["8-day boundary", "2026-07-18T00:00:00.000Z", "stale"],
+    ["3-day boundary", "2026-07-23T00:00:00.000Z", "current", "current"],
+    ["4-day boundary", "2026-07-22T00:00:00.000Z", "current", "ageing"],
+    ["7-day boundary", "2026-07-19T00:00:00.000Z", "ageing", "ageing"],
+    ["8-day boundary", "2026-07-18T00:00:00.000Z", "ageing", "stale"],
   ] as const)(
     "derives freshness at the exact %s",
-    async (_, cutoff, freshness) => {
+    async (_, cutoff, asOfFreshness, freshness) => {
       const staged = {
         ...assessment,
         assessedAt: "2026-07-25T00:00:00.000Z",
         evidenceCurrentThrough: cutoff,
-        evidenceFreshness: freshness,
+        evidenceFreshness: asOfFreshness,
       };
       const state = await loadReadinessWorkspacePageState({
         authenticatedOwnerId: "owner",
@@ -215,6 +215,44 @@ describe("Readiness workspace service", () => {
       ).toBe(freshness === "current" ? "pass" : "review");
     },
   );
+
+  it("preserves a valid September accepted assessment as a stale October snapshot", async () => {
+    const accepted = {
+      ...assessment,
+      assessedAt: "2026-09-22T03:00:00.000Z",
+      evidenceCurrentThrough: "2026-09-22T02:00:00.000Z",
+      evidenceFreshness: "current" as const,
+    };
+    const result = await loadReadinessWorkspacePageState({
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: {
+        status: "ready",
+        loadLatestAssessmentByOwner: async () => ({
+          assessment: accepted,
+          acceptedAssessmentVersion: accepted.assessmentVersion,
+          publishedAt: "2026-09-22T04:00:00.000Z",
+          snapshotSha256,
+        }),
+      },
+      expectedHeadSha,
+      now: new Date("2026-10-20T07:00:00.000Z"),
+    });
+    expect(result).toMatchObject({
+      connectionStatus: "read_model_connected",
+      evidenceCurrentThrough: "2026-09-22T02:00:00.000Z",
+      evidenceFreshness: "stale",
+      readiness: {
+        status: "review_required",
+        activationAuthorized: false,
+        productionMutationAllowed: false,
+      },
+    });
+    expect(
+      result.readiness?.checks.find(({ code }) => code === "EVIDENCE_FRESHNESS")
+        ?.status,
+    ).toBe("review");
+  });
 
   it("withholds a stale version and a different deployed head", async () => {
     const baseRepository = repository(assessment);
