@@ -154,13 +154,19 @@ export function createDiscoveryProbeRepository(
               profile.mode,
               profile.distance,
             ),
-            maidenState: core.meEligible ? "eligible" : "not_eligible",
+            maidenState:
+              core.meEligible === null
+                ? "unknown"
+                : core.meEligible
+                  ? "eligible"
+                  : "not_eligible",
             freshness: profile.freshness,
             dataCurrentThrough: profile.dataCurrentThrough,
           };
         });
 
       const lineageCandidates = lineageHypotheses
+        .filter((hypothesis) => ownedById.has(hypothesis.coreId))
         .filter((hypothesis) =>
           discoveryHypothesisIsEligible({
             relationship: hypothesis.lineageRelationship,
@@ -183,7 +189,12 @@ export function createDiscoveryProbeRepository(
             hypothesis.mode,
             hypothesis.distanceMetres,
           ),
-          maidenState: hypothesis.meEligible ? "eligible" : "not_eligible",
+          maidenState:
+            ownedById.get(hypothesis.coreId)!.meEligible === null
+              ? "unknown"
+              : ownedById.get(hypothesis.coreId)!.meEligible
+                ? "eligible"
+                : "not_eligible",
           freshness: "stale",
           dataCurrentThrough: hypothesis.dataCurrentThrough,
         }));
