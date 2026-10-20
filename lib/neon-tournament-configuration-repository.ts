@@ -34,27 +34,8 @@ const VERIFY_OWNER_SQL = `
   WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
 `;
 const LIST_CONFIGURATIONS_SQL = `SELECT * FROM dna.list_bound_tournament_configurations($1::uuid)`;
-const LIST_ACTIVE_VAULT_CORES_SQL = `
-  SELECT
-    core.source_core_id,
-    core.core_class,
-    core.element,
-    core.f_number,
-    EXISTS (
-      SELECT 1
-      FROM dna.active_core_details active_core
-      WHERE active_core.owner_id = core.owner_id
-        AND active_core.id = core.id
-    ) AS core_details_active,
-    vault.me_eligible
-  FROM dna.owner_vault_core vault
-  JOIN dna.core core
-    ON core.owner_id = vault.owner_id
-    AND core.id = vault.core_id
-  WHERE vault.owner_id = $1::uuid
-    AND vault.in_my_vault
-  ORDER BY core.source_core_id
-`;
+const LIST_ACTIVE_VAULT_CORES_SQL =
+  "SELECT * FROM dna.list_tournament_vault_core_state($1::uuid)";
 const LIST_PERFORMANCE_PROFILES_SQL = `
   SELECT *
   FROM dna.list_core_performance_profiles($1::uuid, NULL::text, 5000::integer)

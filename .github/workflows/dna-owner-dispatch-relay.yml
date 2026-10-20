@@ -195,6 +195,24 @@ jobs:
                 apply_private_preview_migration: true,
               };
               break;
+            case "tournament-vault-core-state-migration":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "apply_private_preview_migration",
+              ]);
+              if (payload.apply_private_preview_migration !== true) {
+                throw new Error(
+                  "Tournament Vault Core state migration authority is invalid.",
+                );
+              }
+              workflow =
+                "tournament-vault-core-state-preview-migration.yml";
+              inputs = {
+                exact_main_sha: payload.expected_main_sha,
+                apply_private_preview_migration: true,
+              };
+              break;
             case "provider-capacity-preflight":
               exactKeys(["kind", "expected_main_sha"]);
               workflow = "dna-open-lab-daily-refresh-provider-preflight.yml";

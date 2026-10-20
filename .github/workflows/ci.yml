@@ -483,6 +483,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.up.sql
       - name: Run Vault catalogue publication read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.smoke.sql
+      - name: Apply Tournament Vault Core state read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.up.sql
+      - name: Run Tournament Vault Core state read smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.smoke.sql
+      - name: Reverse Tournament Vault Core state read migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.down.sql
+      - name: Verify Tournament Vault Core state read removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.removal.sql
       - name: Reverse Vault catalogue publication read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0147_owner_vault_catalogue_publication.down.sql
       - name: Verify Vault catalogue publication read removal
