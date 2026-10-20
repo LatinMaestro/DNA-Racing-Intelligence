@@ -208,6 +208,13 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "payload.execute_private_preview_verification !== true",
     );
+    expect(workflow).toContain(
+      "tournament-workspace-private-preview-verification.yml",
+    );
+    expect(workflow).toContain('"tournament-workspace-verification"');
+    expect(workflow).toContain(
+      "Tournament workspace verification authority is invalid.",
+    );
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
