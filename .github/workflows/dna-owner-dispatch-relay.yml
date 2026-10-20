@@ -975,6 +975,24 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "dashboard-import-refresh-migration":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "apply_private_preview_migration",
+              ]);
+              if (payload.apply_private_preview_migration !== true) {
+                throw new Error(
+                  "Dashboard import refresh migration authority is invalid.",
+                );
+              }
+              workflow =
+                "dashboard-import-refresh-runtime-read-preview-migration.yml";
+              inputs = {
+                exact_main_sha: payload.expected_main_sha,
+                apply_private_preview_migration: true,
+              };
+              break;
             case "open-race-migrations":
               exactKeys([
                 "kind",
