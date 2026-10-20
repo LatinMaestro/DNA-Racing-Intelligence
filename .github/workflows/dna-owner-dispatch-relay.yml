@@ -890,6 +890,27 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "breeding-verification":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "verified_at",
+                "execute_private_preview_verification",
+              ]);
+              if (
+                !exactTimestamp(payload.verified_at) ||
+                payload.execute_private_preview_verification !== true
+              ) {
+                throw new Error(
+                  "Breeding verification authority is invalid.",
+                );
+              }
+              workflow = "breeding-private-preview-verification.yml";
+              inputs = {
+                verified_at: payload.verified_at,
+                execute_private_preview_verification: true,
+              };
+              break;
             default:
               throw new Error("Owner dispatch workflow is not allow-listed.");
           }
