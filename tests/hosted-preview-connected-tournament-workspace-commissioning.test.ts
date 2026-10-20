@@ -47,12 +47,21 @@ describeConnected("hosted Preview Tournament workspace commissioning", () => {
         databaseOwnerId: requiredEnvironment("DNA_DATABASE_OWNER_ID"),
         runtimeRole: "dna_app_runtime",
       });
-      expect(repository.status).toBe("ready");
+      if (repository.status !== "ready") {
+        throw new Error("Tournament repository is not configured");
+      }
+      const acceptedSnapshot =
+        await repository.listCandidateEvidenceByOwner(ownerId);
+      expect(Array.isArray(acceptedSnapshot.brackets)).toBe(true);
+      const acceptedSnapshotRepository = {
+        status: "ready" as const,
+        listCandidateEvidenceByOwner: async () => acceptedSnapshot,
+      };
 
       const state = await loadTournamentWorkspacePageState({
         authenticatedOwnerId: ownerId,
         configuredOwnerId: ownerId,
-        repository,
+        repository: acceptedSnapshotRepository,
         now,
       });
       expect(state.connectionStatus).toBe("read_model_connected");
@@ -61,7 +70,7 @@ describeConnected("hosted Preview Tournament workspace commissioning", () => {
         loadTournamentWorkspacePageState({
           authenticatedOwnerId: `${ownerId}-wrong-owner`,
           configuredOwnerId: ownerId,
-          repository,
+          repository: acceptedSnapshotRepository,
           now,
         }),
       ).rejects.toThrow("Tournament workspace access denied.");
