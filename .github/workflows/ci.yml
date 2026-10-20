@@ -487,6 +487,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.up.sql
       - name: Run Tournament Vault Core state read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.smoke.sql
+      - name: Apply Discovery lineage mode ambiguity repair
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.up.sql
+      - name: Run Discovery lineage mode ambiguity smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.smoke.sql
+      - name: Reverse Discovery lineage mode ambiguity repair
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.down.sql
+      - name: Verify Discovery lineage mode ambiguity repair reversal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_discovery_lineage_mode_ambiguity.removal.sql
       - name: Reverse Tournament Vault Core state read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0148_tournament_vault_core_state_read.down.sql
       - name: Verify Tournament Vault Core state read removal
