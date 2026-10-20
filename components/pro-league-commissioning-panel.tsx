@@ -90,7 +90,9 @@ export function ProLeagueCommissioningPanel({
     status: "plan_unavailable",
     generationId: null,
     rosterVersionId: null,
+    lineupVersionId: null,
     rosterSavedAt: null,
+    lineupSavedAt: null,
   },
 }: Readonly<{
   state: ProLeagueDraftCommissioningState;

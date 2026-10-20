@@ -10,7 +10,9 @@ export type ProLeaguePlanPersistenceState = Readonly<{
     | "read_failed";
   generationId: string | null;
   rosterVersionId: string | null;
+  lineupVersionId: string | null;
   rosterSavedAt: string | null;
+  lineupSavedAt: string | null;
 }>;
 
 type RosterReadRepository = Readonly<{
@@ -23,13 +25,29 @@ type RosterReadRepository = Readonly<{
   }> | null>;
 }>;
 
+type LineupReadRepository = Readonly<{
+  loadLineup: (
+    ownerId: string,
+    lineupVersionId: string,
+  ) => Promise<Readonly<{
+    version: Readonly<{
+      lineupVersionId: string;
+      rosterVersionId: string;
+      maps: readonly Readonly<{ entries: readonly unknown[] }>[];
+    }>;
+    createdAt: string;
+  }> | null>;
+}>;
+
 const empty = (
   status: ProLeaguePlanPersistenceState["status"],
 ): ProLeaguePlanPersistenceState => ({
   status,
   generationId: null,
   rosterVersionId: null,
+  lineupVersionId: null,
   rosterSavedAt: null,
+  lineupSavedAt: null,
 });
 
 export async function loadProLeaguePlanPersistenceState(
@@ -38,6 +56,7 @@ export async function loadProLeaguePlanPersistenceState(
     configuredOwnerId: string | null;
     commissioning: ProLeagueDraftCommissioningState;
     rosterRepository: RosterReadRepository | null;
+    lineupRepository: LineupReadRepository | null;
   }>,
 ): Promise<ProLeaguePlanPersistenceState> {
   const authenticatedOwnerId = input.authenticatedOwnerId?.trim() ?? "";
@@ -50,11 +69,16 @@ export async function loadProLeaguePlanPersistenceState(
     return empty("identity_not_connected");
   }
   const roster = input.commissioning.roster?.draftRoster ?? null;
+  const lineup = input.commissioning.lineup?.lineup ?? null;
   const ownerPlan = input.commissioning.ownerPlan;
   const generationId = input.commissioning.evidence?.generationId ?? null;
   if (
     input.commissioning.connectionStatus !== "read_model_connected" ||
     roster === null ||
+    lineup === null ||
+    lineup.rosterVersionId !== roster.rosterVersionId ||
+    lineup.maps.length !== 4 ||
+    lineup.maps.flatMap(({ entries }) => entries).length !== 168 ||
     ownerPlan === undefined ||
     ownerPlan.roster.length !== 25 ||
     ownerPlan.allSlotsFilled !== true ||
@@ -65,8 +89,9 @@ export async function loadProLeaguePlanPersistenceState(
   const identity = {
     generationId,
     rosterVersionId: roster.rosterVersionId,
+    lineupVersionId: lineup.lineupVersionId,
   };
-  if (input.rosterRepository === null) {
+  if (input.rosterRepository === null || input.lineupRepository === null) {
     return { ...empty("persistence_not_configured"), ...identity };
   }
   try {
@@ -74,16 +99,27 @@ export async function loadProLeaguePlanPersistenceState(
       authenticatedOwnerId,
       roster.rosterVersionId,
     );
-    if (storedRoster === null) {
+    const storedLineup = await input.lineupRepository.loadLineup(
+      authenticatedOwnerId,
+      lineup.lineupVersionId,
+    );
+    if (storedRoster === null || storedLineup === null) {
       return { ...empty("not_saved"), ...identity };
     }
-    if (storedRoster.version.rosterVersionId !== roster.rosterVersionId) {
+    if (
+      storedRoster.version.rosterVersionId !== roster.rosterVersionId ||
+      storedLineup.version.lineupVersionId !== lineup.lineupVersionId ||
+      storedLineup.version.rosterVersionId !== roster.rosterVersionId ||
+      storedLineup.version.maps.length !== 4 ||
+      storedLineup.version.maps.flatMap(({ entries }) => entries).length !== 168
+    ) {
       return { ...empty("read_failed"), ...identity };
     }
     return {
       status: "saved",
       ...identity,
       rosterSavedAt: storedRoster.createdAt,
+      lineupSavedAt: storedLineup.createdAt,
     };
   } catch {
     return { ...empty("read_failed"), ...identity };

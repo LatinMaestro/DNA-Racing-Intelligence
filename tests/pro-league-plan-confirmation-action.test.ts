@@ -4,7 +4,9 @@ const mocks = vi.hoisted(() => ({
   owner: vi.fn(),
   load: vi.fn(),
   createRepository: vi.fn(),
+  createLineupRepository: vi.fn(),
   saveRoster: vi.fn(),
+  saveLineup: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
@@ -14,6 +16,7 @@ vi.mock("@/lib/clerk-owner-session", () => ({
 vi.mock("@/lib/hosted-pro-league-page-runtime", () => ({
   loadHostedProLeagueCommissioningState: mocks.load,
   createHostedProLeagueRosterWriteRepository: mocks.createRepository,
+  createHostedProLeagueLineupWriteRepository: mocks.createLineupRepository,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
@@ -28,6 +31,7 @@ function form(overrides: Record<string, string> = {}) {
     confirmed: "confirmed",
     expectedGenerationId: "generation-1",
     expectedRosterVersionId: "draft-roster/generation-1",
+    expectedLineupVersionId: "draft-lineup/generation-1",
     ...overrides,
   })) {
     result.set(key, value);
@@ -58,14 +62,21 @@ describe("Pro League owner plan confirmation", () => {
         lineup: {
           lineupVersionId: "draft-lineup/generation-1",
           rosterVersionId: "draft-roster/generation-1",
+          maps: Array.from({ length: 4 }, () => ({
+            entries: Array.from({ length: 42 }, () => ({})),
+          })),
         },
       },
     });
     mocks.createRepository.mockReturnValue({ saveVersion: mocks.saveRoster });
+    mocks.createLineupRepository.mockReturnValue({
+      saveLineup: mocks.saveLineup,
+    });
     mocks.saveRoster.mockResolvedValue({ disposition: "created" });
+    mocks.saveLineup.mockResolvedValue({ disposition: "created" });
   });
 
-  it("recomputes the accepted plan before persisting its immutable roster", async () => {
+  it("recomputes the accepted plan before persisting its roster and 168-line mapping", async () => {
     await expect(confirmProLeaguePlanAction(form())).resolves.toBeUndefined();
     expect(mocks.load).toHaveBeenCalledWith(
       expect.objectContaining({ authenticatedOwnerId: "owner-1" }),
@@ -74,6 +85,12 @@ describe("Pro League owner plan confirmation", () => {
       "owner-1",
       expect.objectContaining({
         rosterVersionId: "draft-roster/generation-1",
+      }),
+    );
+    expect(mocks.saveLineup).toHaveBeenCalledWith(
+      "owner-1",
+      expect.objectContaining({
+        lineupVersionId: "draft-lineup/generation-1",
       }),
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pro-league");
@@ -86,6 +103,17 @@ describe("Pro League owner plan confirmation", () => {
       ),
     ).rejects.toThrow("accepted evidence changed");
     expect(mocks.saveRoster).not.toHaveBeenCalled();
+    expect(mocks.saveLineup).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale lineup identity before either write", async () => {
+    await expect(
+      confirmProLeaguePlanAction(
+        form({ expectedLineupVersionId: "stale-lineup" }),
+      ),
+    ).rejects.toThrow("accepted evidence changed");
+    expect(mocks.saveRoster).not.toHaveBeenCalled();
+    expect(mocks.saveLineup).not.toHaveBeenCalled();
   });
 
   it("returns a non-secret form failure when owner confirmation is unavailable", async () => {
@@ -95,5 +123,6 @@ describe("Pro League owner plan confirmation", () => {
     );
     expect(mocks.load).not.toHaveBeenCalled();
     expect(mocks.createRepository).not.toHaveBeenCalled();
+    expect(mocks.createLineupRepository).not.toHaveBeenCalled();
   });
 });

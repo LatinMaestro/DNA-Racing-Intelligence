@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import {
+  createHostedProLeagueLineupWriteRepository,
   createHostedProLeagueRosterWriteRepository,
   loadHostedProLeagueCommissioningState,
   type HostedProLeagueEnvironment,
@@ -47,24 +48,33 @@ export async function confirmProLeaguePlanAction(formData: FormData) {
   });
   const roster = commissioning.roster?.draftRoster ?? null;
   const ownerPlan = commissioning.ownerPlan;
+  const lineup = commissioning.lineup?.lineup ?? null;
   const generationId = commissioning.evidence?.generationId ?? null;
   if (
     commissioning.connectionStatus !== "read_model_connected" ||
     roster === null ||
+    lineup === null ||
+    lineup.rosterVersionId !== roster.rosterVersionId ||
+    lineup.maps.length !== 4 ||
+    lineup.maps.flatMap(({ entries }) => entries).length !== 168 ||
     ownerPlan === undefined ||
     ownerPlan.roster.length !== 25 ||
     ownerPlan.allSlotsFilled !== true ||
     generationId === null ||
     value(formData, "expectedGenerationId") !== generationId ||
-    value(formData, "expectedRosterVersionId") !== roster.rosterVersionId
+    value(formData, "expectedRosterVersionId") !== roster.rosterVersionId ||
+    value(formData, "expectedLineupVersionId") !== lineup.lineupVersionId
   ) {
     throw new Error(
       "Pro League accepted evidence changed before confirmation.",
     );
   }
-  const repository =
+  const rosterRepository =
     createHostedProLeagueRosterWriteRepository(hostedEnvironment);
-  await repository.saveVersion(authenticatedOwnerId, roster);
+  const lineupRepository =
+    createHostedProLeagueLineupWriteRepository(hostedEnvironment);
+  await rosterRepository.saveVersion(authenticatedOwnerId, roster);
+  await lineupRepository.saveLineup(authenticatedOwnerId, lineup);
   revalidatePath("/pro-league");
 }
 

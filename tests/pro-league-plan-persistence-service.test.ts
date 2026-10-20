@@ -3,10 +3,18 @@ import { loadProLeaguePlanPersistenceState } from "@/lib/pro-league-plan-persist
 import type { ProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 
 const roster = { rosterVersionId: "draft-roster/generation-1" };
+const lineup = {
+  lineupVersionId: "draft-lineup/generation-1",
+  rosterVersionId: roster.rosterVersionId,
+  maps: Array.from({ length: 4 }, () => ({
+    entries: Array.from({ length: 42 }, () => ({})),
+  })),
+};
 const commissioning = {
   connectionStatus: "read_model_connected",
   evidence: { generationId: "generation-1" },
   roster: { draftRoster: roster },
+  lineup: { lineup },
   ownerPlan: {
     roster: Array.from({ length: 25 }, (_, index) => ({
       coreId: `core-${index + 1}`,
@@ -27,17 +35,20 @@ describe("Pro League owner roster persistence state", () => {
         ...base,
         authenticatedOwnerId: null,
         rosterRepository: null,
+        lineupRepository: null,
       }),
     ).resolves.toMatchObject({ status: "identity_not_connected" });
     await expect(
       loadProLeaguePlanPersistenceState({
         ...base,
         rosterRepository: null,
+        lineupRepository: null,
       }),
     ).resolves.toMatchObject({
       status: "persistence_not_configured",
       generationId: "generation-1",
       rosterVersionId: roster.rosterVersionId,
+      lineupVersionId: lineup.lineupVersionId,
     });
   });
 
@@ -49,20 +60,30 @@ describe("Pro League owner roster persistence state", () => {
         version: roster,
         createdAt: "2026-10-20T00:00:00.000Z",
       });
+    const loadLineup = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        version: lineup,
+        createdAt: "2026-10-20T00:01:00.000Z",
+      });
     await expect(
       loadProLeaguePlanPersistenceState({
         ...base,
         rosterRepository: { loadVersion },
+        lineupRepository: { loadLineup },
       }),
     ).resolves.toMatchObject({ status: "not_saved" });
     await expect(
       loadProLeaguePlanPersistenceState({
         ...base,
         rosterRepository: { loadVersion },
+        lineupRepository: { loadLineup },
       }),
     ).resolves.toMatchObject({
       status: "saved",
       rosterSavedAt: "2026-10-20T00:00:00.000Z",
+      lineupSavedAt: "2026-10-20T00:01:00.000Z",
     });
   });
 
@@ -76,6 +97,12 @@ describe("Pro League owner roster persistence state", () => {
             createdAt: "2026-10-20T00:00:00.000Z",
           })),
         },
+        lineupRepository: {
+          loadLineup: vi.fn(async () => ({
+            version: lineup,
+            createdAt: "2026-10-20T00:01:00.000Z",
+          })),
+        },
       }),
     ).resolves.toMatchObject({ status: "read_failed" });
     await expect(
@@ -85,6 +112,12 @@ describe("Pro League owner roster persistence state", () => {
           loadVersion: vi.fn(async () => {
             throw new Error("private database detail");
           }),
+        },
+        lineupRepository: {
+          loadLineup: vi.fn(async () => ({
+            version: lineup,
+            createdAt: "2026-10-20T00:01:00.000Z",
+          })),
         },
       }),
     ).resolves.toMatchObject({ status: "read_failed" });
