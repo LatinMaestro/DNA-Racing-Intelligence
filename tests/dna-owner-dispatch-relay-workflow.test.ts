@@ -258,6 +258,18 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "Dashboard import refresh migration authority is invalid.",
     );
+    expect(workflow).toContain(
+      "vault-performance-private-preview-verification.yml",
+    );
+    expect(workflow).toContain('"vault-performance-verification"');
+    expect(workflow).toContain(
+      "Vault Performance verification authority is invalid.",
+    );
+    expect(workflow).toContain("vault-performance-preview-migrations.yml");
+    expect(workflow).toContain('"vault-performance-migrations"');
+    expect(workflow).toContain(
+      "Vault Performance Preview migration authority is invalid.",
+    );
     expect(workflow).toContain("open-race-preview-migrations.yml");
     expect(workflow).toContain('"open-race-migrations"');
     expect(workflow).toContain(
