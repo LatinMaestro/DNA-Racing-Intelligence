@@ -154,7 +154,12 @@ export function createDiscoveryProbeRepository(
               profile.mode,
               profile.distance,
             ),
-            maidenState: core.meEligible ? "eligible" : "not_eligible",
+            maidenState:
+              core.meEligible === null
+                ? "unknown"
+                : core.meEligible
+                  ? "eligible"
+                  : "not_eligible",
             freshness: profile.freshness,
             dataCurrentThrough: profile.dataCurrentThrough,
           };
