@@ -241,6 +241,9 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("lifecycle-private-preview-verification.yml");
     expect(workflow).toContain('"lifecycle-verification"');
     expect(workflow).toContain("Lifecycle verification authority is invalid.");
+    expect(workflow).toContain("open-race-private-preview-verification.yml");
+    expect(workflow).toContain('"open-race-verification"');
+    expect(workflow).toContain("Open Race verification authority is invalid.");
     expect(workflow).toContain("lifecycle-ranking-preview-migration.yml");
     expect(workflow).toContain('"lifecycle-ranking-migration"');
     expect(workflow).toContain(
