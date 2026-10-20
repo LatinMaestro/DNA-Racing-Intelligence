@@ -10,10 +10,16 @@ BEGIN
     'dna_app_runtime',
     'dna.list_discovery_lineage_hypotheses(uuid, integer)',
     'EXECUTE'
-  ) OR has_function_privilege(
-    'PUBLIC',
-    'dna.list_discovery_lineage_hypotheses(uuid, integer)',
-    'EXECUTE'
+  ) OR EXISTS (
+    SELECT 1
+    FROM pg_proc procedure,
+      LATERAL aclexplode(
+        COALESCE(procedure.proacl, acldefault('f', procedure.proowner))
+      ) privilege
+    WHERE procedure.oid =
+      'dna.list_discovery_lineage_hypotheses(uuid,integer)'::regprocedure
+      AND privilege.grantee = 0
+      AND privilege.privilege_type = 'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'Discovery lineage read privileges are unsafe';
   END IF;
