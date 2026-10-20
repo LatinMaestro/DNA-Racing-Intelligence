@@ -251,6 +251,13 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "Dashboard and Readiness verification authority is invalid.",
     );
+    expect(workflow).toContain(
+      "dashboard-import-refresh-runtime-read-preview-migration.yml",
+    );
+    expect(workflow).toContain('"dashboard-import-refresh-migration"');
+    expect(workflow).toContain(
+      "Dashboard import refresh migration authority is invalid.",
+    );
     expect(workflow).toContain("open-race-preview-migrations.yml");
     expect(workflow).toContain('"open-race-migrations"');
     expect(workflow).toContain(
