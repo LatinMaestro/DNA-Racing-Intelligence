@@ -6,6 +6,7 @@ import type {
 } from "@/domain/import-workflow";
 import type { ImportWorkspaceConnectionStatus } from "@/lib/import-workspace-service";
 import type { ImportRollbackActionStatus } from "@/components/import-progress-panel";
+import type { ImportAggregateRetryActionStatus } from "@/components/import-progress-panel";
 
 const sourceLabels: Record<HistoricalImportSource, string> = {
   race_merge: "Race Merge",
@@ -78,10 +79,12 @@ export function ImportWorkspacePanel({
   workspace,
   connectionStatus,
   rollbackActionStatus,
+  aggregateRetryActionStatus = "not_configured",
 }: Readonly<{
   workspace: ImportWorkspace;
   connectionStatus: ImportWorkspaceConnectionStatus;
   rollbackActionStatus: ImportRollbackActionStatus;
+  aggregateRetryActionStatus?: ImportAggregateRetryActionStatus;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const evidenceConnected = connectionStatus === "read_model_connected";
@@ -239,6 +242,7 @@ export function ImportWorkspacePanel({
         <ImportProgressPanel
           batches={workspace.recentBatches}
           rollbackActionStatus={rollbackActionStatus}
+          aggregateRetryActionStatus={aggregateRetryActionStatus}
         />
       ) : null}
 

@@ -6,8 +6,8 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import {
   retryOwnerAggregateRefresh,
   type AggregateRetryActionDependencies,
-  unavailableAggregateRetryCapabilities,
 } from "@/lib/import-aggregate-retry-action-service";
+import { hostedImportAggregateRetryRuntime } from "@/lib/hosted-import-aggregate-retry-runtime";
 import {
   HostedImportCapacityMeasurementError,
   type HostedImportCapacityFailureCode,
@@ -214,6 +214,7 @@ function confirmationActionDependencies(): ImportConfirmationActionDependencies 
 }
 
 function aggregateRetryActionDependencies(): AggregateRetryActionDependencies {
+  const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID;
   return {
     resolveAuthenticatedOwnerId: () =>
       authenticatedClerkOwnerId({
@@ -222,9 +223,25 @@ function aggregateRetryActionDependencies(): AggregateRetryActionDependencies {
           secretKey: process.env.CLERK_SECRET_KEY,
         },
       }),
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    configuredOwnerId: configuredOwnerId ?? null,
     now: () => new Date(),
-    capabilities: unavailableAggregateRetryCapabilities,
+    capabilities: hostedImportAggregateRetryRuntime({
+      environment: {
+        authorizedOwnerId: configuredOwnerId,
+        database: {
+          databaseUrl: process.env.DATABASE_URL,
+          databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+          runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+        },
+        cloudflare: {
+          accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+          apiToken: process.env.CLOUDFLARE_API_TOKEN,
+          queueId: process.env.DNA_IMPORT_QUEUE_ID,
+          queueName: process.env.DNA_IMPORT_QUEUE_NAME,
+          deadLetterQueueName: process.env.DNA_IMPORT_DEAD_LETTER_QUEUE_NAME,
+        },
+      },
+    }),
   };
 }
 
@@ -252,6 +269,8 @@ export type ImportRollbackFormState = Readonly<{
   title: string;
   detail: string;
 }>;
+
+export type ImportAggregateRetryFormState = ImportRollbackFormState;
 
 function formText(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -302,6 +321,51 @@ export async function submitImportRollbackFormAction(
         ? error.message
         : "The rollback request could not be completed. No dataset change is claimed; refresh the page before retrying.";
     return { status: "error", title: "Rollback not recorded", detail };
+  }
+}
+
+export async function submitImportAggregateRetryFormAction(
+  _previousState: ImportAggregateRetryFormState | null,
+  formData: FormData,
+): Promise<ImportAggregateRetryFormState> {
+  try {
+    const result = await retryAggregateRefreshAction({
+      failedRefreshId: formText(formData, "failedRefreshId"),
+      retryReason: formText(formData, "retryReason"),
+      idempotencyKey: `aggregate-retry:${randomUUID()}`,
+      explicitlyConfirmed: formData.get("explicitlyConfirmed") === "yes",
+    });
+    if (result.status === "queued") {
+      revalidatePath("/imports");
+      return {
+        status: "success",
+        title:
+          result.disposition === "existing"
+            ? "Aggregate retry already queued"
+            : "Aggregate retry queued",
+        detail:
+          "The failed accepted-data aggregate refresh will be processed in the background. Readiness remains unavailable until publication completes.",
+      };
+    }
+    const detail = {
+      identity_not_connected:
+        "The signed-in owner could not be verified. No retry was queued.",
+      not_configured:
+        "Preview aggregate retry persistence or queue delivery is not configured. No retry was queued.",
+      not_found:
+        "The failed aggregate refresh could not be found. Refresh the page before trying again.",
+      not_retryable:
+        "That aggregate refresh is no longer failed and cannot be retried. Refresh the page to see its current state.",
+    }[result.status];
+    return { status: "error", title: "Aggregate retry not queued", detail };
+  } catch (error) {
+    const detail =
+      error instanceof Error &&
+      (error.message.startsWith("retryReason must") ||
+        error.message === "Explicit owner confirmation is required.")
+        ? error.message
+        : "The aggregate retry could not be queued. No successful dispatch is claimed; refresh the page before retrying.";
+    return { status: "error", title: "Aggregate retry not queued", detail };
   }
 }
 

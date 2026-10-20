@@ -67,4 +67,25 @@ describe("import progress panel", () => {
     expect(markup).toContain("Rollback unavailable");
     expect(markup).not.toContain("Rollback reason");
   });
+
+  it("renders the connected retry form only for a persisted failed refresh", () => {
+    const markup = renderToStaticMarkup(
+      <ImportProgressPanel
+        aggregateRetryActionStatus="ready"
+        batches={[
+          {
+            ...readyBatch,
+            aggregateRefreshedAt: null,
+            failedAggregateRefreshId: "refresh-failed-1",
+          },
+        ]}
+        rollbackActionStatus="ready"
+      />,
+    );
+
+    expect(markup).toContain("Retry failed aggregate refresh");
+    expect(markup).toContain("Retry reason");
+    expect(markup).toContain('name="failedRefreshId"');
+    expect(markup).toContain('value="refresh-failed-1"');
+  });
 });

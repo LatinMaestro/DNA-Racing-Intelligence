@@ -26,6 +26,7 @@ export type PrivateImportBatch = Readonly<{
   importCompletedAt: string | null;
   dataCurrentThrough: string | null;
   aggregateRefreshedAt: string | null;
+  failedAggregateRefreshId?: string | null;
   sourceRows: number;
   acceptedRows: number;
   rejectedRows: number;
@@ -105,6 +106,13 @@ function assertBatch(batch: PrivateImportBatch): void {
   const refreshedAt = batch.aggregateRefreshedAt
     ? canonicalTimestamp(batch.aggregateRefreshedAt, "aggregateRefreshedAt")
     : null;
+  if (
+    batch.failedAggregateRefreshId !== undefined &&
+    batch.failedAggregateRefreshId !== null &&
+    !batch.failedAggregateRefreshId.trim()
+  ) {
+    throw new Error("failedAggregateRefreshId must be non-empty");
+  }
 
   for (const field of [
     "sourceRows",

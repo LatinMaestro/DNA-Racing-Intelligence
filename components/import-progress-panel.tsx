@@ -6,8 +6,10 @@ import {
   type ImportProgressStageState,
 } from "@/domain/import-progress";
 import { ImportRollbackControl } from "@/components/import-rollback-control";
+import { ImportAggregateRetryControl } from "@/components/import-aggregate-retry-control";
 
 export type ImportRollbackActionStatus = "ready" | "not_configured";
+export type ImportAggregateRetryActionStatus = "ready" | "not_configured";
 
 const sourceLabels: Record<ImportProgressBatch["sourceType"], string> = {
   race_merge: "Race Merge",
@@ -44,9 +46,11 @@ function count(value: number): string {
 export function ImportProgressPanel({
   batches,
   rollbackActionStatus,
+  aggregateRetryActionStatus = "not_configured",
 }: Readonly<{
   batches: readonly ImportProgressBatch[];
   rollbackActionStatus: ImportRollbackActionStatus;
+  aggregateRetryActionStatus?: ImportAggregateRetryActionStatus;
 }>) {
   const progress = projectRecentImportProgress(batches);
 
@@ -165,15 +169,24 @@ export function ImportProgressPanel({
               </dl>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  className="cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)]"
-                  disabled
-                  type="button"
-                >
-                  {item.aggregateRefreshPending
-                    ? "Retry unavailable"
-                    : "Aggregate retry not required"}
-                </button>
+                {item.failedAggregateRefreshId !== null &&
+                aggregateRetryActionStatus === "ready" ? (
+                  <ImportAggregateRetryControl
+                    failedRefreshId={item.failedAggregateRefreshId}
+                  />
+                ) : (
+                  <button
+                    className="cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)]"
+                    disabled
+                    type="button"
+                  >
+                    {item.failedAggregateRefreshId !== null
+                      ? "Retry unavailable"
+                      : item.aggregateRefreshPending
+                        ? "Aggregate refresh in progress"
+                        : "Aggregate retry not required"}
+                  </button>
+                )}
                 {item.rollbackAvailable && rollbackActionStatus === "ready" ? (
                   <ImportRollbackControl batchId={item.key} />
                 ) : (
