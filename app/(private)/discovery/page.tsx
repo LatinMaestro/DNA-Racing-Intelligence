@@ -3,7 +3,7 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
 import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
-import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
 import { probeModes, type ProbeMode } from "@/domain/discovery-probe-plan";
 import type { DiscoveryStudyFilters } from "@/components/discovery-study-workspace";
@@ -72,12 +72,15 @@ export default async function DiscoveryPage({
     databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
     runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
   };
+  const now = new Date();
   const state = await loadDiscoveryWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
     repository: createDiscoveryProbeRepository({
-      vaultRepository:
-        neonOwnerVaultCatalogueRepositoryFromEnvironment(databaseEnvironment),
+      vaultRepository: ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
+        databaseEnvironment,
+        now.toISOString(),
+      ),
       performanceRepository:
         neonCorePerformanceProfileRepositoryFromEnvironment(
           databaseEnvironment,
@@ -93,7 +96,7 @@ export default async function DiscoveryPage({
           databaseEnvironment,
         ),
     }),
-    now: new Date(),
+    now,
   });
 
   return (
