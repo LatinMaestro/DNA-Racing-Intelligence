@@ -273,9 +273,8 @@ describe("Neon Tournament configuration repository", () => {
     expect(test.events[3]).toContain(
       "dna.list_bound_tournament_configurations",
     );
-    expect(test.events[4]).toContain("dna.owner_vault_core");
-    expect(test.events[4]).toContain("dna.active_core_details");
-    expect(test.events[4]).toContain("vault.in_my_vault");
+    expect(test.events[4]).toContain("dna.list_tournament_vault_core_state");
+    expect(test.events[4]).toContain("$1::uuid");
     expect(test.events[5]).toContain("dna.list_core_performance_profiles");
     expect(test.events[6]).toContain(
       "dna.list_discovery_exact_distance_benchmarks",

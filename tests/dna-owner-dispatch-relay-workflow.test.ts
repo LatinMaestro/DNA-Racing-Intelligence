@@ -52,6 +52,13 @@ describe("DNA owner dispatch relay workflow", () => {
     );
     expect(workflow).toContain('"population-core-history-authority-migration"');
     expect(workflow).toContain(
+      "tournament-vault-core-state-preview-migration.yml",
+    );
+    expect(workflow).toContain('"tournament-vault-core-state-migration"');
+    expect(workflow).toContain(
+      "Tournament Vault Core state migration authority is invalid.",
+    );
+    expect(workflow).toContain(
       "dna-open-lab-daily-refresh-provider-preflight.yml",
     );
     expect(workflow).toContain('"provider-capacity-preflight"');
