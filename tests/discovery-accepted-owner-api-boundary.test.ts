@@ -16,7 +16,9 @@ describe("Discovery accepted owner API Core source", () => {
     );
   });
 
-  it("restricts candidate evidence to API-owned Cores without inventing Maiden status", async () => {
+  it(
+    "restricts candidate evidence to API-owned Cores without inventing Maiden status",
+    async () => {
     const listCoresByOwner = vi.fn(async () => [
       {
         sourceCoreId: "10457",
@@ -105,8 +107,9 @@ describe("Discovery accepted owner API Core source", () => {
     expect(result.candidates.every(({ coreId }) => coreId === "10457")).toBe(
       true,
     );
-    expect(result.candidates.every(({ maidenState }) => maidenState === "unknown")).toBe(
-      true,
-    );
-  });
+    expect(
+      result.candidates.every(({ maidenState }) => maidenState === "unknown"),
+    ).toBe(true);
+    },
+  );
 });
