@@ -34,7 +34,13 @@ export function OwnerVaultStatus({
   state,
 }: Readonly<{ state: OwnerVaultCataloguePageState }>) {
   const connected = state.connectionStatus === "connected";
-  const meEligible = state.cores.filter((core) => core.meEligible).length;
+  const apiSnapshot = state.coverage === "accepted_owner_api_snapshot";
+  const meEligibilityAvailable = state.cores.every(
+    (core) => core.meEligible !== null,
+  );
+  const meEligible = state.cores.filter(
+    (core) => core.meEligible === true,
+  ).length;
   const atResultLimit =
     connected && state.cores.length >= OWNER_VAULT_LIST_LIMIT;
   const unavailable = connected
@@ -52,11 +58,17 @@ export function OwnerVaultStatus({
             My Vault
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Owner-maintained current ownership and ME eligibility.
+            {apiSnapshot
+              ? "Accepted API current ownership; registry-only ME state remains separate."
+              : "Owner-maintained current ownership and ME eligibility."}
           </p>
         </div>
         <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-semibold text-[var(--warning)]">
-          {connected ? "Owner registry connected" : unavailable?.badge}
+          {connected
+            ? apiSnapshot
+              ? "Owner API snapshot connected"
+              : "Owner registry connected"
+            : unavailable?.badge}
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -71,7 +83,9 @@ export function OwnerVaultStatus({
         <div>
           <dt className="text-[var(--muted)]">ME eligible shown</dt>
           <dd className="mt-1 font-medium">
-            {connected ? meEligible.toLocaleString("en-AU") : "Not available"}
+            {connected && meEligibilityAvailable
+              ? meEligible.toLocaleString("en-AU")
+              : "Not available"}
           </dd>
         </div>
       </dl>
@@ -92,8 +106,9 @@ export function OwnerVaultStatus({
         </p>
       ) : null}
       <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        This private registry is the current-state authority. It is maintained
-        in the website and is not inferred from historical races or a Vault CSV.
+        {apiSnapshot
+          ? "Ownership comes from the accepted owner-scoped combined API generation, not historical race inference."
+          : "This private registry is the current-state authority. It is maintained in the website and is not inferred from historical races or a Vault CSV."}
       </p>
       <Link
         className="mt-4 inline-flex rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold"

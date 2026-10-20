@@ -82,6 +82,39 @@ describe("My Vault to existing Search Core navigation", () => {
     expect(html).toContain("Vault data not connected");
   });
 
+  it("renders accepted API ownership without inventing registry or Maiden state", () => {
+    const html = renderToStaticMarkup(
+      <OwnerVaultWorkspace
+        state={{
+          ...connectedState,
+          filters: { ...connectedState.filters, scope: "vault" },
+          coverage: "accepted_owner_api_snapshot",
+          apiSnapshot: {
+            generationId: "11111111-1111-4111-8111-111111111111",
+            coreCount: 1,
+            oldestObservedAt: "2026-09-22T00:00:00.000Z",
+            newestObservedAt: "2026-09-22T00:00:00.000Z",
+          },
+          publication: null,
+          cores: [
+            {
+              ...connectedState.cores[0]!,
+              meEligible: null,
+              version: null,
+              source: "accepted_owner_api_snapshot",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(html).toContain("Accepted DNA API owner snapshot");
+    expect(html).toContain("ME eligibility unavailable");
+    expect(html).toContain("registry controls are unavailable");
+    expect(html).not.toContain("Find core to add");
+    expect(html).not.toContain('name="operation"');
+  });
+
   it.each([
     ["read_failed", "Vault records temporarily unavailable"],
     ["integrity_failed", "Vault records failed validation"],

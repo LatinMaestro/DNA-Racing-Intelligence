@@ -11,8 +11,8 @@ import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { loadDashboardReadinessPageState } from "@/lib/dashboard-readiness-service";
 import { loadDashboardFreshnessPageState } from "@/lib/dashboard-freshness-service";
 import { importBatchRepositoryFromEnvironment } from "@/lib/neon-import-batch-repository";
-import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
 import { neonReadinessAssessmentRepositoryFromEnvironment } from "@/lib/neon-readiness-assessment-repository";
+import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
 export const dynamic = "force-dynamic";
@@ -59,11 +59,10 @@ export default async function DashboardPage() {
     loadOwnerVaultCataloguePageState({
       authenticatedOwnerId,
       configuredOwnerId,
-      repository: neonOwnerVaultCatalogueRepositoryFromEnvironment({
-        databaseUrl: process.env.DATABASE_URL,
-        databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
-        runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
-      }),
+      repository: ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
+        databaseEnvironment,
+        now.toISOString(),
+      ),
       filters: { scope: "vault" },
     }),
     loadDashboardFreshnessPageState({

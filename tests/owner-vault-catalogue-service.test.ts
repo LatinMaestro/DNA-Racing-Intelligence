@@ -175,6 +175,42 @@ describe("owner Vault catalogue service", () => {
     expect(JSON.stringify(state)).not.toContain("provider detail");
   });
 
+  it("accepts owner API ownership while keeping registry-only fields unknown", async () => {
+    const apiCore = {
+      ...core,
+      meEligible: null,
+      version: null,
+      source: "accepted_owner_api_snapshot" as const,
+    };
+    const state = await loadOwnerVaultCataloguePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: {
+        status: "ready",
+        listCoresByOwner: vi.fn(),
+        readCataloguePageByOwner: async () => ({
+          cores: [apiCore],
+          publication: null,
+          coverage: "accepted_owner_api_snapshot",
+          apiSnapshot: {
+            generationId: "33333333-3333-4333-8333-333333333333",
+            coreCount: 214,
+            oldestObservedAt: "2026-09-22T00:00:00.000Z",
+            newestObservedAt: "2026-09-22T00:00:00.000Z",
+          },
+        }),
+      },
+      filters: { scope: "vault" },
+    });
+
+    expect(state).toMatchObject({
+      connectionStatus: "connected",
+      coverage: "accepted_owner_api_snapshot",
+      cores: [{ meEligible: null, version: null }],
+      apiSnapshot: { coreCount: 214 },
+    });
+  });
+
   it("withholds duplicate, impossible and inactive My Vault rows", async () => {
     for (const rows of [
       [core, core],

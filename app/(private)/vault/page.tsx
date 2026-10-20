@@ -1,6 +1,6 @@
 import { OwnerVaultWorkspace } from "@/components/owner-vault-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +26,18 @@ export default async function VaultPage({
       secretKey: process.env.CLERK_SECRET_KEY,
     },
   });
+  const now = new Date();
   const state = await loadOwnerVaultCataloguePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    repository: neonOwnerVaultCatalogueRepositoryFromEnvironment({
-      databaseUrl: process.env.DATABASE_URL,
-      databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
-      runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
-    }),
+    repository: ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
+      {
+        databaseUrl: process.env.DATABASE_URL,
+        databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+        runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+      },
+      now.toISOString(),
+    ),
     filters: {
       scope: single(params, "scope"),
       query: single(params, "q"),

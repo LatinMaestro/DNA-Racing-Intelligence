@@ -43,6 +43,10 @@ export function OwnerVaultWorkspace({
 }: Readonly<{ state: OwnerVaultCataloguePageState }>) {
   const connected = state.connectionStatus === "connected";
   const catalogueMode = state.filters.scope === "catalogue";
+  const apiSnapshot =
+    state.coverage === "accepted_owner_api_snapshot" &&
+    state.apiSnapshot !== null &&
+    state.apiSnapshot !== undefined;
   const resultLimit = catalogueMode
     ? OWNER_CORE_CATALOGUE_LIST_LIMIT
     : OWNER_VAULT_LIST_LIMIT;
@@ -58,16 +62,17 @@ export function OwnerVaultWorkspace({
     <div className="space-y-8">
       <header className="max-w-4xl">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Owner-maintained registry
+          {apiSnapshot
+            ? "Accepted owner API snapshot"
+            : "Owner-maintained registry"}
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           My Vault
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Maintain current ownership and Maiden eligibility directly against the
-          Core Details catalogue. Removing a core from My Vault does not delete
-          its historical racing, lineage, breeding, lifecycle or economic
-          evidence.
+          {apiSnapshot
+            ? "Browse the current owner-scoped Cores published by the accepted DNA API generation. Maiden eligibility and registry edits stay unavailable until an owner-maintained registry record exists."
+            : "Maintain current ownership and Maiden eligibility directly against the Core Details catalogue. Removing a core from My Vault does not delete its historical racing, lineage, breeding, lifecycle or economic evidence."}
         </p>
       </header>
 
@@ -83,17 +88,19 @@ export function OwnerVaultWorkspace({
         >
           My cores
         </Link>
-        <Link
-          className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
-            catalogueMode
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-[var(--border)] text-[var(--muted)]"
-          }`}
-          href="/vault?scope=catalogue"
-          aria-current={catalogueMode ? "page" : undefined}
-        >
-          Find core to add
-        </Link>
+        {apiSnapshot ? null : (
+          <Link
+            className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+              catalogueMode
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-[var(--border)] text-[var(--muted)]"
+            }`}
+            href="/vault?scope=catalogue"
+            aria-current={catalogueMode ? "page" : undefined}
+          >
+            Find core to add
+          </Link>
+        )}
       </nav>
 
       <form
@@ -218,6 +225,21 @@ export function OwnerVaultWorkspace({
                 {state.publication.aggregateRefreshedAt}
               </p>
             </div>
+          ) : apiSnapshot ? (
+            <div className="mb-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+              <h2 className="font-semibold">Accepted DNA API owner snapshot</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Generation {state.apiSnapshot?.generationId} ·{" "}
+                {state.apiSnapshot?.coreCount.toLocaleString("en-AU")} current
+                owner Cores
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                Observed {state.apiSnapshot?.oldestObservedAt} to{" "}
+                {state.apiSnapshot?.newestObservedAt}. This source confirms
+                current ownership, not Maiden eligibility or editable registry
+                state.
+              </p>
+            </div>
           ) : null}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -318,9 +340,11 @@ export function OwnerVaultWorkspace({
                           <td className="p-3">
                             {core.inMyVault ? "In My Vault" : "Not in My Vault"}
                             <p className="mt-1 text-xs text-[var(--muted)]">
-                              {core.meEligible
-                                ? "ME eligible"
-                                : "Not ME eligible"}
+                              {core.meEligible === null
+                                ? "ME eligibility unavailable"
+                                : core.meEligible
+                                  ? "ME eligible"
+                                  : "Not ME eligible"}
                             </p>
                           </td>
                         </tr>
@@ -380,7 +404,14 @@ export function OwnerVaultWorkspace({
                       >
                         View race evidence
                       </Link>
-                      <OwnerVaultMutationForm core={core} />
+                      {core.version === null || core.meEligible === null ? (
+                        <p className="basis-full text-xs leading-5 text-[var(--muted)]">
+                          Owner registry controls are unavailable for this API
+                          snapshot row.
+                        </p>
+                      ) : (
+                        <OwnerVaultMutationForm core={core} />
+                      )}
                     </div>
                   </article>
                 ))}
