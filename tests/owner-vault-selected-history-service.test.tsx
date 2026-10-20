@@ -89,7 +89,7 @@ function fixture() {
 }
 
 describe("My Vault selected accepted history", () => {
-  it("pins one accepted owned Core, reads a bounded generation and renders exact source facts", async () => {
+  it("renders bounded exact-source history for one owned Core", async () => {
     const f = fixture();
     const state = await loadOwnerVaultSelectedHistory({
       catalogue,
@@ -142,7 +142,7 @@ describe("My Vault selected accepted history", () => {
     expect(f.readSelectedCoreRows).not.toHaveBeenCalled();
   });
 
-  it("does not read across identities; missing generations remain unknown", async () => {
+  it("rejects cross-owner reads and preserves unknown sources", async () => {
     const f = fixture();
     await expect(
       loadOwnerVaultSelectedHistory({
@@ -162,6 +162,8 @@ describe("My Vault selected accepted history", () => {
       configuredOwnerId: ownerId,
       acceptedHistoryRepository: null,
     });
-    expect(selected.acceptedHistory?.acceptedHistoryStatus).toBe("not_connected");
+    expect(selected.acceptedHistory?.acceptedHistoryStatus).toBe(
+      "not_connected",
+    );
   });
 });
