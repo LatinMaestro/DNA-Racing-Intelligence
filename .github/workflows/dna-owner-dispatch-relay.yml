@@ -764,6 +764,28 @@ jobs:
                 synchronize_preview_runtime: true,
               };
               break;
+            case "pro-league-draft-verification":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "verified_at",
+                "execute_private_preview_verification",
+              ]);
+              if (
+                !exactTimestamp(payload.verified_at) ||
+                payload.execute_private_preview_verification !== true
+              ) {
+                throw new Error(
+                  "Pro League draft verification authority is invalid.",
+                );
+              }
+              workflow =
+                "pro-league-draft-private-preview-verification.yml";
+              inputs = {
+                verified_at: payload.verified_at,
+                execute_private_preview_verification: true,
+              };
+              break;
             default:
               throw new Error("Owner dispatch workflow is not allow-listed.");
           }
