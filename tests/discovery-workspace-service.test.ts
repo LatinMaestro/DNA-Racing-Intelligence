@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { buildCorePerformanceProfiles } from "@/domain/core-performance";
 import type { DiscoveryExactDistanceBenchmarkEvidence } from "@/domain/discovery-benchmark";
 import type { DiscoveryProbeCandidateInput } from "@/domain/discovery-probe-plan";
 import {
@@ -469,6 +470,83 @@ describe("Discovery workspace service", () => {
           lineageRaceCount: 1,
         },
       ],
+    });
+  });
+
+  it("keeps API-owned Core Maiden status unknown while admitting accepted direct evidence", async () => {
+    const profile = buildCorePerformanceProfiles(
+      [
+        {
+          eventId: "api-owned-core-event",
+          eventAt: "2026-07-20T00:00:00.000Z",
+          coreId: "api-owned-core",
+          mode: "bike",
+          distance: 1_400,
+          elapsedTimeMilliseconds: 60_000,
+        },
+      ],
+      [],
+      new Date("2026-07-21T00:00:00.000Z"),
+    )[0]!;
+    const repo = createDiscoveryProbeRepository({
+      vaultRepository: {
+        status: "ready",
+        listCoresByOwner: async () => [
+          {
+            sourceCoreId: "api-owned-core",
+            displayName: "Accepted API Core",
+            coreClass: "Genesis",
+            element: "Fire",
+            fNumber: 1,
+            sex: "female",
+            inMyVault: true,
+            meEligible: null,
+            version: null,
+            updatedAt: "2026-07-20T00:00:00.000Z",
+            source: "accepted_owner_api_snapshot",
+          },
+        ],
+      },
+      performanceRepository: {
+        status: "ready",
+        listProfilesByOwner: async () => ({
+          profiles: [profile],
+          lastImportedAt: "2026-07-20T01:00:00.000Z",
+        }),
+      },
+      lineageRepository: {
+        status: "ready",
+        listHypothesesByOwner: async () => [],
+      },
+      benchmarkRepository: {
+        status: "ready",
+        listBenchmarksByOwner: async () => ({
+          benchmarks: [],
+          publication: null,
+        }),
+      },
+      tournamentRepository: { status: "not_configured" },
+    });
+    expect(repo.status).toBe("ready");
+    if (repo.status !== "ready") throw new Error("repository unavailable");
+    const evidence = await repo.listCandidateEvidenceByOwner("owner");
+    expect(evidence.candidates).toHaveLength(1);
+    expect(evidence.candidates[0]).toMatchObject({
+      coreId: "api-owned-core",
+      mode: "bike",
+      maidenState: "unknown",
+    });
+    const state = await loadDiscoveryWorkspacePageState({
+      authenticatedOwnerId: "owner",
+      configuredOwnerId: "owner",
+      repository: repo,
+      now: new Date("2026-07-21T00:00:00.000Z"),
+    });
+    expect(state.connectionStatus).toBe("read_model_connected");
+    expect(state.candidates[0]).toMatchObject({
+      coreId: "api-owned-core",
+      maidenState: "unknown",
+      automaticEntryAllowed: false,
     });
   });
 });
