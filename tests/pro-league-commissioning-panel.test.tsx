@@ -246,10 +246,20 @@ describe("Pro League commissioning panel", () => {
     } as unknown as ProLeagueDraftCommissioningState;
 
     const markup = renderToStaticMarkup(
-      <ProLeagueCommissioningPanel state={state} />,
+      <ProLeagueCommissioningPanel
+        planPersistence={{
+          status: "saved",
+          generationId: "generation-1",
+          rosterVersionId: "draft-roster/generation-1",
+          rosterSavedAt: "2026-10-20T00:00:00.000Z",
+        }}
+        state={state}
+      />,
     );
 
     expect(markup).toContain("Roster recommendation");
+    expect(markup).toContain("Immutable 25-Core roster persisted");
+    expect(markup).toContain("Full-gate map persistence remains separate");
     expect(markup).toContain("Roster health");
     expect(markup).toContain("Historical Race evidence");
     expect(markup).toContain("2026-09-02T00:11:55.961Z");

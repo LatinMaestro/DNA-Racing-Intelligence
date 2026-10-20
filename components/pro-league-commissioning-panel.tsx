@@ -1,5 +1,7 @@
 import type { ProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
 import { ProLeagueMapCoverage } from "@/components/pro-league-map-coverage";
+import { ProLeaguePlanPersistenceControl } from "@/components/pro-league-plan-persistence-control";
+import type { ProLeaguePlanPersistenceState } from "@/lib/pro-league-plan-persistence-service";
 
 const unavailableCopy = {
   identity_not_connected: {
@@ -84,7 +86,16 @@ function timingTrend(
 
 export function ProLeagueCommissioningPanel({
   state,
-}: Readonly<{ state: ProLeagueDraftCommissioningState }>) {
+  planPersistence = {
+    status: "plan_unavailable",
+    generationId: null,
+    rosterVersionId: null,
+    rosterSavedAt: null,
+  },
+}: Readonly<{
+  state: ProLeagueDraftCommissioningState;
+  planPersistence?: ProLeaguePlanPersistenceState;
+}>) {
   if (
     state.connectionStatus === "identity_not_connected" ||
     state.connectionStatus === "persistence_not_configured" ||
@@ -150,6 +161,8 @@ export function ProLeagueCommissioningPanel({
           Vault.
         </p>
       </section>
+
+      <ProLeaguePlanPersistenceControl state={planPersistence} />
 
       {populationBenchmarkBlocked ? (
         <section className="rounded-2xl border border-[var(--warning)] bg-[var(--surface-raised)] p-5">
