@@ -212,7 +212,17 @@ jobs:
             ] LOOP
               IF NOT has_function_privilege(
                 'dna_app_runtime', function_name, 'EXECUTE'
-              ) OR has_function_privilege('PUBLIC', function_name, 'EXECUTE') THEN
+              ) OR EXISTS (
+                SELECT 1
+                FROM pg_catalog.pg_proc procedure,
+                  LATERAL pg_catalog.aclexplode(COALESCE(
+                    procedure.proacl,
+                    pg_catalog.acldefault('f', procedure.proowner)
+                  )) acl
+                WHERE procedure.oid = function_name::regprocedure
+                  AND acl.grantee = 0
+                  AND acl.privilege_type = 'EXECUTE'
+              ) THEN
                 RAISE EXCEPTION 'Open Race function contract failed';
               END IF;
             END LOOP;
