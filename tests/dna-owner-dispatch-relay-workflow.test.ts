@@ -235,6 +235,9 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain("maiden-private-preview-verification.yml");
     expect(workflow).toContain('"maiden-verification"');
     expect(workflow).toContain("Maiden verification authority is invalid.");
+    expect(workflow).toContain("breeding-private-preview-verification.yml");
+    expect(workflow).toContain('"breeding-verification"');
+    expect(workflow).toContain("Breeding verification authority is invalid.");
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toContain("secrets.");
   });
