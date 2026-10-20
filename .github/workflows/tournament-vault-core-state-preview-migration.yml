@@ -147,6 +147,7 @@ jobs:
           psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
             database/migrations/0148_tournament_vault_core_state_read.up.sql
           if ! psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 \
             --file database/migrations/0148_tournament_vault_core_state_read.smoke.sql; then
             psql "${DNA_MIGRATION_DATABASE_URL}" --set ON_ERROR_STOP=1 --file \
               database/migrations/0148_tournament_vault_core_state_read.down.sql
