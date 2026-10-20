@@ -1,5 +1,7 @@
 import { OwnerVaultWorkspace } from "@/components/owner-vault-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
+import { neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment } from "@/lib/neon-active-dna-core-race-history-generation";
+import { loadOwnerVaultSelectedHistory } from "@/lib/owner-vault-selected-history-service";
 import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
@@ -27,15 +29,16 @@ export default async function VaultPage({
     },
   });
   const now = new Date();
+  const databaseEnvironment = {
+    databaseUrl: process.env.DATABASE_URL,
+    databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+    runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+  };
   const state = await loadOwnerVaultCataloguePageState({
     authenticatedOwnerId,
     configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
     repository: ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
-      {
-        databaseUrl: process.env.DATABASE_URL,
-        databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
-        runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
-      },
+      databaseEnvironment,
       now.toISOString(),
     ),
     filters: {
@@ -48,5 +51,19 @@ export default async function VaultPage({
     },
   });
 
-  return <OwnerVaultWorkspace state={state} />;
+  const selectedHistory = await loadOwnerVaultSelectedHistory({
+    catalogue: state,
+    selectedCoreId: single(params, "coreId"),
+    authenticatedOwnerId,
+    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
+    acceptedHistoryRepository:
+      neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment({
+        ...databaseEnvironment,
+        ownerId: process.env.AUTHORIZED_CLERK_USER_ID,
+      }),
+  });
+
+  return (
+    <OwnerVaultWorkspace state={state} selectedHistory={selectedHistory} />
+  );
 }
