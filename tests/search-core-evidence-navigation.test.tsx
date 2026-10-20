@@ -61,6 +61,9 @@ const state: SearchCorePageState = {
     refreshedAt: "2026-10-02T00:00:00.000Z",
     publishedAt: "2026-10-02T00:01:00.000Z",
   },
+  acceptedHistoryStatus: "not_connected",
+  acceptedHistoryGeneration: null,
+  acceptedHistoryRows: [],
   archiveHistoryStatus: "unavailable",
   archiveHistoryVersionCount: 0,
   archiveHistoryPartitionCount: 0,
@@ -105,6 +108,64 @@ describe("Core evidence navigation", () => {
     expect(html).toContain("no nearby distance is substituted");
     expect(html).not.toContain("50.000 s");
     expect(html).not.toContain("77.777 s");
+  });
+
+  it("shows exact accepted API context while keeping unsupported cells unavailable", () => {
+    const row = {
+      generationId: "a".repeat(64),
+      ordinal: 0,
+      naturalKey: `core-result:${core.sourceCoreId}:bike:race-9`,
+      rowSha256: "d".repeat(64),
+      payload: {
+        sourceType: "joined_core_race_history_result" as const,
+        naturalKey: `core-result:${core.sourceCoreId}:bike:race-9`,
+        resultEvidenceSha256: "e".repeat(64),
+        raceDocumentEvidenceSha256: "f".repeat(64),
+        raceDocumentObservedAt: "2026-09-01T00:00:00.000Z",
+        sourceCoreId: core.sourceCoreId,
+        sourceRaceId: "race-9",
+        mode: "bike" as const,
+        distanceMetres: 2_300,
+        distanceAuthority: "result_and_race_document" as const,
+        elapsedMilliseconds: 137_810,
+        finishPosition: 4,
+        eventAt: "2026-08-31T00:00:00.000Z",
+        gateCount: 6,
+        payoutMechanismSourceValue: null,
+        sourceFormat: "normal",
+        sourceRaceClass: null,
+        goldStar: null,
+        blueStar: null,
+        starEvidenceStatus: "missing" as const,
+        publishedCellStatus: "unsupported_format" as const,
+        raceType: null,
+        mapIds: [],
+      },
+    };
+    const html = renderToStaticMarkup(
+      <SearchCoreWorkspace
+        state={{
+          ...state,
+          acceptedHistoryStatus: "connected",
+          acceptedHistoryGeneration: {
+            generationId: "a".repeat(64),
+            observationSetSha256: "b".repeat(64),
+            publishedAt: "2026-09-02T00:00:00.000Z",
+            observationCount: 93_089,
+          },
+          acceptedHistoryRows: [row],
+        }}
+        filters={{ mode: "bike", distance: 2_300 }}
+      />,
+    );
+
+    expect(html).toContain("Accepted API race history");
+    expect(html).toContain("Bike");
+    expect(html).toContain("2,300 m");
+    expect(html).toContain("normal");
+    expect(html).toContain("Unavailable: unsupported format");
+    expect(html).toContain(`Row SHA-256 ${"d".repeat(64)}`);
+    expect(html).not.toContain("Accepted analytical cell");
   });
 
   it.each([
