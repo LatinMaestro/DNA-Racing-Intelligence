@@ -265,6 +265,9 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "Vault Performance verification authority is invalid.",
     );
+    expect(workflow).toContain("import-api-private-preview-verification.yml");
+    expect(workflow).toContain('case "import-api-verification"');
+    expect(workflow).toContain("Import/API verification authority is invalid.");
     expect(workflow).toContain("vault-performance-preview-migrations.yml");
     expect(workflow).toContain('"vault-performance-migrations"');
     expect(workflow).toContain(
