@@ -34,6 +34,7 @@ jobs:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime
       IMPORT_API_COMMISSIONING_VERIFIED_AT: ${{ inputs.verified_at }}
       IMPORT_API_COMMISSIONING: "1"
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -94,6 +95,17 @@ jobs:
             echo "Private Preview branch identity is not approved."
             exit 1
           fi
+          runtime_url="$(npx --yes neon@6.0.0 connection-string "${branch_id}" \
+            --project-id "${NEON_PROJECT_ID}" \
+            --role-name "${DNA_DATABASE_RUNTIME_ROLE}" \
+            --database-name "${APPROVED_NEON_DATABASE_NAME}" \
+            --no-color 2>/dev/null)"
+          if [[ ! "${runtime_url}" =~ ^postgres(ql)?://[^[:space:]]+$ ]]; then
+            echo "Short-lived Preview runtime binding is invalid."
+            exit 1
+          fi
+          echo "::add-mask::${runtime_url}"
+          echo "DATABASE_URL=${runtime_url}" >> "${GITHUB_ENV}"
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -101,10 +113,66 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+      - name: Prove masked binding is the forced-RLS least-privilege runtime
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const { Pool } = await import("@neondatabase/serverless");
+          const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            max: 1,
+            connectionTimeoutMillis: 10_000,
+          });
+          try {
+            const result = await pool.query(`
+              SELECT
+                session_user::text AS session_user_name,
+                current_user::text AS current_user_name,
+                role.rolsuper AS runtime_is_superuser,
+                role.rolbypassrls AS runtime_bypasses_rls,
+                role.rolcreaterole AS runtime_can_create_roles,
+                role.rolcreatedb AS runtime_can_create_databases,
+                has_table_privilege(
+                  current_user,
+                  'dna.aggregate_refresh_job',
+                  'SELECT'
+                ) AS can_read_refresh,
+                relation.relrowsecurity AS refresh_rls,
+                relation.relforcerowsecurity AS refresh_force_rls
+              FROM pg_catalog.pg_roles role
+              JOIN pg_catalog.pg_class relation
+                ON relation.oid = 'dna.aggregate_refresh_job'::regclass
+              WHERE role.rolname = current_user
+            `);
+            const row = result.rows[0];
+            if (
+              result.rows.length !== 1 ||
+              row?.session_user_name !== process.env.DNA_DATABASE_RUNTIME_ROLE ||
+              row?.current_user_name !== process.env.DNA_DATABASE_RUNTIME_ROLE ||
+              row?.runtime_is_superuser !== false ||
+              row?.runtime_bypasses_rls !== false ||
+              row?.runtime_can_create_roles !== false ||
+              row?.runtime_can_create_databases !== false ||
+              row?.can_read_refresh !== true ||
+              row?.refresh_rls !== true ||
+              row?.refresh_force_rls !== true
+            ) {
+              throw new Error(
+                "Private Preview runtime binding is not least privileged.",
+              );
+            }
+          } finally {
+            await pool.end();
+          }
+          NODE
       - name: Run bounded read-only Import/API verification
         run: >-
           npx vitest run --no-file-parallelism
           tests/hosted-preview-connected-import-api-commissioning.test.tsx
+      - name: Clear short-lived Preview runtime binding
+        if: always()
+        shell: bash
+        run: echo "DATABASE_URL=" >> "${GITHUB_ENV}"
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
