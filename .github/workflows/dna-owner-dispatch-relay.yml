@@ -1014,6 +1014,27 @@ jobs:
                 execute_private_preview_verification: true,
               };
               break;
+            case "import-api-verification":
+              exactKeys([
+                "kind",
+                "expected_main_sha",
+                "verified_at",
+                "execute_private_preview_verification",
+              ]);
+              if (
+                !exactTimestamp(payload.verified_at) ||
+                payload.execute_private_preview_verification !== true
+              ) {
+                throw new Error(
+                  "Import/API verification authority is invalid.",
+                );
+              }
+              workflow = "import-api-private-preview-verification.yml";
+              inputs = {
+                verified_at: payload.verified_at,
+                execute_private_preview_verification: true,
+              };
+              break;
             case "vault-performance-migrations":
               exactKeys([
                 "kind",
