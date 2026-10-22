@@ -37,6 +37,12 @@ const FIND_REFRESH_SQL = `
   SELECT status, failure_code
   FROM dna.aggregate_refresh_job
   WHERE owner_id = $1::uuid AND id = $2::uuid
+  LIMIT 1
+`;
+const LOCK_REFRESH_SQL = `
+  SELECT status, failure_code
+  FROM dna.aggregate_refresh_job
+  WHERE owner_id = $1::uuid AND id = $2::uuid
   FOR UPDATE
 `;
 const RESERVE_OPERATION_SQL = `
@@ -220,6 +226,25 @@ export function createNeonImportAggregateRetryRepository(input: {
           return {
             status: "not_retryable" as const,
             refreshStatus: mappedStatus(refreshStatus),
+          };
+        }
+
+        const lockedRefreshResult = await client.query(LOCK_REFRESH_SQL, [
+          config.databaseOwnerId,
+          reservation.failedRefreshId,
+        ]);
+        if (lockedRefreshResult.rows.length === 0) {
+          return { status: "not_found" };
+        }
+        const lockedRefresh = oneRow(
+          lockedRefreshResult,
+          "locked aggregate refresh",
+        );
+        const lockedRefreshStatus = string(lockedRefresh.status, "status");
+        if (lockedRefreshStatus !== "failed") {
+          return {
+            status: "not_retryable" as const,
+            refreshStatus: mappedStatus(lockedRefreshStatus),
           };
         }
 
