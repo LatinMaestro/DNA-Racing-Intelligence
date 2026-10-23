@@ -67,8 +67,8 @@ describeConnected("connected private owner page routes", () => {
     );
 
     for (const html of [vaultHtml, searchHtml]) {
-      expect(html).toContain("Core 10457");
-      expect(html).toContain("214 current owner Cores");
+      expect(html).toContain("Core ID 10457");
+      expect(html).toContain("Salsa");
       expect(html).toContain("Bike");
       expect(html).toContain("normal");
       expect(html).toContain("Accepted analytical cell");
@@ -76,6 +76,8 @@ describeConnected("connected private owner page routes", () => {
       expect(html).toContain("Unavailable: unpublished analytical cell");
       expect(html).toMatch(/Row SHA-256 [a-f0-9]{64}/u);
     }
+    expect(vaultHtml).toContain("214 current owner Cores");
+    expect(searchHtml).toContain("214 owner Cores");
 
     const vaultHistoryCount = vaultHtml.match(
       /Showing 100 of ([1-9][0-9]*) matching rows \(first 100 shown\)\./u,
