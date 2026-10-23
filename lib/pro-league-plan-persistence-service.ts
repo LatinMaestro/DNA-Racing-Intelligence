@@ -13,6 +13,7 @@ export type ProLeaguePlanPersistenceState = Readonly<{
   lineupVersionId: string | null;
   rosterSavedAt: string | null;
   lineupSavedAt: string | null;
+  failureStage?: "roster_read" | "lineup_read" | "integrity" | null;
 }>;
 
 type RosterReadRepository = Readonly<{
@@ -48,6 +49,19 @@ const empty = (
   lineupVersionId: null,
   rosterSavedAt: null,
   lineupSavedAt: null,
+  failureStage: null,
+});
+
+const failed = (
+  identity: Pick<
+    ProLeaguePlanPersistenceState,
+    "generationId" | "rosterVersionId" | "lineupVersionId"
+  >,
+  failureStage: NonNullable<ProLeaguePlanPersistenceState["failureStage"]>,
+): ProLeaguePlanPersistenceState => ({
+  ...empty("read_failed"),
+  ...identity,
+  failureStage,
 });
 
 export async function loadProLeaguePlanPersistenceState(
@@ -94,34 +108,41 @@ export async function loadProLeaguePlanPersistenceState(
   if (input.rosterRepository === null || input.lineupRepository === null) {
     return { ...empty("persistence_not_configured"), ...identity };
   }
+  let storedRoster: Awaited<ReturnType<RosterReadRepository["loadVersion"]>>;
   try {
-    const storedRoster = await input.rosterRepository.loadVersion(
+    storedRoster = await input.rosterRepository.loadVersion(
       authenticatedOwnerId,
       roster.rosterVersionId,
     );
-    const storedLineup = await input.lineupRepository.loadLineup(
+  } catch {
+    return failed(identity, "roster_read");
+  }
+  let storedLineup: Awaited<ReturnType<LineupReadRepository["loadLineup"]>>;
+  try {
+    storedLineup = await input.lineupRepository.loadLineup(
       authenticatedOwnerId,
       lineup.lineupVersionId,
     );
-    if (storedRoster === null || storedLineup === null) {
-      return { ...empty("not_saved"), ...identity };
-    }
-    if (
-      storedRoster.version.rosterVersionId !== roster.rosterVersionId ||
-      storedLineup.version.lineupVersionId !== lineup.lineupVersionId ||
-      storedLineup.version.rosterVersionId !== roster.rosterVersionId ||
-      storedLineup.version.maps.length !== 4 ||
-      storedLineup.version.maps.flatMap(({ entries }) => entries).length !== 168
-    ) {
-      return { ...empty("read_failed"), ...identity };
-    }
-    return {
-      status: "saved",
-      ...identity,
-      rosterSavedAt: storedRoster.createdAt,
-      lineupSavedAt: storedLineup.createdAt,
-    };
   } catch {
-    return { ...empty("read_failed"), ...identity };
+    return failed(identity, "lineup_read");
   }
+  if (storedRoster === null || storedLineup === null) {
+    return { ...empty("not_saved"), ...identity };
+  }
+  if (
+    storedRoster.version.rosterVersionId !== roster.rosterVersionId ||
+    storedLineup.version.lineupVersionId !== lineup.lineupVersionId ||
+    storedLineup.version.rosterVersionId !== roster.rosterVersionId ||
+    storedLineup.version.maps.length !== 4 ||
+    storedLineup.version.maps.flatMap(({ entries }) => entries).length !== 168
+  ) {
+    return failed(identity, "integrity");
+  }
+  return {
+    status: "saved",
+    ...identity,
+    rosterSavedAt: storedRoster.createdAt,
+    lineupSavedAt: storedLineup.createdAt,
+    failureStage: null,
+  };
 }
