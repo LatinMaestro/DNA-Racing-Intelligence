@@ -31,6 +31,10 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
+function captures(html: string, pattern: RegExp): string[] {
+  return [...html.matchAll(pattern)].map((match) => match[1]!);
+}
+
 describeConnected("connected private owner page routes", () => {
   let ownerId: string;
 
@@ -65,17 +69,50 @@ describeConnected("connected private owner page routes", () => {
     for (const html of [vaultHtml, searchHtml]) {
       expect(html).toContain("Core 10457");
       expect(html).toContain("214 current owner Cores");
-      expect(html).toContain("Showing 16 of 16 matching rows");
       expect(html).toContain("Bike");
-      expect(html).toContain("1,900 m");
-      expect(html).toContain("2,300 m");
       expect(html).toContain("normal");
-      expect(html).toContain("spin_n_go");
       expect(html).toContain("Accepted analytical cell");
       expect(html).toContain("Unavailable: unsupported format");
       expect(html).toContain("Unavailable: unpublished analytical cell");
       expect(html).toMatch(/Row SHA-256 [a-f0-9]{64}/u);
     }
+
+    const vaultHistoryCount = vaultHtml.match(
+      /Showing 100 of ([1-9][0-9]*) matching rows \(first 100 shown\)\./u,
+    );
+    const searchHistoryCount = searchHtml.match(
+      /Showing 100 of ([1-9][0-9]*) matching rows \(first 100 shown\)\./u,
+    );
+    expect(vaultHistoryCount).not.toBeNull();
+    expect(searchHistoryCount).not.toBeNull();
+    const acceptedHistoryRowCount = Number(vaultHistoryCount![1]);
+    expect(acceptedHistoryRowCount).toBeGreaterThan(100);
+    expect(acceptedHistoryRowCount).toBeLessThanOrEqual(1_000);
+    expect(Number(searchHistoryCount![1])).toBe(acceptedHistoryRowCount);
+
+    const distances = captures(
+      vaultHtml,
+      /Distance<\/dt><dd class="font-semibold">([0-9,]+) m<\/dd>/gu,
+    ).map((value) => Number(value.replaceAll(",", "")));
+    const gates = captures(
+      vaultHtml,
+      /Gates<\/dt><dd class="font-semibold">([0-9]+)<\/dd>/gu,
+    ).map(Number);
+    const formats = captures(
+      vaultHtml,
+      /Format<\/dt><dd class="font-semibold">([^<]+)<\/dd>/gu,
+    );
+    const elapsedTimes = captures(
+      vaultHtml,
+      /Finish \/ time<\/dt><dd class="font-semibold">[0-9]+ · ([0-9]+\.[0-9]{3} s)<\/dd>/gu,
+    );
+    const rowSha256 = captures(vaultHtml, /Row SHA-256 ([a-f0-9]{64})/gu);
+    expect(distances).toHaveLength(100);
+    expect(gates).toHaveLength(100);
+    expect(formats).toHaveLength(100);
+    expect(elapsedTimes).toHaveLength(100);
+    expect(rowSha256).toHaveLength(100);
+    expect(new Set(rowSha256).size).toBe(100);
     expect(vaultHtml).toContain("Accepted race history — Salsa (Core 10457)");
     expect(searchHtml).toContain("Salsa");
     expect(searchHtml).toContain("Accepted API race history");
@@ -86,11 +123,13 @@ describeConnected("connected private owner page routes", () => {
         status: "connected_preview_db",
         selectedCoreId,
         ownerCoreCount: 214,
-        acceptedHistoryRowCount: 16,
+        acceptedHistoryRowCount,
+        renderedHistoryRowCount: rowSha256.length,
         modes: ["bike"],
-        distanceRangeMetres: [1_900, 2_300],
-        gateRange: [2, 12],
-        formats: ["normal", "spin_n_go"],
+        distancesMetres: [...new Set(distances)].sort((a, b) => a - b),
+        gates: [...new Set(gates)].sort((a, b) => a - b),
+        formats: [...new Set(formats)].sort(),
+        elapsedTimeSamples: elapsedTimes,
         publishedCellStatuses: [
           "accepted",
           "unsupported_format",
