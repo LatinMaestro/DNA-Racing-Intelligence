@@ -72,6 +72,7 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain('ENABLE_PHASE0_REVIEW: "true"');
     expect(workflow).toContain("synchronize_preview_runtime");
     expect(workflow).toContain("scripts/vercel-preview-environment-sync.mjs");
+    expect(workflow).toContain("--preflight-access-only");
     expect(workflow).toContain("--environment=preview");
     expect(workflow).toContain("--validate-only");
     expect(workflow).toContain("401|403)");
@@ -113,5 +114,14 @@ describe("protected private Preview deployment workflow", () => {
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY/u);
+
+    const accessPreflight = workflow.indexOf("--preflight-access-only");
+    const providerValidation = workflow.indexOf(
+      "Validate protected Preview provider settings without exposure",
+    );
+    const dependencyInstall = workflow.indexOf("npm ci --ignore-scripts");
+    expect(accessPreflight).toBeGreaterThan(-1);
+    expect(accessPreflight).toBeLessThan(providerValidation);
+    expect(accessPreflight).toBeLessThan(dependencyInstall);
   });
 });

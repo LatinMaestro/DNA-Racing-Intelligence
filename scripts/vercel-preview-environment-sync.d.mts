@@ -30,6 +30,13 @@ export function previewEnvironmentSpecification(
   environment: Readonly<Record<string, string | undefined>>,
 ): PreviewEnvironmentEntry[];
 
+export function preflightVercelPreviewAccess(
+  options?: Readonly<{
+    environment?: Readonly<Record<string, string | undefined>>;
+    fetcher?: PreviewEnvironmentFetcher;
+  }>,
+): Promise<Readonly<{ environmentVariableCount: number }>>;
+
 export function syncPreviewEnvironment(
   options?: Readonly<{
     environment?: Readonly<Record<string, string | undefined>>;

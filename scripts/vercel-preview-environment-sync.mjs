@@ -270,6 +270,21 @@ async function fetchEnvironmentMetadata(environment, fetcher) {
   return payload.envs;
 }
 
+export async function preflightVercelPreviewAccess({
+  environment = process.env,
+  fetcher = fetch,
+} = {}) {
+  const token = requiredValue(environment, "VERCEL_TOKEN");
+
+  try {
+    const entries = await fetchEnvironmentMetadata(environment, fetcher);
+    return { environmentVariableCount: entries.length };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(redact(detail, [token]));
+  }
+}
+
 async function extendInheritedBindings(environment, fetcher, entries) {
   const token = requiredValue(environment, "VERCEL_TOKEN");
   for (const key of INHERITED_PRODUCTION_KEYS) {
@@ -381,7 +396,18 @@ export async function syncPreviewEnvironment({
 }
 
 async function main() {
+  const accessPreflightOnly = process.argv.includes("--preflight-access-only");
   const validateOnly = process.argv.includes("--validate-only");
+  if (accessPreflightOnly && validateOnly) {
+    throw new Error("Choose only one Preview environment validation mode");
+  }
+  if (accessPreflightOnly) {
+    await preflightVercelPreviewAccess();
+    process.stdout.write(
+      "Verified Vercel Preview project environment access without printing values or provider identifiers.\n",
+    );
+    return;
+  }
   const specification = await syncPreviewEnvironment({ validateOnly });
   const action = validateOnly ? "Validated" : "Synchronized";
   process.stdout.write(
