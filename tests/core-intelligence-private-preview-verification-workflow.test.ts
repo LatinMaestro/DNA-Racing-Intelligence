@@ -23,6 +23,10 @@ describe("Core Intelligence private Preview verification workflow", () => {
     expect(workflow).toContain(
       "hosted-preview-connected-core-intelligence-commissioning.test.tsx",
     );
+    expect(workflow).toContain(
+      "hosted-preview-connected-private-owner-page-route.test.tsx",
+    );
+    expect(workflow).toContain("DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime");
     expect(workflow).not.toMatch(/production|deploy|INSERT|UPDATE|DELETE/iu);
   });
 });
