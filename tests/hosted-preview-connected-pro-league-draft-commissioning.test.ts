@@ -342,6 +342,7 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           weeklySubstitutionReviewCount:
             state.weeklyPerformance!.summary.substitutionReviewCount,
           planPersistenceStatus: planPersistence.status,
+          planPersistenceFailureStage: planPersistence.failureStage,
           rosterSavedAt: planPersistence.rosterSavedAt,
           lineupSavedAt: planPersistence.lineupSavedAt,
           wrongOwnerPersistenceStatus: "identity_not_connected",
