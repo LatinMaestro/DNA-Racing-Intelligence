@@ -57,6 +57,36 @@ function configurationPayload(formData: FormData): Record<string, unknown> {
   return payload;
 }
 
+function requireReviewedConfiguration(
+  configuration: TournamentRuleConfiguration,
+): void {
+  const unresolvedFields = [
+    ["tournamentId", configuration.tournamentId.startsWith("replace-with-")],
+    ["bracketId", configuration.bracketId.startsWith("replace-with-")],
+    [
+      "tournamentLabel",
+      configuration.tournamentLabel === "Unspecified tournament",
+    ],
+    ["seasonLabel", configuration.seasonLabel === "Unspecified"],
+    ["splitLabel", configuration.splitLabel === "Unspecified split"],
+    ["raceFormat", configuration.raceFormat === "Unspecified"],
+    ["entryFee.asset", configuration.entryFee.asset === "Unspecified"],
+    [
+      "evidence.sourceEvidence",
+      configuration.evidence.sourceEvidence.trim() === "",
+    ],
+  ] as const;
+  const unresolved = unresolvedFields
+    .filter(([, invalid]) => invalid)
+    .map(([field]) => field);
+
+  if (unresolved.length > 0) {
+    throw new Error(
+      `Tournament rule configuration still contains review placeholders: ${unresolved.join(", ")}.`,
+    );
+  }
+}
+
 export function parseTournamentConfigurationFormData(
   formData: FormData,
 ): TournamentConfigurationWrite {
@@ -71,6 +101,7 @@ export function parseTournamentConfigurationFormData(
       "Configured campaign actions must use the owner acknowledgement action.",
     );
   }
+  requireReviewedConfiguration(normalized);
   const {
     configurationVersion,
     candidateSnapshotVersion,
