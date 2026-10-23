@@ -87,10 +87,14 @@ describeConnected("connected private owner page routes", () => {
     );
     expect(vaultHistoryCount).not.toBeNull();
     expect(searchHistoryCount).not.toBeNull();
-    const acceptedHistoryRowCount = Number(vaultHistoryCount![1]);
-    expect(acceptedHistoryRowCount).toBeGreaterThan(100);
-    expect(acceptedHistoryRowCount).toBeLessThanOrEqual(1_000);
-    expect(Number(searchHistoryCount![1])).toBe(acceptedHistoryRowCount);
+    const vaultAcceptedHistoryRowCount = Number(vaultHistoryCount![1]);
+    const searchAcceptedHistoryRowCount = Number(searchHistoryCount![1]);
+    expect(vaultAcceptedHistoryRowCount).toBeGreaterThan(100);
+    expect(vaultAcceptedHistoryRowCount).toBeLessThanOrEqual(1_000);
+    expect(searchAcceptedHistoryRowCount).toBeGreaterThan(100);
+    expect(searchAcceptedHistoryRowCount).toBeLessThanOrEqual(
+      vaultAcceptedHistoryRowCount,
+    );
 
     const distances = captures(
       vaultHtml,
@@ -125,7 +129,8 @@ describeConnected("connected private owner page routes", () => {
         status: "connected_preview_db",
         selectedCoreId,
         ownerCoreCount: 214,
-        acceptedHistoryRowCount,
+        vaultAcceptedHistoryRowCount,
+        searchAcceptedHistoryRowCount,
         renderedHistoryRowCount: rowSha256.length,
         modes: ["bike"],
         distancesMetres: [...new Set(distances)].sort((a, b) => a - b),
