@@ -229,7 +229,9 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
         },
         commissioning: state,
       });
-      expect(["not_saved", "saved"]).toContain(planPersistence.status);
+      expect(["not_saved", "saved", "read_failed"]).toContain(
+        planPersistence.status,
+      );
       if (planPersistence.status === "saved") {
         expect(planPersistence.rosterSavedAt).not.toBeNull();
         expect(planPersistence.lineupSavedAt).not.toBeNull();
@@ -279,11 +281,16 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           "Immutable roster and full-gate maps persisted",
         );
         expect(markup).toContain("Nothing was submitted to DNA Esports");
-      } else {
+      } else if (planPersistence.status === "not_saved") {
         expect(markup).toContain(
           "ready for explicit owner persistence confirmation",
         );
         expect(markup).toContain("Persist roster and maps");
+      } else {
+        expect(markup).toContain(
+          "The saved roster state could not be verified. No replacement roster is shown.",
+        );
+        expect(markup).not.toContain("Persist roster and maps");
       }
 
       const audit = state.roster!.draftRoster!.audit;
