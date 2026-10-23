@@ -104,7 +104,10 @@ describe("Pro League owner roster persistence state", () => {
           })),
         },
       }),
-    ).resolves.toMatchObject({ status: "read_failed" });
+    ).resolves.toMatchObject({
+      status: "read_failed",
+      failureStage: "integrity",
+    });
     await expect(
       loadProLeaguePlanPersistenceState({
         ...base,
@@ -120,6 +123,31 @@ describe("Pro League owner roster persistence state", () => {
           })),
         },
       }),
-    ).resolves.toMatchObject({ status: "read_failed" });
+    ).resolves.toMatchObject({
+      status: "read_failed",
+      failureStage: "roster_read",
+    });
+  });
+
+  it("identifies a failed lineup read without exposing its error", async () => {
+    await expect(
+      loadProLeaguePlanPersistenceState({
+        ...base,
+        rosterRepository: {
+          loadVersion: vi.fn(async () => ({
+            version: roster,
+            createdAt: "2026-10-20T00:00:00.000Z",
+          })),
+        },
+        lineupRepository: {
+          loadLineup: vi.fn(async () => {
+            throw new Error("private database detail");
+          }),
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "read_failed",
+      failureStage: "lineup_read",
+    });
   });
 });
