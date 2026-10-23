@@ -30,6 +30,7 @@ jobs:
       AUTHORIZED_CLERK_USER_ID: ${{ secrets.AUTHORIZED_CLERK_USER_ID }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
+      DNA_DATABASE_RUNTIME_ROLE: dna_app_runtime
       CORE_INTELLIGENCE_COMMISSIONING_VERIFIED_AT: ${{ inputs.verified_at }}
       CORE_INTELLIGENCE_COMMISSIONING_VERIFICATION: "1"
     steps:
@@ -54,9 +55,10 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
       - name: Run bounded read-only Core Intelligence verification
-        run: >-
-          npx vitest run --no-file-parallelism
-          tests/hosted-preview-connected-core-intelligence-commissioning.test.tsx
+        run: |
+          npx vitest run --no-file-parallelism \
+            tests/hosted-preview-connected-core-intelligence-commissioning.test.tsx \
+            tests/hosted-preview-connected-private-owner-page-route.test.tsx
       - name: Prove exact main remained unchanged
         if: always()
         shell: bash
