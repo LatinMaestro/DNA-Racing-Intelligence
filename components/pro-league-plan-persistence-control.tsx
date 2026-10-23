@@ -52,7 +52,11 @@ export function ProLeaguePlanPersistenceControl({
             : state.status === "persistence_not_configured"
               ? "The owner-scoped roster and lineup repositories are not configured in this environment."
               : state.status === "read_failed"
-                ? "The saved roster state could not be verified. No replacement roster is shown."
+                ? state.failureStage === "lineup_read"
+                  ? "The saved lineup state could not be verified. No replacement maps are shown."
+                  : state.failureStage === "integrity"
+                    ? "The saved roster or lineup did not match the accepted generation. No replacement plan is shown."
+                    : "The saved roster state could not be verified. No replacement roster is shown."
                 : "No complete accepted 25-Core roster is available to persist."}
         </p>
       )}
