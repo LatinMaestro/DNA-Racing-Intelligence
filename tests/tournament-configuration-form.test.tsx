@@ -57,15 +57,16 @@ function syntheticBracket(mode: TournamentMode) {
 }
 
 describe("Multi-mode Tournament configuration editor", () => {
-  it("parses a review-only starter for every mode", () => {
+  it("renders a review-only starter for every mode but refuses to persist it", () => {
     for (const mode of ["bike", "car", "horse"] as const) {
       const formData = new FormData();
       formData.set("ruleConfiguration", tournamentStarterConfiguration(mode));
-      const draft = parseTournamentConfigurationFormData(formData);
-      expect(draft.mode).toBe(mode);
-      expect(draft.bracketId).toBe(`replace-with-${mode}-split-id`);
-      expect(draft.evidence.status).toBe("uncertain");
-      expect(draft.campaignAction).toBeNull();
+      expect(() => parseTournamentConfigurationFormData(formData)).toThrow(
+        "review placeholders",
+      );
+      expect(tournamentStarterConfiguration(mode)).toContain(
+        `replace-with-${mode}-split-id`,
+      );
     }
   });
 

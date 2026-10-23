@@ -133,6 +133,50 @@ describe("Tournament configuration write service", () => {
     ).toThrow("must use the owner acknowledgement action");
   });
 
+  it("rejects the review starter until owner-entered authority replaces every placeholder", () => {
+    expect(() =>
+      parseTournamentConfigurationFormData(
+        formData({
+          ...validPayload(),
+          tournamentId: "replace-with-tournament-id",
+          tournamentLabel: "Unspecified tournament",
+          seasonLabel: "Unspecified",
+          bracketId: "replace-with-bike-split-id",
+          splitLabel: "Unspecified split",
+          raceFormat: "Unspecified",
+          entryFee: { amount: "0", asset: "Unspecified" },
+          evidence: {
+            status: "uncertain",
+            notes: "",
+            sourceEvidence: "",
+            provenance: {},
+          },
+        }),
+      ),
+    ).toThrow(
+      "review placeholders: tournamentId, bracketId, tournamentLabel, seasonLabel, splitLabel, raceFormat, entryFee.asset, evidence.sourceEvidence",
+    );
+  });
+
+  it("allows explicitly documented uncertain evidence", () => {
+    expect(
+      parseTournamentConfigurationFormData(
+        formData({
+          ...validPayload(),
+          evidence: {
+            status: "uncertain",
+            notes: "Qualification scoring remains unconfirmed.",
+            sourceEvidence: "Owner-entered review note; no published rule.",
+            provenance: {},
+          },
+        }),
+      ).evidence,
+    ).toMatchObject({
+      status: "uncertain",
+      sourceEvidence: "Owner-entered review note; no published rule.",
+    });
+  });
+
   it("requires exact owner identity before invoking persistence", async () => {
     const saveByOwner = vi.fn(async () => undefined);
     const configuration = parseTournamentConfigurationFormData(formData());
