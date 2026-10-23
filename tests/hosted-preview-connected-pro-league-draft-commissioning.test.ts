@@ -12,6 +12,7 @@ import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
+import { loadHostedProLeaguePlanPersistenceState } from "@/lib/hosted-pro-league-page-runtime";
 
 const connected =
   process.env.PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION === "1";
@@ -220,8 +221,38 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(state.readiness?.productionActivationAllowed).toBe(false);
       expect(state.readiness?.rosterOrMapSubmissionAllowed).toBe(false);
 
+      const planPersistence = await loadHostedProLeaguePlanPersistenceState({
+        authenticatedOwnerId: ownerId,
+        environment: {
+          ...databaseEnvironment,
+          configuredOwnerId: ownerId,
+        },
+        commissioning: state,
+      });
+      expect(["not_saved", "saved"]).toContain(planPersistence.status);
+      if (planPersistence.status === "saved") {
+        expect(planPersistence.rosterSavedAt).not.toBeNull();
+        expect(planPersistence.lineupSavedAt).not.toBeNull();
+      } else {
+        expect(planPersistence.rosterSavedAt).toBeNull();
+        expect(planPersistence.lineupSavedAt).toBeNull();
+      }
+      await expect(
+        loadHostedProLeaguePlanPersistenceState({
+          authenticatedOwnerId: `${ownerId}-wrong-owner`,
+          environment: {
+            ...databaseEnvironment,
+            configuredOwnerId: ownerId,
+          },
+          commissioning: state,
+        }),
+      ).resolves.toMatchObject({ status: "identity_not_connected" });
+
       const markup = renderToStaticMarkup(
-        createElement(ProLeagueCommissioningPanel, { state }),
+        createElement(ProLeagueCommissioningPanel, {
+          state,
+          planPersistence,
+        }),
       );
       expect(markup).toContain("Roster recommendation");
       expect(markup).toContain("Map selection &amp; deny preference");
@@ -243,6 +274,17 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       expect(markup).not.toContain("API refresh safety");
       expect(markup).not.toContain("Breeding for roster quality");
       expect(markup).not.toContain("Discovery");
+      if (planPersistence.status === "saved") {
+        expect(markup).toContain(
+          "Immutable roster and full-gate maps persisted",
+        );
+        expect(markup).toContain("Nothing was submitted to DNA Esports");
+      } else {
+        expect(markup).toContain(
+          "ready for explicit owner persistence confirmation",
+        );
+        expect(markup).toContain("Persist roster and maps");
+      }
 
       const audit = state.roster!.draftRoster!.audit;
       console.log(
@@ -292,6 +334,11 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
             state.weeklyPerformance!.summary.remapReviewCount,
           weeklySubstitutionReviewCount:
             state.weeklyPerformance!.summary.substitutionReviewCount,
+          planPersistenceStatus: planPersistence.status,
+          rosterSavedAt: planPersistence.rosterSavedAt,
+          lineupSavedAt: planPersistence.lineupSavedAt,
+          wrongOwnerPersistenceStatus: "identity_not_connected",
+          authenticatedPageRender: true,
           initialRosterConsumesSubstitution: false,
           automaticActionAllowed: false,
           previewOnly: true,
