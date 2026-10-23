@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  preflightVercelPreviewAccess,
   previewEnvironmentSpecification,
   syncPreviewEnvironment,
 } from "../scripts/vercel-preview-environment-sync.mjs";
@@ -62,6 +63,51 @@ function response(payload: unknown, status = 200) {
 }
 
 describe("Vercel Preview environment synchronization", () => {
+  it("preflights read-only project environment access without requiring downstream provider settings", async () => {
+    const fetcher = vi.fn<PreviewEnvironmentFetcher>(async () =>
+      response({ envs: inheritedEntries }),
+    );
+
+    await expect(
+      preflightVercelPreviewAccess({
+        environment: {
+          VERCEL_TOKEN: validEnvironment.VERCEL_TOKEN,
+          VERCEL_ORG_ID: validEnvironment.VERCEL_ORG_ID,
+          VERCEL_PROJECT_ID: validEnvironment.VERCEL_PROJECT_ID,
+        },
+        fetcher,
+      }),
+    ).resolves.toEqual({ environmentVariableCount: 2 });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]?.[0]).toBe(
+      "https://api.vercel.com/v9/projects/prj_example/env?teamId=team_example",
+    );
+    expect(fetcher.mock.calls[0]?.[1]?.method).toBeUndefined();
+  });
+
+  it("reports an actionable preflight denial without exposing the token", async () => {
+    const token = validEnvironment.VERCEL_TOKEN;
+    const fetcher = vi.fn<PreviewEnvironmentFetcher>(
+      async () => new Response(`${token} forbidden`, { status: 403 }),
+    );
+
+    const error = await preflightVercelPreviewAccess({
+      environment: {
+        VERCEL_TOKEN: token,
+        VERCEL_ORG_ID: validEnvironment.VERCEL_ORG_ID,
+        VERCEL_PROJECT_ID: validEnvironment.VERCEL_PROJECT_ID,
+      },
+      fetcher,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(String(error)).toContain(
+      "Vercel environment metadata lookup failed with HTTP 403",
+    );
+    expect(String(error)).not.toContain(token);
+  });
+
   it("keeps direct Preview bindings bounded and secret where required", () => {
     const specification = previewEnvironmentSpecification(validEnvironment);
     expect(specification.map(({ name }) => name)).toEqual([
