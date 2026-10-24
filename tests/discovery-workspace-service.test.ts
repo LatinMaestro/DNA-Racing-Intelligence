@@ -84,6 +84,15 @@ describe("Discovery workspace service", () => {
       lastImportedAt: null,
       publication: null,
       connectionStatus: "identity_not_connected",
+      acceptedHistoryCoverage: {
+        status: "not_used",
+        generationId: null,
+        ownedCoreCount: 0,
+        selectedCoreCount: 0,
+        omittedCoreCount: 0,
+        acceptedRowCount: 0,
+        maximumRows: 10_000,
+      },
     });
     await expect(
       loadDiscoveryWorkspacePageState({
@@ -97,6 +106,15 @@ describe("Discovery workspace service", () => {
       lastImportedAt: null,
       publication: null,
       connectionStatus: "persistence_not_configured",
+      acceptedHistoryCoverage: {
+        status: "not_used",
+        generationId: null,
+        ownedCoreCount: 0,
+        selectedCoreCount: 0,
+        omittedCoreCount: 0,
+        acceptedRowCount: 0,
+        maximumRows: 10_000,
+      },
     });
   });
 
@@ -469,6 +487,112 @@ describe("Discovery workspace service", () => {
           lineageRaceCount: 1,
         },
       ],
+    });
+  });
+
+  it("uses bounded accepted history when the materialized profile projection is empty", async () => {
+    const generationId = "a".repeat(64);
+    const observationSetSha256 = "b".repeat(64);
+    const repository = createDiscoveryProbeRepository({
+      vaultRepository: {
+        status: "ready",
+        listCoresByOwner: async () => [
+          {
+            sourceCoreId: "10457",
+            displayName: "Accepted Core",
+            coreClass: "Genesis",
+            element: "Earth",
+            fNumber: 5,
+            sex: "female",
+            inMyVault: true,
+            meEligible: null,
+            version: 1,
+            updatedAt: null,
+          },
+        ],
+      },
+      performanceRepository: {
+        status: "ready",
+        listProfilesByOwner: async () => ({
+          profiles: [],
+          lastImportedAt: null,
+          publication: null,
+        }),
+      },
+      lineageRepository: {
+        status: "ready",
+        listHypothesesByOwner: async () => [],
+      },
+      benchmarkRepository: {
+        status: "ready",
+        listBenchmarksByOwner: async () => ({
+          benchmarks: [],
+          publication: null,
+        }),
+      },
+      tournamentRepository: { status: "not_configured" },
+      acceptedHistoryNow: now,
+      acceptedHistoryRepository: {
+        readActiveGeneration: async () =>
+          ({
+            generationId,
+            observationSetSha256,
+            publishedAt: "2026-07-20T01:00:00.000Z",
+            observationCount: 2,
+          }) as never,
+        readActiveRows: async () => [],
+        readSelectedCoreRows: async (_ownerId, selection) => {
+          expect(selection).toEqual({
+            generationId,
+            observationSetSha256,
+            coreIds: ["10457"],
+            maximumRows: 10_000,
+          });
+          return {
+            status: "ready" as const,
+            rows: [0, 1].map((index) => ({
+              generationId,
+              ordinal: index,
+              naturalKey: `core-result:10457:bike:race-${index}`,
+              rowSha256: `${index}`.repeat(64),
+              payload: {
+                sourceType: "joined_core_race_history_result",
+                publishedCellStatus: "accepted",
+                sourceRaceId: `race-${index}`,
+                eventAt: `2026-07-${18 + index}T00:00:00.000Z`,
+                sourceCoreId: "10457",
+                mode: "bike",
+                distanceMetres: 1_400,
+                elapsedMilliseconds: 80_000 + index * 1_000,
+              },
+            })) as never,
+          };
+        },
+      },
+    });
+
+    expect(repository.status).toBe("ready");
+    if (repository.status !== "ready") throw new Error("Discovery not ready");
+    const result = await repository.listCandidateEvidenceByOwner("owner");
+
+    expect(result.candidates).toEqual([
+      expect.objectContaining({
+        coreId: "10457",
+        mode: "bike",
+        distanceMetres: 1_400,
+        directRaceCount: 2,
+        maidenState: "unknown",
+      }),
+    ]);
+    expect(result.lastImportedAt).toBe("2026-07-20T01:00:00.000Z");
+    expect(result.acceptedHistoryCoverage).toEqual({
+      status: "ready",
+      generationId,
+      ownedCoreCount: 1,
+      selectedCoreCount: 1,
+      omittedCoreCount: 0,
+      acceptedRowCount: 2,
+      maximumRows: 10_000,
     });
   });
 });

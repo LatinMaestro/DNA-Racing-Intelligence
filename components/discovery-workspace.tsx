@@ -1,5 +1,8 @@
 import type { DiscoveryDecisionCandidate } from "@/domain/discovery-decision-guidance";
-import type { DiscoveryWorkspaceConnectionStatus } from "@/lib/discovery-workspace-service";
+import type {
+  DiscoveryAcceptedHistoryCoverage,
+  DiscoveryWorkspaceConnectionStatus,
+} from "@/lib/discovery-workspace-service";
 import type { DiscoveryBenchmarkPublication } from "@/lib/neon-discovery-benchmark-repository";
 import {
   DiscoveryStudyWorkspace,
@@ -136,6 +139,7 @@ export function DiscoveryWorkspace({
   candidates,
   lastImportedAt,
   publication = null,
+  acceptedHistoryCoverage = null,
   connectionStatus,
   study = null,
   studyFilters = {
@@ -151,6 +155,7 @@ export function DiscoveryWorkspace({
   candidates: readonly DiscoveryDecisionCandidate[];
   lastImportedAt: string | null;
   publication?: DiscoveryBenchmarkPublication | null;
+  acceptedHistoryCoverage?: DiscoveryAcceptedHistoryCoverage | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
   study?: DiscoveryStudyView | null;
   studyFilters?: DiscoveryStudyFilters;
@@ -227,6 +232,21 @@ export function DiscoveryWorkspace({
               </dd>
             </div>
           </dl>
+        ) : null}
+        {connectionStatus === "read_model_connected" &&
+        acceptedHistoryCoverage?.status !== undefined &&
+        acceptedHistoryCoverage.status !== "not_used" ? (
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+            Accepted history fallback: {label(acceptedHistoryCoverage.status)} ·{" "}
+            {acceptedHistoryCoverage.acceptedRowCount.toLocaleString("en-AU")}{" "}
+            rows across{" "}
+            {acceptedHistoryCoverage.selectedCoreCount.toLocaleString("en-AU")}{" "}
+            of {acceptedHistoryCoverage.ownedCoreCount.toLocaleString("en-AU")}{" "}
+            owned Cores.
+            {acceptedHistoryCoverage.omittedCoreCount > 0
+              ? ` ${acceptedHistoryCoverage.omittedCoreCount.toLocaleString("en-AU")} Cores are omitted from this bounded read, not treated as having no evidence.`
+              : ""}
+          </p>
         ) : null}
       </section>
 

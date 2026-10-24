@@ -5,6 +5,7 @@ import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-disc
 import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
 import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
+import { neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment } from "@/lib/neon-active-dna-core-race-history-generation";
 import { probeModes, type ProbeMode } from "@/domain/discovery-probe-plan";
 import type { DiscoveryStudyFilters } from "@/components/discovery-study-workspace";
 import {
@@ -96,6 +97,16 @@ export default async function DiscoveryPage({
         neonTournamentConfigurationRepositoryFromEnvironment(
           databaseEnvironment,
         ),
+      acceptedHistoryRepository:
+        authenticatedOwnerId === null
+          ? null
+          : neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment(
+              {
+                ...databaseEnvironment,
+                ownerId: authenticatedOwnerId,
+              },
+            ),
+      acceptedHistoryNow: now,
     }),
     now,
   });
@@ -103,6 +114,7 @@ export default async function DiscoveryPage({
   return (
     <DiscoveryWorkspace
       candidates={state.candidates}
+      acceptedHistoryCoverage={state.acceptedHistoryCoverage}
       connectionStatus={state.connectionStatus}
       lastImportedAt={state.lastImportedAt}
       publication={state.publication}
