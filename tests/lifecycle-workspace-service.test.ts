@@ -111,6 +111,84 @@ describe("Lifecycle workspace service", () => {
     });
   });
 
+  it("summarizes accepted Vault protections without creating an action ranking", async () => {
+    const cores = [
+      {
+        sourceCoreId: "genesis",
+        displayName: "Genesis",
+        coreClass: "Genesis" as const,
+        element: "Metal" as const,
+        fNumber: 1,
+        sex: "male" as const,
+        inMyVault: true,
+        meEligible: null,
+        version: null,
+        updatedAt: "2026-07-20T00:00:00.000Z",
+      },
+      {
+        sourceCoreId: "morphed",
+        displayName: "Morphed",
+        coreClass: "Morphed" as const,
+        element: "Fire" as const,
+        fNumber: 8,
+        sex: "female" as const,
+        inMyVault: true,
+        meEligible: true,
+        version: null,
+        updatedAt: "2026-07-21T00:00:00.000Z",
+      },
+      {
+        sourceCoreId: "not-owned",
+        displayName: "Not Owned",
+        coreClass: "Genesis" as const,
+        element: "Earth" as const,
+        fNumber: 2,
+        sex: "female" as const,
+        inMyVault: false,
+        meEligible: false,
+        version: null,
+        updatedAt: "2026-07-21T00:00:00.000Z",
+      },
+    ];
+    const vaultRepository = {
+      status: "ready" as const,
+      listCoresByOwner: async () => cores,
+      readCataloguePageByOwner: async () => ({
+        cores,
+        publication: null,
+        coverage: "accepted_owner_api_snapshot" as const,
+        apiSnapshot: {
+          generationId: "84000000-0000-4000-8000-000000000701",
+          coreCount: 2,
+          oldestObservedAt: "2026-07-20T00:00:00.000Z",
+          newestObservedAt: "2026-07-21T00:00:00.000Z",
+        },
+      }),
+    };
+
+    await expect(
+      loadLifecycleWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: repository(null, null),
+        vaultRepository,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      ranking: null,
+      connectionStatus: "read_model_connected",
+      vaultProtection: {
+        ownedCoreCount: 2,
+        genesisCoreCount: 1,
+        knownMaidenEligibleCount: 1,
+        knownMaidenNotEligibleCount: 0,
+        unknownMaidenEligibilityCount: 1,
+        coverage: "accepted_owner_api_snapshot",
+        generationId: "84000000-0000-4000-8000-000000000701",
+      },
+    });
+  });
+
   it("withholds future, post-import, stale-label and import-binding inconsistencies", async () => {
     const cases = [
       repository(ranking(), "2026-07-31T00:00:00.000Z"),
