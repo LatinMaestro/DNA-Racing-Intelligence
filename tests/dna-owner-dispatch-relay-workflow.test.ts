@@ -215,6 +215,8 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "payload.execute_private_preview_verification !== true",
     );
+    expect(workflow).toContain("payload.persist_owner_confirmed_plan !== true");
+    expect(workflow).toContain("persist_owner_confirmed_plan: true");
     expect(workflow).toContain(
       "tournament-workspace-private-preview-verification.yml",
     );
