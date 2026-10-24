@@ -5,6 +5,7 @@ import { loadBreedingWorkspacePageState } from "@/lib/breeding-workspace-service
 import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-breeding-ranking-repository";
 import { neonBreedingEconomicPersistenceFromEnvironment } from "@/lib/neon-breeding-economic-write-repository";
 import { neonOwnerVaultCatalogueRepositoryFromEnvironment } from "@/lib/neon-owner-vault-catalogue-repository";
+import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function BreedingPage({
     },
   });
   const configuredOwnerId = process.env.AUTHORIZED_CLERK_USER_ID ?? null;
+  const now = new Date();
   const state = await loadBreedingWorkspacePageState({
     authenticatedOwnerId,
     configuredOwnerId,
@@ -32,7 +34,16 @@ export default async function BreedingPage({
       runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
       ...(configuredOwnerId === null ? {} : { ownerId: configuredOwnerId }),
     }),
-    now: new Date(),
+    vaultRepository:
+      ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment(
+        {
+          databaseUrl: process.env.DATABASE_URL,
+          databaseOwnerId: process.env.DNA_DATABASE_OWNER_ID,
+          runtimeRole: process.env.DNA_DATABASE_RUNTIME_ROLE,
+        },
+        now.toISOString(),
+      ),
+    now,
   });
   const economicPersistence = neonBreedingEconomicPersistenceFromEnvironment({
     databaseUrl: process.env.DATABASE_URL,
@@ -62,6 +73,9 @@ export default async function BreedingPage({
       generationId={state.generationId}
       payloadSha256={state.payloadSha256}
       publishedAt={state.publishedAt}
+      {...(state.vaultInventory === undefined
+        ? {}
+        : { vaultInventory: state.vaultInventory })}
       filters={evidenceViewFilters({
         mode: params.mode,
         distance: params.distance,
