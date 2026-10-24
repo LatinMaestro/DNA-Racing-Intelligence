@@ -4,6 +4,10 @@ import {
   type LifecycleActionRankingResult,
   type LifecycleFreshness,
 } from "@/domain/lifecycle-action-ranking";
+import type {
+  OwnerVaultCatalogueCoverage,
+  OwnerVaultCatalogueRepository,
+} from "@/lib/owner-vault-catalogue-service";
 
 export type LifecycleRankingEvidence = Readonly<{
   ranking: LifecycleActionRankingInput | null;
@@ -33,10 +37,70 @@ export type LifecycleWorkspacePageState = Readonly<{
   publishedAt: string | null;
   snapshotSha256: string | null;
   connectionStatus: LifecycleWorkspaceConnectionStatus;
+  vaultProtection?: LifecycleVaultProtectionSummary;
+}>;
+
+export type LifecycleVaultProtectionSummary = Readonly<{
+  ownedCoreCount: number;
+  genesisCoreCount: number;
+  knownMaidenEligibleCount: number;
+  knownMaidenNotEligibleCount: number;
+  unknownMaidenEligibilityCount: number;
+  coverage: OwnerVaultCatalogueCoverage | null;
+  generationId: string | null;
+  oldestObservedAt: string | null;
+  newestObservedAt: string | null;
 }>;
 
 export const unavailableLifecycleRankingRepository: LifecycleRankingRepository =
   Object.freeze({ status: "not_configured" });
+
+async function loadVaultProtection(
+  repository: OwnerVaultCatalogueRepository | undefined,
+  ownerId: string,
+): Promise<LifecycleVaultProtectionSummary | null> {
+  if (repository === undefined || repository.status !== "ready") return null;
+  const filters = {
+    scope: "vault" as const,
+    query: null,
+    element: null,
+    coreClass: null,
+    sex: null,
+    fNumber: null,
+  };
+  const read = repository.readCataloguePageByOwner
+    ? await repository.readCataloguePageByOwner(ownerId, filters)
+    : {
+        cores: await repository.listCoresByOwner(ownerId, filters),
+        publication: null,
+      };
+  const owned = read.cores.filter(({ inMyVault }) => inMyVault);
+  return {
+    ownedCoreCount: owned.length,
+    genesisCoreCount: owned.filter(({ coreClass }) => coreClass === "Genesis")
+      .length,
+    knownMaidenEligibleCount: owned.filter(
+      ({ meEligible }) => meEligible === true,
+    ).length,
+    knownMaidenNotEligibleCount: owned.filter(
+      ({ meEligible }) => meEligible === false,
+    ).length,
+    unknownMaidenEligibilityCount: owned.filter(
+      ({ meEligible }) => meEligible === null,
+    ).length,
+    coverage: "coverage" in read ? (read.coverage ?? null) : null,
+    generationId:
+      "apiSnapshot" in read ? (read.apiSnapshot?.generationId ?? null) : null,
+    oldestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.oldestObservedAt ?? null)
+        : null,
+    newestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.newestObservedAt ?? null)
+        : null,
+  };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -76,6 +140,7 @@ export async function loadLifecycleWorkspacePageState(
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: LifecycleRankingRepository;
+    vaultRepository?: OwnerVaultCatalogueRepository;
     now: Date;
   }>,
 ): Promise<LifecycleWorkspacePageState> {
@@ -128,6 +193,10 @@ export async function loadLifecycleWorkspacePageState(
     ) {
       throw new Error("Lifecycle repository evidence is invalid.");
     }
+    const vaultProtection = await loadVaultProtection(
+      input.vaultRepository,
+      authenticatedOwnerId,
+    );
     if (evidence.latestAcceptedImportAt === null) {
       if (
         evidence.ranking !== null ||
@@ -141,6 +210,7 @@ export async function loadLifecycleWorkspacePageState(
         publishedAt: null,
         snapshotSha256: null,
         connectionStatus: "read_model_connected",
+        ...(vaultProtection === null ? {} : { vaultProtection }),
       };
     }
     const latestAcceptedImportAt = canonicalTimestamp(
@@ -204,6 +274,7 @@ export async function loadLifecycleWorkspacePageState(
       publishedAt,
       snapshotSha256: evidence.snapshotSha256,
       connectionStatus: "read_model_connected",
+      ...(vaultProtection === null ? {} : { vaultProtection }),
     };
   } catch {
     return {
