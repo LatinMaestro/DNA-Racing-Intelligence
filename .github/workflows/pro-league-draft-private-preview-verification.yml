@@ -13,7 +13,12 @@ on:
         required: true
         type: string
       execute_private_preview_verification:
-        description: Confirm read-only private Preview commissioning verification
+        description: Confirm private Preview commissioning verification
+        required: true
+        default: false
+        type: boolean
+      persist_owner_confirmed_plan:
+        description: Persist and read back the existing owner-confirmed roster and maps
         required: true
         default: false
         type: boolean
@@ -36,6 +41,7 @@ jobs:
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT: ${{ inputs.verified_at || '2026-09-16T15:15:00.000Z' }}
       PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION: "1"
+      PRO_LEAGUE_OWNER_CONFIRMED_PERSISTENCE: ${{ inputs.persist_owner_confirmed_plan || 'false' }}
       EXPECTED_DATABASE_ENDPOINT: ep-misty-paper-a796pgn0
       EXPECTED_DATABASE_NAME: neondb
       EXPECTED_DATABASE_ROLE: dna_app_runtime
@@ -97,6 +103,9 @@ jobs:
             verifiedAt.getTime() > Date.now()
           ) {
             throw new Error("Verification time must be a canonical past UTC timestamp.");
+          }
+          if (!['true', 'false'].includes(process.env.PRO_LEAGUE_OWNER_CONFIRMED_PERSISTENCE)) {
+            throw new Error('Pro League persistence arm is invalid.');
           }
           const databaseUrl = new URL(process.env.DATABASE_URL);
           if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
