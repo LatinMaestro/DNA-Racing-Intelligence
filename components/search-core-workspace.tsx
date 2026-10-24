@@ -693,7 +693,9 @@ export function SearchCoreWorkspace({
               </button>
             </form>
             <p className="mt-3 text-xs text-[var(--muted)]">
-              Last imported{" "}
+              {state.performanceAuthority === "accepted_history_generation"
+                ? "Accepted history generation published "
+                : "Last imported "}
               {state.performanceLastImportedAt === null
                 ? "not available"
                 : new Date(state.performanceLastImportedAt).toLocaleString(
@@ -702,6 +704,14 @@ export function SearchCoreWorkspace({
               . Each profile keeps its own source cutoff and sample. Modes and
               exact distances are never pooled.
             </p>
+            {state.performanceAuthority === "accepted_history_generation" ? (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Exact-mode/distance profiles are derived on this bounded Core
+                read using the approved performance mathematics. Unsupported
+                formats and unpublished analytical cells are excluded, and no
+                missing star evidence is inferred.
+              </p>
+            ) : null}
             {state.performancePublication ? (
               <p className="mt-1 text-xs text-[var(--muted)]">
                 Accepted race dataset{" "}
