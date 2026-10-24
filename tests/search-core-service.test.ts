@@ -166,9 +166,23 @@ describe("Search Core service", () => {
         mapIds: [],
       },
     } as const;
+    const acceptedRow = {
+      ...row,
+      ordinal: 8,
+      naturalKey: "core-result:core-7:bike:race-10",
+      rowSha256: "f".repeat(64),
+      payload: {
+        ...row.payload,
+        naturalKey: "core-result:core-7:bike:race-10",
+        sourceRaceId: "race-10",
+        eventAt: "2026-08-11T01:10:00.000Z",
+        elapsedMilliseconds: 136_000,
+        publishedCellStatus: "accepted" as const,
+      },
+    } as const;
     const readSelectedCoreRows = vi.fn(async () => ({
       status: "ready" as const,
-      rows: [row],
+      rows: [row, acceptedRow],
     }));
     const acceptedHistoryRepository = {
       readActiveGeneration,
@@ -195,7 +209,18 @@ describe("Search Core service", () => {
       maximumRows: 1_000,
     });
     expect(state.acceptedHistoryStatus).toBe("connected");
-    expect(state.acceptedHistoryRows).toEqual([row]);
+    expect(state.acceptedHistoryRows).toEqual([row, acceptedRow]);
+    expect(state.performanceAuthority).toBe("accepted_history_generation");
+    expect(state.performanceProfiles).toHaveLength(1);
+    expect(state.performanceProfiles[0]).toMatchObject({
+      coreId: "core-7",
+      mode: "bike",
+      distance: 2_300,
+      raceCount: 1,
+      elapsedTime: { bestMilliseconds: 136_000 },
+      starProfile: null,
+    });
+    expect(state.performanceLastImportedAt).toBe("2026-08-11T02:30:00.000Z");
   });
 
   it("loads bounded immutable archive evidence only for the selected Core", async () => {
