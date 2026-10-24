@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import type { MaidenVaultAllocation } from "@/domain/maiden-vault-allocation";
-import type { MaidenWorkspaceConnectionStatus } from "@/lib/maiden-workspace-service";
+import type {
+  MaidenEligibilitySummary,
+  MaidenWorkspaceConnectionStatus,
+} from "@/lib/maiden-workspace-service";
 
 const connectionCopy: Record<
   MaidenWorkspaceConnectionStatus,
@@ -56,6 +59,7 @@ export function MaidenWorkspace({
   snapshotSha256,
   sourceEvidenceSha256,
   connectionStatus,
+  eligibilitySummary = null,
 }: Readonly<{
   allocation: MaidenVaultAllocation | null;
   lastImportedAt: string | null;
@@ -63,6 +67,7 @@ export function MaidenWorkspace({
   snapshotSha256: string | null;
   sourceEvidenceSha256: string | null;
   connectionStatus: MaidenWorkspaceConnectionStatus;
+  eligibilitySummary?: MaidenEligibilitySummary | null;
 }>) {
   const connection = connectionCopy[connectionStatus];
 
@@ -99,6 +104,63 @@ export function MaidenWorkspace({
         >
           Maiden commitment unavailable
         </button>
+      </section>
+
+      <section aria-labelledby="maiden-eligibility">
+        <h2 className="text-xl font-semibold" id="maiden-eligibility">
+          Current Vault Maiden eligibility
+        </h2>
+        {eligibilitySummary === null ? (
+          <p className="mt-3 text-[var(--muted)]">
+            Owner-scoped Vault eligibility evidence is unavailable.
+          </p>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+            <dl className="grid gap-4 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-[var(--muted)]">Owned Cores</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {eligibilitySummary.ownedCoreCount.toLocaleString("en-AU")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Known eligible</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {eligibilitySummary.knownEligibleCount.toLocaleString(
+                    "en-AU",
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Known not eligible</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {eligibilitySummary.knownNotEligibleCount.toLocaleString(
+                    "en-AU",
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Eligibility unknown</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {eligibilitySummary.unknownEligibilityCount.toLocaleString(
+                    "en-AU",
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              Unknown means the accepted owner snapshot does not publish Maiden
+              eligibility. It must not be treated as eligible or ineligible.
+            </p>
+            {eligibilitySummary.generationId === null ? null : (
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Accepted owner generation: {eligibilitySummary.generationId} ·
+                observed {timestamp(eligibilitySummary.oldestObservedAt)} to{" "}
+                {timestamp(eligibilitySummary.newestObservedAt)}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section aria-labelledby="maiden-allocation">
