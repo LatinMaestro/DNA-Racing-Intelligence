@@ -7,6 +7,7 @@ import { raceModes } from "@/domain/core-performance";
 import type { EvidenceViewFilters } from "@/lib/evidence-view-filters";
 import type { BreedingPairRankingResult } from "@/domain/breeding-pair-ranking";
 import type { BreedingWorkspaceConnectionStatus } from "@/lib/breeding-workspace-service";
+import type { BreedingVaultInventory } from "@/lib/breeding-workspace-service";
 
 const connectionCopy: Record<
   BreedingWorkspaceConnectionStatus,
@@ -175,6 +176,7 @@ export function BreedingWorkspace({
   filters = { mode: "all", distance: null },
   selectedParents = ["", ""],
   economicWriteStatus,
+  vaultInventory = null,
 }: Readonly<{
   rankings: readonly BreedingPairRankingResult[];
   connectionStatus: BreedingWorkspaceConnectionStatus;
@@ -184,6 +186,7 @@ export function BreedingWorkspace({
   filters?: EvidenceViewFilters;
   selectedParents?: readonly [string, string];
   economicWriteStatus?: BreedingEconomicWriteStatus;
+  vaultInventory?: BreedingVaultInventory | null;
 }>) {
   const connection = connectionCopy[connectionStatus];
   const evidenceConnected = connectionStatus === "read_model_connected";
@@ -258,6 +261,71 @@ export function BreedingWorkspace({
         >
           Breeding execution unavailable
         </button>
+      </section>
+
+      <section aria-labelledby="breeding-vault-inventory">
+        <h2 className="text-xl font-semibold" id="breeding-vault-inventory">
+          Current Vault breeding inputs
+        </h2>
+        {vaultInventory === null ? (
+          <p className="mt-3 text-[var(--muted)]">
+            Owner-scoped Vault breeding inputs are unavailable.
+          </p>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-[var(--muted)]">Owned Cores</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {vaultInventory.ownedCoreCount.toLocaleString("en-AU")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Sex split</dt>
+                <dd className="mt-1 font-semibold">
+                  {vaultInventory.sexCounts.male.toLocaleString("en-AU")} male ·{" "}
+                  {vaultInventory.sexCounts.female.toLocaleString("en-AU")}{" "}
+                  female
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Element split</dt>
+                <dd className="mt-1 font-semibold">
+                  Metal {vaultInventory.elementCounts.Metal} · Fire{" "}
+                  {vaultInventory.elementCounts.Fire} · Earth{" "}
+                  {vaultInventory.elementCounts.Earth} · Water{" "}
+                  {vaultInventory.elementCounts.Water}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Observed F-number range</dt>
+                <dd className="mt-1 font-semibold">
+                  {vaultInventory.minimumFNumber === null
+                    ? "Unavailable"
+                    : `F${vaultInventory.minimumFNumber}–F${vaultInventory.maximumFNumber}`}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              Class, element, sex and F-number are accepted descriptive inputs
+              only. They do not prove family compatibility, cycle availability,
+              lifetime splice capacity or pair eligibility.
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Classes: Genesis {vaultInventory.classCounts.Genesis} · Morphed{" "}
+              {vaultInventory.classCounts.Morphed} · Freak{" "}
+              {vaultInventory.classCounts.Freak} · X-Class{" "}
+              {vaultInventory.classCounts["X-Class"]}
+            </p>
+            {vaultInventory.generationId === null ? null : (
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Accepted owner generation: {vaultInventory.generationId} ·
+                observed {timestamp(vaultInventory.oldestObservedAt)} to{" "}
+                {timestamp(vaultInventory.newestObservedAt)}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section aria-labelledby="breeding-rankings">

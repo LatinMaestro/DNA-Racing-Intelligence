@@ -84,6 +84,7 @@ describeConnected("hosted Preview Breeding commissioning", () => {
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
       repository,
+      vaultRepository,
       now,
     });
     expect(state.connectionStatus).toBe("read_model_connected");
@@ -109,12 +110,18 @@ describeConnected("hosted Preview Breeding commissioning", () => {
         generationId: state.generationId,
         payloadSha256: state.payloadSha256,
         publishedAt: state.publishedAt,
+        ...(state.vaultInventory === undefined
+          ? {}
+          : { vaultInventory: state.vaultInventory }),
       }),
     );
     expect(rendered).toContain("Historical breeding evidence connected");
     expect(rendered).toContain("Breeding execution unavailable");
     expect(rendered).toContain("Gate E not passed");
     expect(rendered).not.toContain("Recommended pair");
+    expect(rendered).toContain("Current Vault breeding inputs");
+    expect(rendered).toContain("214");
+    expect(rendered).toContain("do not prove family compatibility");
     if (state.rankings.length === 0) {
       expect(rendered).toContain("No accepted breeding rankings");
       expect(rendered).toContain("accepted snapshot contains no rankings");
@@ -143,6 +150,7 @@ describeConnected("hosted Preview Breeding commissioning", () => {
         breedingGenerationId: state.generationId,
         breedingPayloadSha256: state.payloadSha256,
         breedingPublishedAt: state.publishedAt,
+        vaultInventory: state.vaultInventory,
         rankingCount: state.rankings.length,
         rankedCandidateCount: rankedCandidates.length,
         heldPairCount,

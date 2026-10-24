@@ -171,6 +171,83 @@ describe("Breeding workspace service", () => {
     });
   });
 
+  it("summarizes accepted owner Vault inputs without inferring pair eligibility", async () => {
+    const vaultRepository = {
+      status: "ready" as const,
+      listCoresByOwner: async () => [
+        {
+          sourceCoreId: "core-a",
+          displayName: "Core A",
+          coreClass: "Genesis" as const,
+          element: "Metal" as const,
+          fNumber: 2,
+          sex: "male" as const,
+          inMyVault: true,
+          meEligible: null,
+          version: null,
+          updatedAt: "2026-07-20T00:00:00.000Z",
+        },
+        {
+          sourceCoreId: "core-b",
+          displayName: "Core B",
+          coreClass: "Morphed" as const,
+          element: "Fire" as const,
+          fNumber: 11,
+          sex: "female" as const,
+          inMyVault: true,
+          meEligible: null,
+          version: null,
+          updatedAt: "2026-07-20T00:00:00.000Z",
+        },
+        {
+          sourceCoreId: "not-owned",
+          displayName: "Not Owned",
+          coreClass: "Freak" as const,
+          element: "Earth" as const,
+          fNumber: 99,
+          sex: "female" as const,
+          inMyVault: false,
+          meEligible: null,
+          version: null,
+          updatedAt: "2026-07-20T00:00:00.000Z",
+        },
+      ],
+      readCataloguePageByOwner: async () => ({
+        cores: await vaultRepository.listCoresByOwner(),
+        publication: null,
+        coverage: "accepted_owner_api_snapshot" as const,
+        apiSnapshot: {
+          generationId: "84000000-0000-4000-8000-000000000601",
+          coreCount: 2,
+          oldestObservedAt: "2026-07-20T00:00:00.000Z",
+          newestObservedAt: "2026-07-21T00:00:00.000Z",
+        },
+      }),
+    };
+
+    await expect(
+      loadBreedingWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: repository([], null, null),
+        vaultRepository,
+        now,
+      }),
+    ).resolves.toMatchObject({
+      rankings: [],
+      vaultInventory: {
+        ownedCoreCount: 2,
+        sexCounts: { male: 1, female: 1 },
+        elementCounts: { Metal: 1, Fire: 1, Earth: 0, Water: 0 },
+        classCounts: { Genesis: 1, Morphed: 1, Freak: 0, "X-Class": 0 },
+        minimumFNumber: 2,
+        maximumFNumber: 11,
+        coverage: "accepted_owner_api_snapshot",
+        generationId: "84000000-0000-4000-8000-000000000601",
+      },
+    });
+  });
+
   it.each([
     [3, "current"],
     [4, "ageing"],
