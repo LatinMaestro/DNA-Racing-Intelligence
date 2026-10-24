@@ -36,6 +36,9 @@ jobs:
       DNA_DATABASE_OWNER_ID: ${{ secrets.DNA_DATABASE_OWNER_ID }}
       PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFIED_AT: ${{ inputs.verified_at || '2026-09-16T15:15:00.000Z' }}
       PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION: "1"
+      EXPECTED_DATABASE_ENDPOINT: ep-misty-paper-a796pgn0
+      EXPECTED_DATABASE_NAME: neondb
+      EXPECTED_DATABASE_ROLE: dna_app_runtime
     steps:
       - name: Require exact main and explicit manual Preview verification arm
         shell: bash
@@ -95,7 +98,102 @@ jobs:
           ) {
             throw new Error("Verification time must be a canonical past UTC timestamp.");
           }
+          const databaseUrl = new URL(process.env.DATABASE_URL);
+          if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
+            throw new Error('DATABASE_URL is not PostgreSQL.');
+          }
+          if (
+            decodeURIComponent(databaseUrl.username) !==
+            process.env.EXPECTED_DATABASE_ROLE
+          ) {
+            throw new Error('DATABASE_URL does not authenticate as the approved runtime role.');
+          }
+          if (
+            !databaseUrl.hostname.startsWith(
+              `${process.env.EXPECTED_DATABASE_ENDPOINT}-pooler.`,
+            ) ||
+            !databaseUrl.hostname.endsWith('.neon.tech')
+          ) {
+            throw new Error('DATABASE_URL does not target the approved Preview endpoint.');
+          }
+          if (databaseUrl.pathname !== `/${process.env.EXPECTED_DATABASE_NAME}`) {
+            throw new Error('DATABASE_URL does not target the approved Preview database.');
+          }
+          if (!databaseUrl.password || databaseUrl.searchParams.get('sslmode') !== 'require') {
+            throw new Error('DATABASE_URL credential or TLS contract is invalid.');
+          }
           console.log("Validated private Preview settings without printing private values.");
+          NODE
+      - name: Attest approved Preview database session without exposure
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { Pool } from '@neondatabase/serverless';
+
+          const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            max: 1,
+            connectionTimeoutMillis: 10_000,
+          });
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+            await client.query("SELECT set_config('app.owner_id', $1, true)", [
+              process.env.DNA_DATABASE_OWNER_ID,
+            ]);
+            const result = await client.query(
+              `SELECT
+                current_database()::text AS database_name,
+                session_user::text AS session_role,
+                current_user::text AS current_role,
+                current_setting('app.owner_id', true) = $1::text AS owner_scope_matches,
+                count(*) FILTER (
+                  WHERE owner.id = $1::uuid AND owner.clerk_user_id = $2
+                )::integer AS owner_matches,
+                to_regprocedure(
+                  'dna.read_pro_league_roster_version(uuid,text)'
+                ) IS NOT NULL AS roster_read_exists,
+                has_function_privilege(
+                  session_user,
+                  'dna.read_pro_league_roster_version(uuid,text)',
+                  'EXECUTE'
+                ) AS roster_read_allowed
+              FROM dna.app_owner owner
+              GROUP BY session_user, current_user`,
+              [
+                process.env.DNA_DATABASE_OWNER_ID,
+                process.env.AUTHORIZED_CLERK_USER_ID,
+              ],
+            );
+            const row = result.rows[0];
+            if (
+              result.rows.length !== 1 ||
+              row.database_name !== process.env.EXPECTED_DATABASE_NAME ||
+              row.session_role !== process.env.EXPECTED_DATABASE_ROLE ||
+              row.current_role !== process.env.EXPECTED_DATABASE_ROLE ||
+              row.owner_scope_matches !== true ||
+              Number(row.owner_matches) !== 1 ||
+              row.roster_read_exists !== true ||
+              row.roster_read_allowed !== true
+            ) {
+              throw new Error('Approved Preview database session attestation failed.');
+            }
+            const probe = await client.query(
+              'SELECT * FROM dna.read_pro_league_roster_version($1::uuid,$2::text)',
+              [process.env.DNA_DATABASE_OWNER_ID, 'commissioning-missing-probe'],
+            );
+            if (probe.rows.length !== 0) {
+              throw new Error('Preview roster read probe returned unexpected evidence.');
+            }
+            await client.query('COMMIT');
+            console.log('Attested approved Preview database target and roster read session.');
+          } catch (error) {
+            await client.query('ROLLBACK').catch(() => undefined);
+            throw error;
+          } finally {
+            client.release();
+            await pool.end();
+          }
           NODE
       - name: Build and verify the private Pro League draft
         run: >-

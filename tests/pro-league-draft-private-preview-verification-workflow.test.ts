@@ -23,6 +23,20 @@ describe("Pro League draft private Preview verification workflow", () => {
     );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("if: always()");
+    expect(workflow).toContain(
+      "EXPECTED_DATABASE_ENDPOINT: ep-misty-paper-a796pgn0",
+    );
+    expect(workflow).toContain("EXPECTED_DATABASE_NAME: neondb");
+    expect(workflow).toContain("EXPECTED_DATABASE_ROLE: dna_app_runtime");
+    expect(workflow).toContain(
+      "Attest approved Preview database session without exposure",
+    );
+    expect(workflow).toContain("dna.read_pro_league_roster_version(uuid,text)");
+    expect(workflow).toContain(
+      "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    );
+    expect(workflow).toContain("commissioning-missing-probe");
+    expect(workflow).not.toMatch(/console\.log\([^)]*process\.env/u);
     expect(workflow).not.toMatch(/VERCEL|production/iu);
     expect(workflow).not.toMatch(/DNA_OPEN_LAB_API_KEY|DNA_R2_/u);
     expect(workflow).not.toMatch(
