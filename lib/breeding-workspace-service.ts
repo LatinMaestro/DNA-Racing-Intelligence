@@ -4,6 +4,13 @@ import {
   type BreedingPairRankingResult,
 } from "@/domain/breeding-pair-ranking";
 import { deriveFreshness } from "@/domain/freshness";
+import {
+  ownerVaultClasses,
+  ownerVaultElements,
+  ownerVaultSexes,
+  type OwnerVaultCatalogueCoverage,
+  type OwnerVaultCatalogueRepository,
+} from "@/lib/owner-vault-catalogue-service";
 
 type BreedingRankingEvidence = Readonly<{
   rankings: readonly BreedingPairRankingInput[];
@@ -36,10 +43,81 @@ export type BreedingWorkspacePageState = Readonly<{
   generationId: string | null;
   payloadSha256: string | null;
   publishedAt: string | null;
+  vaultInventory?: BreedingVaultInventory;
+}>;
+
+export type BreedingVaultInventory = Readonly<{
+  ownedCoreCount: number;
+  sexCounts: Readonly<Record<(typeof ownerVaultSexes)[number], number>>;
+  elementCounts: Readonly<Record<(typeof ownerVaultElements)[number], number>>;
+  classCounts: Readonly<Record<(typeof ownerVaultClasses)[number], number>>;
+  minimumFNumber: number | null;
+  maximumFNumber: number | null;
+  coverage: OwnerVaultCatalogueCoverage | null;
+  generationId: string | null;
+  oldestObservedAt: string | null;
+  newestObservedAt: string | null;
 }>;
 
 export const unavailableBreedingRankingRepository: BreedingRankingRepository =
   Object.freeze({ status: "not_configured" });
+
+async function loadVaultInventory(
+  repository: OwnerVaultCatalogueRepository | undefined,
+  ownerId: string,
+): Promise<BreedingVaultInventory | null> {
+  if (repository === undefined || repository.status !== "ready") return null;
+  const filters = {
+    scope: "vault" as const,
+    query: null,
+    element: null,
+    coreClass: null,
+    sex: null,
+    fNumber: null,
+  };
+  const read = repository.readCataloguePageByOwner
+    ? await repository.readCataloguePageByOwner(ownerId, filters)
+    : {
+        cores: await repository.listCoresByOwner(ownerId, filters),
+        publication: null,
+      };
+  const owned = read.cores.filter(({ inMyVault }) => inMyVault);
+  const fNumbers = owned.map(({ fNumber }) => fNumber);
+  return {
+    ownedCoreCount: owned.length,
+    sexCounts: Object.fromEntries(
+      ownerVaultSexes.map((sex) => [
+        sex,
+        owned.filter((core) => core.sex === sex).length,
+      ]),
+    ) as Record<(typeof ownerVaultSexes)[number], number>,
+    elementCounts: Object.fromEntries(
+      ownerVaultElements.map((element) => [
+        element,
+        owned.filter((core) => core.element === element).length,
+      ]),
+    ) as Record<(typeof ownerVaultElements)[number], number>,
+    classCounts: Object.fromEntries(
+      ownerVaultClasses.map((coreClass) => [
+        coreClass,
+        owned.filter((core) => core.coreClass === coreClass).length,
+      ]),
+    ) as Record<(typeof ownerVaultClasses)[number], number>,
+    minimumFNumber: fNumbers.length === 0 ? null : Math.min(...fNumbers),
+    maximumFNumber: fNumbers.length === 0 ? null : Math.max(...fNumbers),
+    coverage: "coverage" in read ? (read.coverage ?? null) : null,
+    generationId:
+      "apiSnapshot" in read ? (read.apiSnapshot?.generationId ?? null) : null,
+    oldestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.oldestObservedAt ?? null)
+        : null,
+    newestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.newestObservedAt ?? null)
+        : null,
+  };
+}
 
 function withheldEvidence(
   connectionStatus: "read_failed" | "integrity_failed",
@@ -144,6 +222,7 @@ export async function loadBreedingWorkspacePageState(
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: BreedingRankingRepository;
+    vaultRepository?: OwnerVaultCatalogueRepository;
     now: Date;
   }>,
 ): Promise<BreedingWorkspacePageState> {
@@ -284,6 +363,10 @@ export async function loadBreedingWorkspacePageState(
       throw new Error("Breeding evaluation cannot postdate publication.");
     }
 
+    const vaultInventory = await loadVaultInventory(
+      input.vaultRepository,
+      authenticatedOwnerId,
+    );
     return {
       rankings: rankings.sort((left, right) =>
         left.rankingId.localeCompare(right.rankingId),
@@ -292,6 +375,7 @@ export async function loadBreedingWorkspacePageState(
       generationId,
       payloadSha256,
       publishedAt,
+      ...(vaultInventory === null ? {} : { vaultInventory }),
     };
   } catch {
     // Invalid or mixed-version evidence is not a partly usable ranking.
