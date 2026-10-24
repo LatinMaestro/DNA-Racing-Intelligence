@@ -55,6 +55,43 @@ describe("Breeding workspace", () => {
     expect(html).not.toContain("Breeding rankings withheld");
   });
 
+  it("renders accepted Vault breeding inputs without inventing pair readiness", () => {
+    const html = renderToStaticMarkup(
+      <BreedingWorkspace
+        connectionStatus="read_model_connected"
+        rankings={[]}
+        vaultInventory={{
+          ownedCoreCount: 214,
+          sexCounts: { male: 102, female: 112 },
+          elementCounts: { Metal: 50, Fire: 54, Earth: 55, Water: 55 },
+          classCounts: {
+            Genesis: 20,
+            Morphed: 80,
+            Freak: 70,
+            "X-Class": 44,
+          },
+          minimumFNumber: 1,
+          maximumFNumber: 27,
+          coverage: "accepted_owner_api_snapshot",
+          generationId: "84000000-0000-4000-8000-000000000601",
+          oldestObservedAt: "2026-07-20T00:00:00.000Z",
+          newestObservedAt: "2026-07-21T00:00:00.000Z",
+        }}
+      />,
+    );
+
+    expect(html).toContain("Current Vault breeding inputs");
+    expect(html).toContain("214");
+    expect(html).toContain("102 male");
+    expect(html).toContain("112 female");
+    expect(html).toContain("Metal 50");
+    expect(html).toContain("F1–F27");
+    expect(html).toContain("X-Class 44");
+    expect(html).toContain("do not prove family compatibility");
+    expect(html).toContain("No accepted breeding rankings");
+    expect(html).not.toContain("Recommended pair");
+  });
+
   it("renders separate bound rankings and confirmed offspring rules", () => {
     const versions = {
       rulesetVersion: "rules-v3",
