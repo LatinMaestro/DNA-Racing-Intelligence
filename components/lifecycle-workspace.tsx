@@ -3,7 +3,10 @@ import {
   type LifecycleEconomicWriteStatus,
 } from "@/components/lifecycle-economic-forms";
 import type { LifecycleActionRankingResult } from "@/domain/lifecycle-action-ranking";
-import type { LifecycleWorkspaceConnectionStatus } from "@/lib/lifecycle-workspace-service";
+import type {
+  LifecycleVaultProtectionSummary,
+  LifecycleWorkspaceConnectionStatus,
+} from "@/lib/lifecycle-workspace-service";
 
 const connectionCopy: Record<
   LifecycleWorkspaceConnectionStatus,
@@ -67,12 +70,14 @@ export function LifecycleWorkspace({
   snapshotSha256,
   connectionStatus,
   economicWriteStatus,
+  vaultProtection = null,
 }: Readonly<{
   ranking: LifecycleActionRankingResult | null;
   publishedAt?: string | null;
   snapshotSha256?: string | null;
   connectionStatus: LifecycleWorkspaceConnectionStatus;
   economicWriteStatus?: LifecycleEconomicWriteStatus;
+  vaultProtection?: LifecycleVaultProtectionSummary | null;
 }>) {
   const connection = connectionCopy[connectionStatus];
   return (
@@ -117,6 +122,64 @@ export function LifecycleWorkspace({
             Burn unavailable
           </button>
         </div>
+      </section>
+
+      <section aria-labelledby="lifecycle-vault-protection">
+        <h2 className="text-xl font-semibold" id="lifecycle-vault-protection">
+          Current Vault protection evidence
+        </h2>
+        {vaultProtection === null ? (
+          <p className="mt-3 text-[var(--muted)]">
+            Owner-scoped Vault protection evidence is unavailable.
+          </p>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-[var(--muted)]">Owned Cores</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {vaultProtection.ownedCoreCount.toLocaleString("en-AU")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Genesis protected</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {vaultProtection.genesisCoreCount.toLocaleString("en-AU")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">Known Maiden eligible</dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {vaultProtection.knownMaidenEligibleCount.toLocaleString(
+                    "en-AU",
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--muted)]">
+                  Maiden eligibility unknown
+                </dt>
+                <dd className="mt-1 text-lg font-semibold">
+                  {vaultProtection.unknownMaidenEligibilityCount.toLocaleString(
+                    "en-AU",
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+              Genesis Cores remain protected from burn. Unknown Maiden status
+              remains unresolved and cannot support sale or burn. This
+              descriptive snapshot does not create a lifecycle recommendation.
+            </p>
+            {vaultProtection.generationId === null ? null : (
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Accepted owner generation: {vaultProtection.generationId} ·
+                observed {timestamp(vaultProtection.oldestObservedAt)} to{" "}
+                {timestamp(vaultProtection.newestObservedAt)}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section aria-labelledby="lifecycle-actions">
