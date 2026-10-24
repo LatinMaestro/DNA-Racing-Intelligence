@@ -150,7 +150,7 @@ export function createDiscoveryProbeRepository(
             .sort((left, right) =>
               left.localeCompare(right, "en", { numeric: true }),
             )
-            .slice(0, 8);
+            .slice(0, 4);
           const generation =
             selectedCoreIds.length === 0
               ? null
