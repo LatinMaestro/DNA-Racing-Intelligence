@@ -261,6 +261,76 @@ describe("Maiden workspace service", () => {
     ).rejects.toThrow("require configured brackets");
   });
 
+  it("reports accepted owner Vault eligibility without inventing a Maiden allocation", async () => {
+    const listCoresByOwner = vi.fn(async () => [
+      {
+        sourceCoreId: "10457",
+        displayName: "Core 10457",
+        coreClass: "Genesis" as const,
+        element: "Fire" as const,
+        fNumber: 1,
+        sex: "male" as const,
+        inMyVault: true,
+        meEligible: true,
+        version: 1,
+        updatedAt: null,
+      },
+      {
+        sourceCoreId: "10458",
+        displayName: "Core 10458",
+        coreClass: "Morphed" as const,
+        element: "Water" as const,
+        fNumber: 2,
+        sex: "female" as const,
+        inMyVault: true,
+        meEligible: false,
+        version: 1,
+        updatedAt: null,
+      },
+      {
+        sourceCoreId: "10459",
+        displayName: "Core 10459",
+        coreClass: "Freak" as const,
+        element: "Earth" as const,
+        fNumber: 3,
+        sex: "male" as const,
+        inMyVault: true,
+        meEligible: null,
+        version: null,
+        updatedAt: null,
+        source: "accepted_owner_api_snapshot" as const,
+      },
+    ]);
+    await expect(
+      loadMaidenWorkspacePageState({
+        authenticatedOwnerId: "owner",
+        configuredOwnerId: "owner",
+        repository: {
+          status: "ready",
+          loadAllocationEvidenceByOwner: async () => null,
+        },
+        vaultRepository: { status: "ready", listCoresByOwner },
+        now,
+      }),
+    ).resolves.toMatchObject({
+      allocation: null,
+      eligibilitySummary: {
+        ownedCoreCount: 3,
+        knownEligibleCount: 1,
+        knownNotEligibleCount: 1,
+        unknownEligibilityCount: 1,
+      },
+    });
+    expect(listCoresByOwner).toHaveBeenCalledWith("owner", {
+      scope: "vault",
+      query: null,
+      element: null,
+      coreClass: null,
+      sex: null,
+      fNumber: null,
+    });
+  });
+
   it("rejects future, post-import, malformed and non-canonical evidence", async () => {
     const cases = [
       repository([candidate], "2026-07-29T00:00:00.000Z"),

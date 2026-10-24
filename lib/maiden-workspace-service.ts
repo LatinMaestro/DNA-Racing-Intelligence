@@ -5,6 +5,10 @@ import {
   type MaidenVaultAllocation,
 } from "@/domain/maiden-vault-allocation";
 import { deriveFreshness } from "@/domain/freshness";
+import type {
+  OwnerVaultCatalogueCoverage,
+  OwnerVaultCatalogueRepository,
+} from "@/lib/owner-vault-catalogue-service";
 
 export type MaidenAllocationRepository =
   | Readonly<{ status: "not_configured" }>
@@ -40,10 +44,66 @@ export type MaidenWorkspacePageState = Readonly<{
   snapshotSha256: string | null;
   materializedAt: string | null;
   connectionStatus: MaidenWorkspaceConnectionStatus;
+  eligibilitySummary?: MaidenEligibilitySummary;
+}>;
+
+export type MaidenEligibilitySummary = Readonly<{
+  ownedCoreCount: number;
+  knownEligibleCount: number;
+  knownNotEligibleCount: number;
+  unknownEligibilityCount: number;
+  coverage: OwnerVaultCatalogueCoverage | null;
+  generationId: string | null;
+  oldestObservedAt: string | null;
+  newestObservedAt: string | null;
 }>;
 
 export const unavailableMaidenAllocationRepository: MaidenAllocationRepository =
   Object.freeze({ status: "not_configured" });
+
+async function loadEligibilitySummary(
+  repository: OwnerVaultCatalogueRepository | undefined,
+  ownerId: string,
+): Promise<MaidenEligibilitySummary | null> {
+  if (repository === undefined || repository.status !== "ready") return null;
+  const filters = {
+    scope: "vault" as const,
+    query: null,
+    element: null,
+    coreClass: null,
+    sex: null,
+    fNumber: null,
+  };
+  const read = repository.readCataloguePageByOwner
+    ? await repository.readCataloguePageByOwner(ownerId, filters)
+    : {
+        cores: await repository.listCoresByOwner(ownerId, filters),
+        publication: null,
+      };
+  const owned = read.cores.filter(({ inMyVault }) => inMyVault);
+  return {
+    ownedCoreCount: owned.length,
+    knownEligibleCount: owned.filter(({ meEligible }) => meEligible === true)
+      .length,
+    knownNotEligibleCount: owned.filter(
+      ({ meEligible }) => meEligible === false,
+    ).length,
+    unknownEligibilityCount: owned.filter(
+      ({ meEligible }) => meEligible === null,
+    ).length,
+    coverage: "coverage" in read ? (read.coverage ?? null) : null,
+    generationId:
+      "apiSnapshot" in read ? (read.apiSnapshot?.generationId ?? null) : null,
+    oldestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.oldestObservedAt ?? null)
+        : null,
+    newestObservedAt:
+      "apiSnapshot" in read
+        ? (read.apiSnapshot?.newestObservedAt ?? null)
+        : null,
+  };
+}
 
 function normalizedIdentity(value: string | null): string | null {
   const normalized = value?.trim() ?? "";
@@ -152,6 +212,7 @@ export async function loadMaidenWorkspacePageState(
     authenticatedOwnerId: string | null;
     configuredOwnerId: string | null;
     repository: MaidenAllocationRepository;
+    vaultRepository?: OwnerVaultCatalogueRepository;
     now: Date;
   }>,
 ): Promise<MaidenWorkspacePageState> {
@@ -195,6 +256,10 @@ export async function loadMaidenWorkspacePageState(
 
   const persistedEvidence =
     await input.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId);
+  const eligibilitySummary = await loadEligibilitySummary(
+    input.vaultRepository,
+    authenticatedOwnerId,
+  );
   if (persistedEvidence === null) {
     return {
       allocation: null,
@@ -203,6 +268,7 @@ export async function loadMaidenWorkspacePageState(
       snapshotSha256: null,
       materializedAt: null,
       connectionStatus: "read_model_connected",
+      ...(eligibilitySummary === null ? {} : { eligibilitySummary }),
     };
   }
   if (
@@ -236,5 +302,6 @@ export async function loadMaidenWorkspacePageState(
     snapshotSha256: persistedEvidence.snapshotSha256,
     materializedAt,
     connectionStatus: "read_model_connected",
+    ...(eligibilitySummary === null ? {} : { eligibilitySummary }),
   };
 }

@@ -24,6 +24,36 @@ describe("Maiden workspace", () => {
     expect(html).not.toContain("/search-core?");
   });
 
+  it("renders accepted Vault eligibility while keeping allocation unavailable", () => {
+    const html = renderToStaticMarkup(
+      <MaidenWorkspace
+        allocation={null}
+        connectionStatus="read_model_connected"
+        eligibilitySummary={{
+          ownedCoreCount: 214,
+          knownEligibleCount: 0,
+          knownNotEligibleCount: 0,
+          unknownEligibilityCount: 214,
+          coverage: "accepted_owner_api_snapshot",
+          generationId: "00000000-0000-4000-8000-000000000001",
+          oldestObservedAt: "2026-09-01T00:00:00.000Z",
+          newestObservedAt: "2026-09-16T00:00:00.000Z",
+        }}
+        lastImportedAt={null}
+        materializedAt={null}
+        snapshotSha256={null}
+        sourceEvidenceSha256={null}
+      />,
+    );
+
+    expect(html).toContain("Current Vault Maiden eligibility");
+    expect(html).toContain("Owned Cores");
+    expect(html).toContain("Eligibility unknown");
+    expect(html).toContain("214");
+    expect(html).toContain("must not be treated as eligible or ineligible");
+    expect(html).toContain("No accepted Maiden evidence");
+  });
+
   it("renders bound preserve-ME evidence without authorising commitment", () => {
     const versions = {
       configurationVersion: "config-v3",
