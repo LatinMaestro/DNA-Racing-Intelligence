@@ -40,6 +40,36 @@ describe("Lifecycle workspace", () => {
     expect(html).not.toContain("Recommended disposal");
   });
 
+  it("renders accepted Vault protections without inventing lifecycle actions", () => {
+    const html = renderToStaticMarkup(
+      <LifecycleWorkspace
+        connectionStatus="read_model_connected"
+        ranking={null}
+        vaultProtection={{
+          ownedCoreCount: 214,
+          genesisCoreCount: 29,
+          knownMaidenEligibleCount: 0,
+          knownMaidenNotEligibleCount: 0,
+          unknownMaidenEligibilityCount: 214,
+          coverage: "accepted_owner_api_snapshot",
+          generationId: "84000000-0000-4000-8000-000000000701",
+          oldestObservedAt: "2026-07-20T00:00:00.000Z",
+          newestObservedAt: "2026-07-21T00:00:00.000Z",
+        }}
+      />,
+    );
+
+    expect(html).toContain("Current Vault protection evidence");
+    expect(html).toContain("214");
+    expect(html).toContain("Genesis protected");
+    expect(html).toContain("29");
+    expect(html).toContain("Unknown Maiden status remains unresolved");
+    expect(html).toContain("does not create a lifecycle recommendation");
+    expect(html).toContain("No accepted lifecycle evidence");
+    expect(html).not.toContain("1. Sell");
+    expect(html).not.toContain("1. Burn");
+  });
+
   it("renders version-bound historical review and missing-basis warning", () => {
     const result = rankLifecycleActions(
       ranking({
