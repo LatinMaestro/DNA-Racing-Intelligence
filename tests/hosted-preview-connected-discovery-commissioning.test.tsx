@@ -12,6 +12,7 @@ import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-disc
 import { neonDiscoveryLineageHypothesisRepositoryFromEnvironment } from "@/lib/neon-discovery-lineage-hypothesis-repository";
 import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { neonTournamentConfigurationRepositoryFromEnvironment } from "@/lib/neon-tournament-configuration-repository";
+import { neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment } from "@/lib/neon-active-dna-core-race-history-generation";
 
 const connected = process.env.DISCOVERY_COMMISSIONING_VERIFICATION === "1";
 const describeConnected = connected ? describe : describe.skip;
@@ -93,6 +94,12 @@ describeConnected("hosted Preview Discovery commissioning", () => {
         neonTournamentConfigurationRepositoryFromEnvironment(
           databaseEnvironment,
         ),
+      acceptedHistoryRepository:
+        neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment({
+          ...databaseEnvironment,
+          ownerId,
+        }),
+      acceptedHistoryNow: now,
     });
     expect(repository.status).toBe("ready");
     if (repository.status !== "ready") {
@@ -142,6 +149,7 @@ describeConnected("hosted Preview Discovery commissioning", () => {
     const rendered = renderToStaticMarkup(
       createElement(DiscoveryWorkspace, {
         candidates: state.candidates,
+        acceptedHistoryCoverage: state.acceptedHistoryCoverage,
         connectionStatus: state.connectionStatus,
         lastImportedAt: state.lastImportedAt,
         publication: state.publication,
@@ -165,6 +173,7 @@ describeConnected("hosted Preview Discovery commissioning", () => {
           state.publication?.payloadSha256 ?? null,
         benchmarkPublicationSourceVersionSetSha256:
           state.publication?.sourceVersionSetSha256 ?? null,
+        acceptedHistoryCoverage: state.acceptedHistoryCoverage,
         modes: [...new Set(state.candidates.map(({ mode }) => mode))],
         distances: [
           ...new Set(
