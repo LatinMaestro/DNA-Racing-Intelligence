@@ -77,8 +77,13 @@ function isolation(overrides: Record<string, unknown> = {}) {
 function harness(rows: readonly (readonly unknown[])[]) {
   const events: string[] = [];
   let index = 0;
-  const query = vi.fn(
-    async (statement: string, values?: readonly unknown[]) => {
+  const client: NeonImportPersistenceClient = {
+    query: vi.fn(async function (
+      this: NeonImportPersistenceClient,
+      statement: string,
+      values?: readonly unknown[],
+    ) {
+      if (this !== client) throw new Error("query receiver was not preserved");
       const normalized = statement.replace(/\s+/gu, " ").trim();
       events.push(
         values ? `${normalized}|${JSON.stringify(values)}` : normalized,
@@ -90,9 +95,9 @@ function harness(rows: readonly (readonly unknown[])[]) {
       )
         return { rows: [] };
       return { rows: rows[index++] ?? [] };
-    },
-  );
-  const client: NeonImportPersistenceClient = { query };
+    }),
+  };
+  const query = vi.mocked(client.query);
   const close = vi.fn(async () => {
     events.push("close");
   });

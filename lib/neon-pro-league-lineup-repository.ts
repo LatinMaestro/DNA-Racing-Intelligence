@@ -312,7 +312,9 @@ export function createNeonProLeagueLineupRepository(
         ownerId,
         runtimeRole,
       );
-      const result = await options.execute(session.client.query);
+      const result = await options.execute((statement, values) =>
+        session.client.query(statement, values),
+      );
       await session.client.query("COMMIT");
       return result;
     } catch (error) {
