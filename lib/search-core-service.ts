@@ -1,4 +1,8 @@
-import type { CorePerformanceProfile } from "@/domain/core-performance";
+import {
+  buildCorePerformanceProfiles,
+  type CorePerformanceProfile,
+  type PerformanceObservation,
+} from "@/domain/core-performance";
 import type {
   CorePerformanceProfileRepository,
   CorePerformancePublication,
@@ -30,6 +34,8 @@ export type SearchCorePageState = Readonly<{
   catalogueCoverage?: OwnerVaultCatalogueCoverage;
   catalogueApiSnapshot?: OwnerVaultApiSnapshot | null;
   performanceStatus: "not_connected" | "connected";
+  performanceAuthority?:
+    "accepted_profile_read_model" | "accepted_history_generation" | null;
   performanceProfiles: readonly CorePerformanceProfile[];
   performanceLastImportedAt: string | null;
   performancePublication?: CorePerformancePublication | null;
@@ -109,6 +115,7 @@ function connectionStatus(
 
 const noPerformance = Object.freeze({
   performanceStatus: "not_connected" as const,
+  performanceAuthority: null,
   performanceProfiles: [] as readonly CorePerformanceProfile[],
   performanceLastImportedAt: null,
 });
@@ -184,6 +191,39 @@ export type AcceptedCoreHistoryRead = Pick<
   SearchCorePageState,
   "acceptedHistoryStatus" | "acceptedHistoryGeneration" | "acceptedHistoryRows"
 >;
+
+export function deriveCorePerformanceProfilesFromAcceptedHistory(
+  history: AcceptedCoreHistoryRead,
+  now: Date,
+): readonly CorePerformanceProfile[] {
+  if (
+    history.acceptedHistoryStatus !== "connected" ||
+    history.acceptedHistoryGeneration === null
+  ) {
+    return [];
+  }
+  const observations: PerformanceObservation[] = history.acceptedHistoryRows
+    .filter(
+      (row) =>
+        row.payload.sourceType === "joined_core_race_history_result" &&
+        row.payload.publishedCellStatus === "accepted",
+    )
+    .map((row) => {
+      const payload = row.payload;
+      if (payload.sourceType !== "joined_core_race_history_result") {
+        throw new Error("Accepted Core history profile source is invalid.");
+      }
+      return {
+        eventId: payload.sourceRaceId,
+        eventAt: payload.eventAt,
+        coreId: payload.sourceCoreId,
+        mode: payload.mode,
+        distance: payload.distanceMetres,
+        elapsedTimeMilliseconds: payload.elapsedMilliseconds,
+      };
+    });
+  return buildCorePerformanceProfiles(observations, [], now);
+}
 
 export async function readAcceptedCoreHistory(input: {
   repository: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
@@ -369,13 +409,25 @@ export async function loadSearchCorePageState(
   ]);
 
   if (input.performanceRepository.status !== "ready") {
+    const historyProfiles = deriveCorePerformanceProfilesFromAcceptedHistory(
+      accepted,
+      input.now,
+    );
     return {
       connectionStatus: catalogue.connectionStatus,
       query,
       results: catalogue.cores,
       selectedCore,
       ...catalogueAuthority,
-      ...noPerformance,
+      ...(historyProfiles.length === 0
+        ? noPerformance
+        : {
+            performanceStatus: "connected" as const,
+            performanceAuthority: "accepted_history_generation" as const,
+            performanceProfiles: historyProfiles,
+            performanceLastImportedAt:
+              accepted.acceptedHistoryGeneration?.publishedAt ?? null,
+          }),
       ...accepted,
       ...archived,
     };
@@ -397,6 +449,15 @@ export async function loadSearchCorePageState(
     repository: scopedPerformanceRepository,
     now: input.now,
   });
+  const readModelProfiles = performance.profiles.filter(
+    (profile) => profile.coreId === selectedCore.sourceCoreId,
+  );
+  const historyProfiles =
+    readModelProfiles.length === 0
+      ? deriveCorePerformanceProfilesFromAcceptedHistory(accepted, input.now)
+      : [];
+  const profiles =
+    readModelProfiles.length > 0 ? readModelProfiles : historyProfiles;
 
   return {
     connectionStatus: catalogue.connectionStatus,
@@ -408,10 +469,19 @@ export async function loadSearchCorePageState(
       performance.connectionStatus === "read_model_connected"
         ? "connected"
         : "not_connected",
-    performanceProfiles: performance.profiles.filter(
-      (profile) => profile.coreId === selectedCore.sourceCoreId,
-    ),
-    performanceLastImportedAt: performance.lastImportedAt,
+    performanceAuthority:
+      readModelProfiles.length > 0
+        ? "accepted_profile_read_model"
+        : historyProfiles.length > 0
+          ? "accepted_history_generation"
+          : null,
+    performanceProfiles: profiles,
+    performanceLastImportedAt:
+      readModelProfiles.length > 0
+        ? performance.lastImportedAt
+        : historyProfiles.length > 0
+          ? (accepted.acceptedHistoryGeneration?.publishedAt ?? null)
+          : performance.lastImportedAt,
     ...(performance.publication
       ? { performancePublication: performance.publication }
       : {}),
