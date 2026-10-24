@@ -83,6 +83,7 @@ describeConnected("hosted Preview Lifecycle commissioning", () => {
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
       repository,
+      vaultRepository,
       now,
     });
     expect(state.connectionStatus).toBe("read_model_connected");
@@ -117,6 +118,9 @@ describeConnected("hosted Preview Lifecycle commissioning", () => {
         publishedAt: state.publishedAt,
         snapshotSha256: state.snapshotSha256,
         connectionStatus: state.connectionStatus,
+        ...(state.vaultProtection === undefined
+          ? {}
+          : { vaultProtection: state.vaultProtection }),
       }),
     );
     expect(rendered).toContain("Historical lifecycle evidence connected");
@@ -124,6 +128,9 @@ describeConnected("hosted Preview Lifecycle commissioning", () => {
     expect(rendered).toContain("Burn unavailable");
     expect(rendered).toContain("No final recommendation");
     expect(rendered).not.toContain("Recommended disposal");
+    expect(rendered).toContain("Current Vault protection evidence");
+    expect(rendered).toContain("Genesis protected");
+    expect(rendered).toContain("does not create a lifecycle recommendation");
     if (state.ranking === null || state.ranking.cores.length === 0) {
       expect(rendered).toContain("No accepted lifecycle evidence");
       expect(rendered).toContain("Missing evidence is unavailable");
@@ -146,6 +153,7 @@ describeConnected("hosted Preview Lifecycle commissioning", () => {
         lifecycleRankingId: state.ranking?.rankingId ?? null,
         lifecyclePublishedAt: state.publishedAt,
         lifecycleSnapshotSha256: state.snapshotSha256,
+        vaultProtection: state.vaultProtection,
         lifecycleCoreCount: cores.length,
         rankedActionCount: cores.reduce(
           (total, core) => total + core.rankedActions.length,
