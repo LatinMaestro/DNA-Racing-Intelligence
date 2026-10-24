@@ -78,9 +78,16 @@ describeConnected("hosted Preview Maiden commissioning", () => {
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
       repository,
+      vaultRepository,
       now,
     });
     expect(state.connectionStatus).toBe("read_model_connected");
+    expect(state.eligibilitySummary?.ownedCoreCount).toBe(
+      vaultRead.cores.length,
+    );
+    expect(state.eligibilitySummary?.unknownEligibilityCount).toBe(
+      vaultRead.cores.filter(({ meEligible }) => meEligible === null).length,
+    );
     if (state.allocation !== null) {
       expect(state.allocation.actionableRecommendationAllowed).toBe(false);
       expect(state.allocation.maidenCommitmentAllowed).toBe(false);
@@ -104,6 +111,7 @@ describeConnected("hosted Preview Maiden commissioning", () => {
       createElement(MaidenWorkspace, {
         allocation: state.allocation,
         connectionStatus: state.connectionStatus,
+        eligibilitySummary: state.eligibilitySummary ?? null,
         lastImportedAt: state.lastImportedAt,
         materializedAt: state.materializedAt,
         snapshotSha256: state.snapshotSha256,
@@ -111,6 +119,8 @@ describeConnected("hosted Preview Maiden commissioning", () => {
       }),
     );
     expect(rendered).toContain("Current Maiden review evidence connected");
+    expect(rendered).toContain("Current Vault Maiden eligibility");
+    expect(rendered).toContain("Unknown means the accepted owner snapshot");
     expect(rendered).toContain("Maiden commitment unavailable");
     if (state.allocation === null) {
       expect(rendered).toContain("No accepted Maiden evidence");
