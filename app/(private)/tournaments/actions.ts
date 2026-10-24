@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonTournamentCampaignActionRepositoryFromEnvironment } from "@/lib/neon-tournament-campaign-action-repository";
@@ -44,6 +45,10 @@ export async function saveTournamentConfigurationAction(
 
   revalidatePath("/tournaments");
   revalidatePath("/discovery");
+  redirect(
+    `/tournaments?tournamentId=${encodeURIComponent(configuration.tournamentId)}` +
+      `&bracketId=${encodeURIComponent(configuration.bracketId)}`,
+  );
 }
 
 export async function acknowledgeTournamentCampaignAction(
