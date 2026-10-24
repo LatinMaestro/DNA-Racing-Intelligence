@@ -21,6 +21,35 @@ import type {
 import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 import type { TournamentCandidateRepository } from "./tournament-workspace-service";
+import type { ActiveSelectedDnaCoreRaceHistoryReadRepository } from "./neon-active-dna-core-race-history-generation";
+import { deriveCorePerformanceProfilesFromAcceptedHistory } from "./search-core-service";
+
+export type DiscoveryAcceptedHistoryCoverage = Readonly<{
+  status:
+    | "not_used"
+    | "ready"
+    | "truncated"
+    | "source_changed"
+    | "missing"
+    | "unavailable";
+  generationId: string | null;
+  ownedCoreCount: number;
+  selectedCoreCount: number;
+  omittedCoreCount: number;
+  acceptedRowCount: number;
+  maximumRows: 10_000;
+}>;
+
+const noAcceptedHistoryCoverage: DiscoveryAcceptedHistoryCoverage =
+  Object.freeze({
+    status: "not_used",
+    generationId: null,
+    ownedCoreCount: 0,
+    selectedCoreCount: 0,
+    omittedCoreCount: 0,
+    acceptedRowCount: 0,
+    maximumRows: 10_000,
+  });
 
 export type DiscoveryProbeRepository =
   | Readonly<{ status: "not_configured" }>
@@ -32,6 +61,7 @@ export type DiscoveryProbeRepository =
           benchmarks: readonly DiscoveryExactDistanceBenchmarkEvidence[];
           publication: DiscoveryBenchmarkPublication | null;
           lastImportedAt: string | null;
+          acceptedHistoryCoverage?: DiscoveryAcceptedHistoryCoverage;
         }>
       >;
     }>;
@@ -46,6 +76,7 @@ export type DiscoveryWorkspacePageState = Readonly<{
   lastImportedAt: string | null;
   publication: DiscoveryBenchmarkPublication | null;
   connectionStatus: DiscoveryWorkspaceConnectionStatus;
+  acceptedHistoryCoverage: DiscoveryAcceptedHistoryCoverage;
 }>;
 
 export const unavailableDiscoveryProbeRepository: DiscoveryProbeRepository =
@@ -58,6 +89,8 @@ export function createDiscoveryProbeRepository(
     lineageRepository: DiscoveryLineageHypothesisRepository;
     benchmarkRepository: DiscoveryBenchmarkRepository;
     tournamentRepository: TournamentCandidateRepository;
+    acceptedHistoryRepository?: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
+    acceptedHistoryNow?: Date;
   }>,
 ): DiscoveryProbeRepository {
   if (
@@ -79,7 +112,7 @@ export function createDiscoveryProbeRepository(
     async listCandidateEvidenceByOwner(ownerId) {
       const [
         ownedCores,
-        performance,
+        persistedPerformance,
         lineageHypotheses,
         benchmarks,
         tournamentEvidence,
@@ -104,6 +137,83 @@ export function createDiscoveryProbeRepository(
           .filter((core) => core.inMyVault)
           .map((core) => [core.sourceCoreId, core] as const),
       );
+
+      let performance = persistedPerformance;
+      let acceptedHistoryCoverage = noAcceptedHistoryCoverage;
+      if (
+        performance.profiles.length === 0 &&
+        input.acceptedHistoryRepository !== undefined &&
+        input.acceptedHistoryRepository !== null
+      ) {
+        try {
+          const selectedCoreIds = [...ownedById.keys()]
+            .sort((left, right) =>
+              left.localeCompare(right, "en", { numeric: true }),
+            )
+            .slice(0, 64);
+          const generation =
+            selectedCoreIds.length === 0
+              ? null
+              : await input.acceptedHistoryRepository.readActiveGeneration(
+                  ownerId,
+                );
+          if (generation === null) {
+            acceptedHistoryCoverage = Object.freeze({
+              ...noAcceptedHistoryCoverage,
+              status: "missing",
+              ownedCoreCount: ownedById.size,
+              omittedCoreCount: ownedById.size,
+            });
+          } else {
+            const selected =
+              await input.acceptedHistoryRepository.readSelectedCoreRows(
+                ownerId,
+                {
+                  generationId: generation.generationId,
+                  observationSetSha256: generation.observationSetSha256,
+                  coreIds: selectedCoreIds,
+                  maximumRows: 10_000,
+                },
+              );
+            acceptedHistoryCoverage = Object.freeze({
+              status: selected.status,
+              generationId: generation.generationId,
+              ownedCoreCount: ownedById.size,
+              selectedCoreCount: selectedCoreIds.length,
+              omittedCoreCount: ownedById.size - selectedCoreIds.length,
+              acceptedRowCount:
+                selected.status === "ready" ? selected.rows.length : 0,
+              maximumRows: 10_000,
+            });
+            if (selected.status === "ready" && selected.rows.length > 0) {
+              performance = {
+                profiles: deriveCorePerformanceProfilesFromAcceptedHistory(
+                  {
+                    acceptedHistoryStatus: "connected",
+                    acceptedHistoryGeneration: {
+                      generationId: generation.generationId,
+                      observationSetSha256: generation.observationSetSha256,
+                      publishedAt: generation.publishedAt,
+                      observationCount: generation.observationCount,
+                    },
+                    acceptedHistoryRows: selected.rows,
+                  },
+                  input.acceptedHistoryNow ?? new Date(),
+                ),
+                lastImportedAt: generation.publishedAt,
+                publication: null,
+              };
+            }
+          }
+        } catch {
+          acceptedHistoryCoverage = Object.freeze({
+            ...noAcceptedHistoryCoverage,
+            status: "unavailable",
+            ownedCoreCount: ownedById.size,
+            omittedCoreCount: ownedById.size,
+          });
+        }
+      }
 
       const tournamentConfigurations = tournamentEvidence.brackets.map(
         ({ mode, eligibleDistancesMetres, discoveryRelevance }) => ({
@@ -215,6 +325,7 @@ export function createDiscoveryProbeRepository(
         benchmarks: benchmarks.benchmarks,
         publication: benchmarks.publication,
         lastImportedAt,
+        acceptedHistoryCoverage,
       };
     },
   };
@@ -364,6 +475,7 @@ export async function loadDiscoveryWorkspacePageState(
       lastImportedAt: null,
       publication: null,
       connectionStatus: "identity_not_connected",
+      acceptedHistoryCoverage: noAcceptedHistoryCoverage,
     };
   }
   if (authenticatedOwnerId !== configuredOwnerId) {
@@ -382,6 +494,7 @@ export async function loadDiscoveryWorkspacePageState(
       lastImportedAt: null,
       publication: null,
       connectionStatus: "persistence_not_configured",
+      acceptedHistoryCoverage: noAcceptedHistoryCoverage,
     };
   }
   if (typeof input.repository.listCandidateEvidenceByOwner !== "function") {
@@ -431,5 +544,7 @@ export async function loadDiscoveryWorkspacePageState(
     lastImportedAt,
     publication,
     connectionStatus: "read_model_connected",
+    acceptedHistoryCoverage:
+      evidence.acceptedHistoryCoverage ?? noAcceptedHistoryCoverage,
   };
 }
