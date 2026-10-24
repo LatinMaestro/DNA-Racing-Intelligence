@@ -788,10 +788,12 @@ jobs:
                 "expected_main_sha",
                 "verified_at",
                 "execute_private_preview_verification",
+                "persist_owner_confirmed_plan",
               ]);
               if (
                 !exactTimestamp(payload.verified_at) ||
-                payload.execute_private_preview_verification !== true
+                payload.execute_private_preview_verification !== true ||
+                payload.persist_owner_confirmed_plan !== true
               ) {
                 throw new Error(
                   "Pro League draft verification authority is invalid.",
@@ -802,6 +804,7 @@ jobs:
               inputs = {
                 verified_at: payload.verified_at,
                 execute_private_preview_verification: true,
+                persist_owner_confirmed_plan: true,
               };
               break;
             case "tournament-workspace-verification":
