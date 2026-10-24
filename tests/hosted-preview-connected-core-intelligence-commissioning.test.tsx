@@ -12,7 +12,10 @@ import {
   type ActiveDnaCoreRaceHistoryGenerationRow,
 } from "@/lib/neon-active-dna-core-race-history-generation";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
-import { readAcceptedCoreHistory } from "@/lib/search-core-service";
+import {
+  deriveCorePerformanceProfilesFromAcceptedHistory,
+  readAcceptedCoreHistory,
+} from "@/lib/search-core-service";
 
 const connected =
   process.env.CORE_INTELLIGENCE_COMMISSIONING_VERIFICATION === "1";
@@ -97,6 +100,8 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
     });
     const joinedHistoryRows =
       acceptedHistory.acceptedHistoryRows.filter(isJoinedHistoryRow);
+    const acceptedHistoryProfiles =
+      deriveCorePerformanceProfilesFromAcceptedHistory(acceptedHistory, now);
 
     expect(state.connectionStatus).toBe("read_model_connected");
     expect(state.profiles).toEqual([]);
@@ -109,6 +114,10 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
     expect(joinedHistoryRows).toHaveLength(
       acceptedHistory.acceptedHistoryRows.length,
     );
+    expect(acceptedHistoryProfiles.length).toBeGreaterThan(0);
+    expect(
+      acceptedHistoryProfiles.every(({ coreId }) => coreId === selectedCoreId),
+    ).toBe(true);
     expect(
       joinedHistoryRows.every(
         ({ payload }) => payload.sourceCoreId === selectedCoreId,
@@ -172,6 +181,7 @@ describeConnected("hosted Preview Core Intelligence commissioning", () => {
         status: state.connectionStatus,
         selectedCoreId,
         profileCount: state.profiles.length,
+        acceptedHistoryDerivedProfileCount: acceptedHistoryProfiles.length,
         acceptedHistoryRowCount: acceptedHistory.acceptedHistoryRows.length,
         acceptedHistoryGeneration:
           acceptedHistory.acceptedHistoryGeneration?.generationId ?? null,
