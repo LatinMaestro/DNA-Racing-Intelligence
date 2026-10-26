@@ -415,6 +415,13 @@ export function SearchCoreWorkspace({
     "These are returned results, not a verified count of all matches.",
     "More cores may match. Narrow the name or search by exact Core ID.",
   ].join(" ");
+  // Preserve compatibility with stored/test page-state snapshots created
+  // before population identity became a separate accepted source.
+  const populationIdentity = state.populationIdentity ?? null;
+  const populationIdentityStatus =
+    state.populationIdentityStatus ?? "not_connected";
+  const visibleResultCount =
+    state.results.length + (populationIdentity === null ? 0 : 1);
 
   return (
     <div className="space-y-8">
@@ -485,7 +492,7 @@ export function SearchCoreWorkspace({
             Search results
           </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {`${state.results.length.toLocaleString("en-AU")} core${state.results.length === 1 ? "" : "s"} shown`}
+            {`${visibleResultCount.toLocaleString("en-AU")} core${visibleResultCount === 1 ? "" : "s"} shown`}
           </p>
           {ownerApiCoverage ? (
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
@@ -507,7 +514,61 @@ export function SearchCoreWorkspace({
             </p>
           ) : null}
 
-          {state.results.length === 0 ? (
+          {populationIdentityStatus === "unavailable" ? (
+            <p
+              className="mt-4 rounded-2xl border border-[var(--warning)]/50 bg-[var(--surface-raised)] p-6 text-[var(--warning)]"
+              role="alert"
+            >
+              Population Core identity could not be verified. No population
+              result is substituted.
+            </p>
+          ) : null}
+
+          {populationIdentity !== null ? (
+            <article className="mt-4 rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-5">
+              <p className="text-xs font-bold tracking-wider text-[var(--accent)] uppercase">
+                Accepted population identity
+              </p>
+              <h3 className="mt-2 text-lg font-semibold">
+                Core ID {populationIdentity.sourceCoreId}
+              </h3>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <dt className="text-[var(--muted)]">Population cohort</dt>
+                  <dd className="font-semibold">
+                    {populationIdentity.populationCoreCount.toLocaleString(
+                      "en-AU",
+                    )}{" "}
+                    Core IDs
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--muted)]">Evaluated</dt>
+                  <dd className="font-semibold">
+                    {new Date(populationIdentity.evaluatedAt).toLocaleString(
+                      "en-AU",
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--muted)]">Profile metadata</dt>
+                  <dd className="font-semibold">Unavailable</dd>
+                </div>
+              </dl>
+              <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                This exact Core ID is present in the accepted immutable
+                population-history authority. Name, class, element, sex,
+                F-number and current ownership are not stored in that authority
+                and are not inferred.
+              </p>
+              <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+                Generation {populationIdentity.generationId} · Core-set SHA-256{" "}
+                {populationIdentity.coreSetSha256}
+              </p>
+            </article>
+          ) : null}
+
+          {state.results.length === 0 && populationIdentity === null ? (
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-6">
               {ownerApiCoverage
                 ? "No current owned API Core matches this search."
