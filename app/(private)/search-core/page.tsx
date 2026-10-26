@@ -4,6 +4,7 @@ import { evidenceViewFilters } from "@/lib/evidence-view-filters";
 import { hostedRaceArchiveCoreHistoryRuntime } from "@/lib/hosted-race-archive-core-history-runtime";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment } from "@/lib/neon-active-dna-core-race-history-generation";
+import { neonPopulationCoreIdentityRepositoryFromEnvironment } from "@/lib/neon-population-core-identity-repository";
 import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadSearchCorePageState } from "@/lib/search-core-service";
 
@@ -63,6 +64,11 @@ export default async function SearchCorePage({
         ...databaseEnvironment,
         ownerId: process.env.AUTHORIZED_CLERK_USER_ID,
       }),
+    populationIdentityRepository:
+      neonPopulationCoreIdentityRepositoryFromEnvironment(
+        databaseEnvironment,
+        process.env.AUTHORIZED_CLERK_USER_ID,
+      ),
     archiveHistoryService:
       archiveRuntime.status === "ready" ? archiveRuntime.service : null,
     now,

@@ -20,6 +20,10 @@ import type {
   ActiveDnaCoreRaceHistoryGenerationRow,
   ActiveSelectedDnaCoreRaceHistoryReadRepository,
 } from "./neon-active-dna-core-race-history-generation";
+import type {
+  PopulationCoreIdentity,
+  PopulationCoreIdentityRepository,
+} from "./neon-population-core-identity-repository";
 
 export type SearchCorePageState = Readonly<{
   connectionStatus:
@@ -31,6 +35,9 @@ export type SearchCorePageState = Readonly<{
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
+  populationIdentityStatus?:
+    "not_connected" | "missing" | "connected" | "unavailable";
+  populationIdentity?: PopulationCoreIdentity | null;
   catalogueCoverage?: OwnerVaultCatalogueCoverage;
   catalogueApiSnapshot?: OwnerVaultApiSnapshot | null;
   performanceStatus: "not_connected" | "connected";
@@ -132,6 +139,47 @@ const noAcceptedHistory = Object.freeze({
   acceptedHistoryGeneration: null,
   acceptedHistoryRows: [] as readonly ActiveDnaCoreRaceHistoryGenerationRow[],
 });
+
+const noPopulationIdentity = Object.freeze({
+  populationIdentityStatus: "not_connected" as const,
+  populationIdentity: null,
+});
+
+async function populationIdentity(input: {
+  repository: PopulationCoreIdentityRepository | null;
+  ownerId: string | null;
+  sourceCoreId: string;
+}): Promise<
+  Pick<SearchCorePageState, "populationIdentityStatus" | "populationIdentity">
+> {
+  if (
+    input.repository === null ||
+    input.repository.status !== "ready" ||
+    input.ownerId === null
+  ) {
+    return noPopulationIdentity;
+  }
+  if (!/^[1-9][0-9]{0,15}$/.test(input.sourceCoreId)) {
+    return { populationIdentityStatus: "missing", populationIdentity: null };
+  }
+  try {
+    const identity = await input.repository.readExactIdentity(
+      input.ownerId,
+      input.sourceCoreId,
+    );
+    return identity === null
+      ? { populationIdentityStatus: "missing", populationIdentity: null }
+      : {
+          populationIdentityStatus: "connected",
+          populationIdentity: identity,
+        };
+  } catch {
+    return {
+      populationIdentityStatus: "unavailable",
+      populationIdentity: null,
+    };
+  }
+}
 
 const unavailableAcceptedHistory = Object.freeze({
   acceptedHistoryStatus: "unavailable" as const,
@@ -297,6 +345,7 @@ export async function loadSearchCorePageState(
     performanceRepository: CorePerformanceProfileRepository;
     acceptedHistoryRepository?: ActiveSelectedDnaCoreRaceHistoryReadRepository | null;
     archiveHistoryService?: RaceArchiveCoreHistoryService | null;
+    populationIdentityRepository?: PopulationCoreIdentityRepository | null;
     now: Date;
     query?: unknown;
     selectedCoreId?: unknown;
@@ -312,6 +361,7 @@ export async function loadSearchCorePageState(
       query,
       results: [],
       selectedCore: null,
+      ...noPopulationIdentity,
       ...noPerformance,
       ...noAcceptedHistory,
       ...noArchiveHistory,
@@ -323,6 +373,7 @@ export async function loadSearchCorePageState(
       query,
       results: [],
       selectedCore: null,
+      ...noPopulationIdentity,
       ...noPerformance,
       ...noAcceptedHistory,
       ...noArchiveHistory,
@@ -349,6 +400,7 @@ export async function loadSearchCorePageState(
       query,
       results: [],
       selectedCore: null,
+      ...noPopulationIdentity,
       ...noPerformance,
       ...noAcceptedHistory,
       ...noArchiveHistory,
@@ -372,6 +424,7 @@ export async function loadSearchCorePageState(
           query,
           results: [],
           selectedCore: null,
+          ...noPopulationIdentity,
           ...noPerformance,
           ...noAcceptedHistory,
           ...noArchiveHistory,
@@ -383,11 +436,17 @@ export async function loadSearchCorePageState(
   }
 
   if (selectedCore === null) {
+    const identity = await populationIdentity({
+      repository: input.populationIdentityRepository ?? null,
+      ownerId: input.authenticatedOwnerId,
+      sourceCoreId: selectedId ?? query ?? "",
+    });
     return {
       connectionStatus: catalogue.connectionStatus,
       query,
       results: catalogue.cores,
       selectedCore,
+      ...identity,
       ...catalogueAuthority,
       ...noPerformance,
       ...noAcceptedHistory,
@@ -418,6 +477,7 @@ export async function loadSearchCorePageState(
       query,
       results: catalogue.cores,
       selectedCore,
+      ...noPopulationIdentity,
       ...catalogueAuthority,
       ...(historyProfiles.length === 0
         ? noPerformance
@@ -464,6 +524,7 @@ export async function loadSearchCorePageState(
     query,
     results: catalogue.cores,
     selectedCore,
+    ...noPopulationIdentity,
     ...catalogueAuthority,
     performanceStatus:
       performance.connectionStatus === "read_model_connected"
