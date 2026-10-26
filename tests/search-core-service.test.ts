@@ -5,6 +5,7 @@ import type { CorePerformanceProfileRepository } from "../lib/core-intelligence-
 import type { OwnerVaultCatalogueRepository } from "../lib/owner-vault-catalogue-service";
 import type { RaceArchiveCoreHistoryService } from "../lib/race-archive-core-history-service";
 import type { ActiveSelectedDnaCoreRaceHistoryReadRepository } from "../lib/neon-active-dna-core-race-history-generation";
+import type { PopulationCoreIdentityRepository } from "../lib/neon-population-core-identity-repository";
 import {
   loadSearchCorePageState,
   type SearchCorePageState,
@@ -65,6 +66,39 @@ function catalogue(
 }
 
 describe("Search Core service", () => {
+  it("falls back to an exact accepted population identity without fabricating profile metadata", async () => {
+    const readExactIdentity = vi.fn(async () => ({
+      sourceCoreId: "9002",
+      generationId: "22222222-2222-4222-8222-222222222222",
+      evaluatedAt: "2026-10-06T05:02:00.000Z",
+      coreSetSha256: "a".repeat(64),
+      populationCoreCount: 4_096,
+    }));
+    const populationIdentityRepository: PopulationCoreIdentityRepository = {
+      status: "ready",
+      readExactIdentity,
+    };
+    const state = await loadSearchCorePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => []),
+      performanceRepository: noPerformance,
+      populationIdentityRepository,
+      now,
+      query: "9002",
+    });
+    expect(readExactIdentity).toHaveBeenCalledWith(ownerId, "9002");
+    expect(state).toMatchObject({
+      results: [],
+      selectedCore: null,
+      populationIdentityStatus: "connected",
+      populationIdentity: {
+        sourceCoreId: "9002",
+        populationCoreCount: 4_096,
+      },
+    });
+  });
+
   it("does not query or expose catalogue rows before a search", async () => {
     const listCoresByOwner = vi.fn(async () => [core]);
     const state = await loadSearchCorePageState({
