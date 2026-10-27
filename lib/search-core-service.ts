@@ -468,7 +468,25 @@ export async function loadSearchCorePageState(
     };
   }
 
-  const [archived, accepted] = await Promise.all([
+  const scopedPerformanceRepository: CorePerformanceProfileRepository | null =
+    input.performanceRepository.status === "ready"
+      ? {
+          status: "ready",
+          listProfilesByOwner: (authenticatedOwnerId) =>
+            input.performanceRepository.status === "ready"
+              ? input.performanceRepository.listProfilesByOwner(
+                  authenticatedOwnerId,
+                  selectedCore.sourceCoreId,
+                )
+              : Promise.reject(
+                  new Error("Search Core performance is unavailable."),
+                ),
+        }
+      : null;
+
+  // These owner-scoped reads are independent. Start them together so an R2
+  // archive check cannot delay the compact profile or accepted-history reads.
+  const [archived, accepted, performance] = await Promise.all([
     archiveHistory({
       service: input.archiveHistoryService ?? null,
       ownerId: input.authenticatedOwnerId,
@@ -479,6 +497,14 @@ export async function loadSearchCorePageState(
       ownerId: input.authenticatedOwnerId,
       sourceCoreId: selectedCore.sourceCoreId,
     }),
+    scopedPerformanceRepository === null
+      ? Promise.resolve(null)
+      : loadCoreIntelligencePageState({
+          authenticatedOwnerId: input.authenticatedOwnerId,
+          configuredOwnerId: input.configuredOwnerId,
+          repository: scopedPerformanceRepository,
+          now: input.now,
+        }),
   ]);
 
   if (input.performanceRepository.status !== "ready") {
@@ -507,22 +533,9 @@ export async function loadSearchCorePageState(
     };
   }
 
-  const scopedPerformanceRepository: CorePerformanceProfileRepository = {
-    status: "ready",
-    listProfilesByOwner: (authenticatedOwnerId) =>
-      input.performanceRepository.status === "ready"
-        ? input.performanceRepository.listProfilesByOwner(
-            authenticatedOwnerId,
-            selectedCore.sourceCoreId,
-          )
-        : Promise.reject(new Error("Search Core performance is unavailable.")),
-  };
-  const performance = await loadCoreIntelligencePageState({
-    authenticatedOwnerId: input.authenticatedOwnerId,
-    configuredOwnerId: input.configuredOwnerId,
-    repository: scopedPerformanceRepository,
-    now: input.now,
-  });
+  if (performance === null) {
+    throw new Error("Search Core performance state is unavailable.");
+  }
   const readModelProfiles = performance.profiles.filter(
     (profile) => profile.coreId === selectedCore.sourceCoreId,
   );

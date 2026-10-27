@@ -168,6 +168,74 @@ describe("Search Core service", () => {
     expect(listProfilesByOwner).toHaveBeenCalledWith(ownerId, "core-7");
   });
 
+  it("starts selected-Core profile, accepted-history and archive reads concurrently", async () => {
+    let releaseArchive!: () => void;
+    let releaseGeneration!: () => void;
+    let releasePerformance!: () => void;
+    const archiveGate = new Promise<void>((resolve) => {
+      releaseArchive = resolve;
+    });
+    const generationGate = new Promise<void>((resolve) => {
+      releaseGeneration = resolve;
+    });
+    const performanceGate = new Promise<void>((resolve) => {
+      releasePerformance = resolve;
+    });
+    const archiveLoad = vi.fn(async () => {
+      await archiveGate;
+      return {
+        sourceCoreId: "core-7",
+        locatorVersionCount: 0,
+        selectedPartitionCount: 0,
+        rows: [],
+      };
+    });
+    const readActiveGeneration = vi.fn(async () => {
+      await generationGate;
+      return null;
+    });
+    const listProfilesByOwner = vi.fn(async () => {
+      await performanceGate;
+      return {
+        profiles: [profile],
+        lastImportedAt: "2026-08-11T02:00:00.000Z",
+      };
+    });
+    const acceptedHistoryRepository = {
+      readActiveGeneration,
+      readSelectedCoreRows: vi.fn(),
+      readActiveRows: vi.fn(),
+    } as unknown as ActiveSelectedDnaCoreRaceHistoryReadRepository;
+
+    const pending = loadSearchCorePageState({
+      authenticatedOwnerId: ownerId,
+      configuredOwnerId: ownerId,
+      repository: catalogue(async () => [core]),
+      performanceRepository: { status: "ready", listProfilesByOwner },
+      acceptedHistoryRepository,
+      archiveHistoryService: { load: archiveLoad },
+      now,
+      query: "Seven",
+      selectedCoreId: "core-7",
+    });
+
+    await vi.waitFor(() => {
+      expect(archiveLoad).toHaveBeenCalledOnce();
+      expect(readActiveGeneration).toHaveBeenCalledOnce();
+      expect(listProfilesByOwner).toHaveBeenCalledOnce();
+    });
+    releaseArchive();
+    releaseGeneration();
+    releasePerformance();
+
+    await expect(pending).resolves.toMatchObject({
+      performanceStatus: "connected",
+      performanceProfiles: [profile],
+      acceptedHistoryStatus: "missing",
+      archiveHistoryStatus: "missing",
+    });
+  });
+
   it("loads generation-pinned accepted history only for the selected Core", async () => {
     const readActiveGeneration = vi.fn(async () => ({
       generationId: "a".repeat(64),
