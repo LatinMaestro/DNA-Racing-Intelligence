@@ -595,4 +595,93 @@ describe("Discovery workspace service", () => {
       maximumRows: 10_000,
     });
   });
+
+  it("reads every owned Core in independently bounded batches instead of silently sampling four", async () => {
+    const generationId = "a".repeat(64);
+    const observationSetSha256 = "b".repeat(64);
+    const ownedCores = Array.from({ length: 65 }, (_, index) => ({
+      sourceCoreId: String(10_000 + index),
+      displayName: `Owned Core ${index + 1}`,
+      coreClass: "Genesis" as const,
+      element: "Earth" as const,
+      fNumber: 5,
+      sex: "female" as const,
+      inMyVault: true,
+      meEligible: null,
+      version: 1,
+      updatedAt: null,
+    }));
+    const readSelectedCoreRows = vi.fn(
+      async (
+        _ownerId: string,
+        _selection: Readonly<{
+          generationId: string;
+          observationSetSha256: string;
+          coreIds: readonly string[];
+          maximumRows: number;
+        }>,
+      ) => ({ status: "ready" as const, rows: [] }),
+    );
+    const repository = createDiscoveryProbeRepository({
+      vaultRepository: {
+        status: "ready",
+        listCoresByOwner: async () => ownedCores,
+      },
+      performanceRepository: {
+        status: "ready",
+        listProfilesByOwner: async () => ({
+          profiles: [],
+          lastImportedAt: null,
+          publication: null,
+        }),
+      },
+      lineageRepository: {
+        status: "ready",
+        listHypothesesByOwner: async () => [],
+      },
+      benchmarkRepository: {
+        status: "ready",
+        listBenchmarksByOwner: async () => ({
+          benchmarks: [],
+          publication: null,
+        }),
+      },
+      tournamentRepository: { status: "not_configured" },
+      acceptedHistoryRepository: {
+        readActiveGeneration: async () =>
+          ({
+            generationId,
+            observationSetSha256,
+            publishedAt: "2026-07-20T01:00:00.000Z",
+            observationCount: 0,
+          }) as never,
+        readActiveRows: async () => [],
+        readSelectedCoreRows,
+      },
+    });
+
+    expect(repository.status).toBe("ready");
+    if (repository.status !== "ready") throw new Error("Discovery not ready");
+    const result = await repository.listCandidateEvidenceByOwner("owner");
+
+    expect(readSelectedCoreRows).toHaveBeenCalledTimes(2);
+    expect(
+      readSelectedCoreRows.mock.calls.map(([, selection]) => ({
+        coreCount: selection.coreIds.length,
+        maximumRows: selection.maximumRows,
+      })),
+    ).toEqual([
+      { coreCount: 64, maximumRows: 10_000 },
+      { coreCount: 1, maximumRows: 10_000 },
+    ]);
+    expect(result.acceptedHistoryCoverage).toEqual({
+      status: "ready",
+      generationId,
+      ownedCoreCount: 65,
+      selectedCoreCount: 65,
+      omittedCoreCount: 0,
+      acceptedRowCount: 0,
+      maximumRows: 20_000,
+    });
+  });
 });

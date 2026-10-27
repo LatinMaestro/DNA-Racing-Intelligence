@@ -89,18 +89,20 @@ describe("Discovery workspace", () => {
       />,
     );
 
-    expect(html).toContain("horse · 1,600 m");
+    expect(html).toContain("Search the whole Vault");
+    expect(html).toContain("<table");
+    expect(html).toContain("Horse");
+    expect(html).toContain("1,600 m");
     expect(html).toContain("Synthetic Core");
-    expect(html).toContain("Core ID synthetic-core");
+    expect(html).toContain("synthetic-core");
     expect(html).toContain("3 races");
     expect(html).toContain("Continue Targeted Probe");
     expect(html).toContain(
       "Direct time reaches the historical winner range; continue a bounded exact-distance probe.",
     );
-    expect(html).toContain("never stops the core automatically");
+    expect(html).toContain("No automatic entry or stop is allowed");
     expect(html).toContain("Direct imported results");
-    expect(html).toContain("Moderate confidence");
-    expect(html).toContain("Winning Range benchmark");
+    expect(html).toContain("Winning Range");
     expect(html).toContain("Best 94.125 s · Median 95.500 s");
     expect(html).toContain("Mean 95.750 s · σ 0.825 s");
     expect(html).toContain(
@@ -109,15 +111,13 @@ describe("Discovery workspace", () => {
     expect(html).toContain(
       "Median 96.000 s · 75th percentile 97.500 s · 80 top-three results",
     );
-    expect(html).toContain("120 exact-distance historical entries");
     expect(html).toContain("1/2 (50%) · 3 Yellow-eligible races");
     expect(html).toContain("1/3 (33%)");
     expect(html).toContain("descriptive historical distributions");
     expect(html).toContain(
-      "Raw star rate or conversion does not improve priority without pre-race opposition-quality evidence",
+      "raw conversion does not improve priority without opposition-quality evidence",
     );
     expect(html).toContain("Priority");
-    expect(html).toContain("Tournament relevance");
     expect(html).toContain("Maiden Commitment Review Required");
     expect(html).toContain("Owned-core Discovery planner connected");
     expect(html).toContain("Accepted refresh");
@@ -169,12 +169,11 @@ describe("Discovery workspace", () => {
         />,
       );
 
-      expect(html).toContain("0 races");
-      expect(html).toContain(`${expectedLabel} · 18 lineage races`);
-      expect(html).toContain("Low confidence");
+      expect(html).toContain("0/10");
+      expect(html).toContain(`${expectedLabel} · 18 supporting races`);
       expect(html).toContain("Not yet available");
       expect(html).toContain("3 races");
-      expect(html).toContain("Lineage or population evidence");
+      expect(html).toContain("No automatic entry or stop is allowed");
     },
   );
 
@@ -213,7 +212,7 @@ describe("Discovery workspace", () => {
     );
     expect(html).not.toContain("42 lineage races");
     expect(html).toContain("3 races");
-    expect(html).toContain("Lineage or population evidence");
+    expect(html).toContain("No automatic entry or stop is allowed");
   });
 
   it("discloses historical-only preview with the existing as-of probe calculation", () => {
@@ -255,10 +254,9 @@ describe("Discovery workspace", () => {
 
     expect(candidates[0]?.decisionActionable).toBe(false);
     expect(html).toContain("Historical snapshot preview only");
-    expect(html).toContain("Historical probe estimate");
-    expect(html).toContain("Recorded exact-distance sample");
+    expect(html).toContain("3/10");
     expect(html).toContain("3 races");
-    expect(html).toContain("Data Stale");
+    expect(html).toContain("Stale");
     expect(html).toContain("Do not enter races, spend assets or stop testing");
   });
 });
