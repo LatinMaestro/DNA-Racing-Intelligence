@@ -21,7 +21,10 @@ import type {
 import type { DiscoveryLineageHypothesisRepository } from "./neon-discovery-lineage-hypothesis-repository";
 import type { OwnerVaultCatalogueRepository } from "./owner-vault-catalogue-service";
 import type { TournamentCandidateRepository } from "./tournament-workspace-service";
-import type { ActiveSelectedDnaCoreRaceHistoryReadRepository } from "./neon-active-dna-core-race-history-generation";
+import type {
+  ActiveDnaCoreRaceHistoryGenerationRow,
+  ActiveSelectedDnaCoreRaceHistoryReadRepository,
+} from "./neon-active-dna-core-race-history-generation";
 import { deriveCorePerformanceProfilesFromAcceptedHistory } from "./search-core-service";
 
 export type DiscoveryAcceptedHistoryCoverage = Readonly<{
@@ -37,8 +40,11 @@ export type DiscoveryAcceptedHistoryCoverage = Readonly<{
   selectedCoreCount: number;
   omittedCoreCount: number;
   acceptedRowCount: number;
-  maximumRows: 10_000;
+  maximumRows: number;
 }>;
+
+const DISCOVERY_ACCEPTED_HISTORY_BATCH_SIZE = 64;
+const DISCOVERY_ACCEPTED_HISTORY_MAXIMUM_ROWS_PER_BATCH = 10_000;
 
 const noAcceptedHistoryCoverage: DiscoveryAcceptedHistoryCoverage =
   Object.freeze({
@@ -146,11 +152,9 @@ export function createDiscoveryProbeRepository(
         input.acceptedHistoryRepository !== null
       ) {
         try {
-          const selectedCoreIds = [...ownedById.keys()]
-            .sort((left, right) =>
-              left.localeCompare(right, "en", { numeric: true }),
-            )
-            .slice(0, 4);
+          const selectedCoreIds = [...ownedById.keys()].sort((left, right) =>
+            left.localeCompare(right, "en", { numeric: true }),
+          );
           const generation =
             selectedCoreIds.length === 0
               ? null
@@ -165,27 +169,63 @@ export function createDiscoveryProbeRepository(
               omittedCoreCount: ownedById.size,
             });
           } else {
-            const selected =
-              await input.acceptedHistoryRepository.readSelectedCoreRows(
-                ownerId,
-                {
-                  generationId: generation.generationId,
-                  observationSetSha256: generation.observationSetSha256,
-                  coreIds: selectedCoreIds,
-                  maximumRows: 10_000,
-                },
-              );
+            const batches = Array.from(
+              {
+                length: Math.ceil(
+                  selectedCoreIds.length /
+                    DISCOVERY_ACCEPTED_HISTORY_BATCH_SIZE,
+                ),
+              },
+              (_, index) =>
+                selectedCoreIds.slice(
+                  index * DISCOVERY_ACCEPTED_HISTORY_BATCH_SIZE,
+                  (index + 1) * DISCOVERY_ACCEPTED_HISTORY_BATCH_SIZE,
+                ),
+            );
+            const acceptedRows: ActiveDnaCoreRaceHistoryGenerationRow[] = [];
+            let selectedCoreCount = 0;
+            let omittedCoreCount = 0;
+            let selectedStatus: DiscoveryAcceptedHistoryCoverage["status"] =
+              "ready";
+            for (const coreIds of batches) {
+              const selected =
+                await input.acceptedHistoryRepository.readSelectedCoreRows(
+                  ownerId,
+                  {
+                    generationId: generation.generationId,
+                    observationSetSha256: generation.observationSetSha256,
+                    coreIds,
+                    maximumRows:
+                      DISCOVERY_ACCEPTED_HISTORY_MAXIMUM_ROWS_PER_BATCH,
+                  },
+                );
+              if (selected.status === "source_changed") {
+                selectedStatus = "source_changed";
+                selectedCoreCount = 0;
+                omittedCoreCount = selectedCoreIds.length;
+                acceptedRows.length = 0;
+                break;
+              }
+              if (selected.status === "truncated") {
+                selectedStatus = "truncated";
+                omittedCoreCount += coreIds.length;
+                continue;
+              }
+              selectedCoreCount += coreIds.length;
+              acceptedRows.push(...selected.rows);
+            }
             acceptedHistoryCoverage = Object.freeze({
-              status: selected.status,
+              status: selectedStatus,
               generationId: generation.generationId,
               ownedCoreCount: ownedById.size,
-              selectedCoreCount: selectedCoreIds.length,
-              omittedCoreCount: ownedById.size - selectedCoreIds.length,
-              acceptedRowCount:
-                selected.status === "ready" ? selected.rows.length : 0,
-              maximumRows: 10_000,
+              selectedCoreCount,
+              omittedCoreCount,
+              acceptedRowCount: acceptedRows.length,
+              maximumRows:
+                batches.length *
+                DISCOVERY_ACCEPTED_HISTORY_MAXIMUM_ROWS_PER_BATCH,
             });
-            if (selected.status === "ready" && selected.rows.length > 0) {
+            if (acceptedRows.length > 0) {
               performance = {
                 profiles: deriveCorePerformanceProfilesFromAcceptedHistory(
                   {
@@ -196,7 +236,7 @@ export function createDiscoveryProbeRepository(
                       publishedAt: generation.publishedAt,
                       observationCount: generation.observationCount,
                     },
-                    acceptedHistoryRows: selected.rows,
+                    acceptedHistoryRows: acceptedRows,
                   },
                   input.acceptedHistoryNow ?? new Date(),
                 ),

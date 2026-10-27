@@ -1,4 +1,8 @@
-import { DiscoveryWorkspace } from "@/components/discovery-workspace";
+import {
+  DiscoveryWorkspace,
+  type DiscoveryCandidateTableFilters,
+} from "@/components/discovery-workspace";
+import type { DiscoveryDecisionGuidance } from "@/domain/discovery-decision-guidance";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
 import { neonCorePerformanceProfileRepositoryFromEnvironment } from "@/lib/neon-core-performance-profile-repository";
 import { neonDiscoveryBenchmarkRepositoryFromEnvironment } from "@/lib/neon-discovery-benchmark-repository";
@@ -56,12 +60,56 @@ function studyFilters(
   };
 }
 
+function candidateTableFilters(
+  values: Record<string, string | string[] | undefined>,
+): DiscoveryCandidateTableFilters {
+  const requestedMode = first(values.planMode);
+  const requestedGuidance = first(values.planGuidance);
+  const requestedFreshness = first(values.planFreshness);
+  const requestedSort = first(values.planSort);
+  return {
+    query: first(values.planQuery)?.trim().slice(0, 128) ?? "",
+    mode:
+      requestedMode === "all" || probeModes.includes(requestedMode as ProbeMode)
+        ? ((requestedMode ?? "all") as DiscoveryCandidateTableFilters["mode"])
+        : "all",
+    guidance: [
+      "continue_targeted_probe",
+      "continue_single_confirmation",
+      "pause_conflicting_evidence",
+      "stop_prioritising_this_cell",
+      "review_minimum_sample",
+      "defer_stale_or_unresolved",
+    ].includes(requestedGuidance ?? "")
+      ? (requestedGuidance as DiscoveryDecisionGuidance)
+      : "all",
+    freshness: ["current", "ageing", "stale", "unknown"].includes(
+      requestedFreshness ?? "",
+    )
+      ? (requestedFreshness as DiscoveryCandidateTableFilters["freshness"])
+      : "all",
+    sort: [
+      "core",
+      "mode",
+      "distance",
+      "sample",
+      "priority",
+      "freshness",
+    ].includes(requestedSort ?? "")
+      ? (requestedSort as DiscoveryCandidateTableFilters["sort"])
+      : "priority",
+    direction: first(values.planDirection) === "desc" ? "desc" : "asc",
+  };
+}
+
 export default async function DiscoveryPage({
   searchParams,
 }: Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>) {
-  const filters = studyFilters(await searchParams);
+  const values = await searchParams;
+  const filters = studyFilters(values);
+  const planFilters = candidateTableFilters(values);
   const authenticatedOwnerId = await authenticatedClerkOwnerId({
     environment: {
       publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
@@ -119,6 +167,7 @@ export default async function DiscoveryPage({
       lastImportedAt={state.lastImportedAt}
       publication={state.publication}
       studyFilters={filters}
+      candidateTableFilters={planFilters}
     />
   );
 }
