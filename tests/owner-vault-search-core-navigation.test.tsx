@@ -57,7 +57,8 @@ describe("My Vault to existing Search Core navigation", () => {
       'href="/search-core?q=core-7&amp;coreId=core-7"',
       'href="/search-core?q=core%3A8&amp;coreId=core%3A8"',
     ]);
-    expect(html.match(/View race evidence/g)).toHaveLength(2);
+    expect(html.match(/View core/g)).toHaveLength(2);
+    expect(html).not.toContain("View history in My Vault");
     expect(html).toContain('aria-label="Compact Vault roster"');
     expect(html).toContain('href="#vault-core-core%3A8"');
     expect(html).toContain('id="vault-core-core:8"');
@@ -78,7 +79,7 @@ describe("My Vault to existing Search Core navigation", () => {
       />,
     );
 
-    expect(html).not.toContain("View race evidence");
+    expect(html).not.toContain("View core");
     expect(html).toContain("Vault data not connected");
   });
 
@@ -129,7 +130,7 @@ describe("My Vault to existing Search Core navigation", () => {
 
       expect(html).toContain(copy);
       expect(html).toContain("withheld");
-      expect(html).not.toContain("View race evidence");
+      expect(html).not.toContain("View core");
       expect(html).not.toContain("In My Vault");
     },
   );
