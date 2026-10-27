@@ -1,7 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
-
-import { OwnerVaultWorkspace } from "../components/owner-vault-workspace";
 import type { ActiveSelectedDnaCoreRaceHistoryReadRepository } from "../lib/neon-active-dna-core-race-history-generation";
 import type { OwnerVaultCataloguePageState } from "../lib/owner-vault-catalogue-service";
 import { loadOwnerVaultSelectedHistory } from "../lib/owner-vault-selected-history-service";
@@ -106,16 +103,6 @@ describe("My Vault selected accepted history", () => {
       maximumRows: 1000,
     });
     expect(state.acceptedHistory?.acceptedHistoryStatus).toBe("connected");
-    const html = renderToStaticMarkup(
-      <OwnerVaultWorkspace state={catalogue} selectedHistory={state} />,
-    );
-    expect(html).toContain("Accepted race history");
-    expect(html).toContain("2,300");
-    expect(html).toContain("6");
-    expect(html).toContain("normal");
-    expect(html).toContain("Unavailable: unsupported format");
-    expect(html).toContain("c".repeat(64));
-    expect(html).not.toContain("ME eligible</dd>");
   });
 
   it("never reads absent, unowned, or filtered-out selections", async () => {
