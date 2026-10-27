@@ -54,8 +54,8 @@ describe("My Vault to existing Search Core navigation", () => {
 
     const evidenceLinks = html.match(/href="\/search-core\?[^"]+"/g) ?? [];
     expect(evidenceLinks).toEqual([
-      'href="/search-core?q=core-7&amp;coreId=core-7"',
-      'href="/search-core?q=core%3A8&amp;coreId=core%3A8"',
+      'href="/search-core?q=core-7&amp;coreId=core-7#selected-core"',
+      'href="/search-core?q=core%3A8&amp;coreId=core%3A8#selected-core"',
     ]);
     expect(html.match(/View core/g)).toHaveLength(2);
     expect(html).not.toContain("View history in My Vault");
