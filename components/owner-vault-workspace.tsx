@@ -1,8 +1,6 @@
 import Link from "next/link";
 
 import { OwnerVaultMutationForm } from "@/components/owner-vault-mutation-form";
-import { AcceptedApiHistory } from "@/components/search-core-workspace";
-import type { OwnerVaultSelectedHistory } from "@/lib/owner-vault-selected-history-service";
 import {
   OWNER_CORE_CATALOGUE_LIST_LIMIT,
   OWNER_VAULT_LIST_LIMIT,
@@ -42,10 +40,8 @@ function optionLabel(value: string): string {
 
 export function OwnerVaultWorkspace({
   state,
-  selectedHistory,
 }: Readonly<{
   state: OwnerVaultCataloguePageState;
-  selectedHistory?: OwnerVaultSelectedHistory;
 }>) {
   const connected = state.connectionStatus === "connected";
   const catalogueMode = state.filters.scope === "catalogue";
@@ -108,46 +104,6 @@ export function OwnerVaultWorkspace({
           </Link>
         )}
       </nav>
-
-      {selectedHistory?.selectionRequested ? (
-        <section
-          aria-labelledby="selected-vault-history-heading"
-          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5"
-          id="selected-vault-history"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2
-              className="text-xl font-semibold"
-              id="selected-vault-history-heading"
-            >
-              {selectedHistory.selectedCore
-                ? `Accepted race history — ${selectedHistory.selectedCore.displayName} (Core ${selectedHistory.selectedCore.sourceCoreId})`
-                : "Selected Vault Core unavailable"}
-            </h2>
-            <Link
-              className="text-sm font-semibold text-[var(--accent)] underline underline-offset-4"
-              href="/vault"
-            >
-              Close history
-            </Link>
-          </div>
-          {selectedHistory.acceptedHistory ? (
-            <AcceptedApiHistory
-              state={selectedHistory.acceptedHistory}
-              filters={{ mode: "all", distance: null }}
-            />
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              This Core ID was not in the returned owned Vault selection. Clear
-              filters and select an owned Core; no unowned history was read.
-            </p>
-          )}
-          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-            Historical evidence only, not live race data or automatically
-            validated analytical scope. Unsupported formats remain unavailable.
-          </p>
-        </section>
-      ) : null}
 
       <form
         action="/vault"
@@ -442,21 +398,14 @@ export function OwnerVaultWorkspace({
                     </dl>
 
                     <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
-                      {core.inMyVault ? (
-                        <Link
-                          className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
-                          href={`/vault?coreId=${encodeURIComponent(core.sourceCoreId)}#selected-vault-history`}
-                        >
-                          View history in My Vault
-                        </Link>
-                      ) : null}
                       <Link
                         className="rounded-lg border border-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--surface)]"
                         href={`/search-core?q=${encodeURIComponent(
                           core.sourceCoreId,
-                        )}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                        )}&coreId=${encodeURIComponent(core.sourceCoreId)}#selected-core`}
+                        prefetch={false}
                       >
-                        View race evidence
+                        View core
                       </Link>
                       {core.version === null || core.meEligible === null ? (
                         <p className="basis-full text-xs leading-5 text-[var(--muted)]">

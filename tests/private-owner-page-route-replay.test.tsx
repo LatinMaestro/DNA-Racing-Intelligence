@@ -112,7 +112,7 @@ describe("private owner page route replay", () => {
     mocks.authenticatedClerkOwnerId.mockResolvedValue(ownerId);
   });
 
-  it("executes the authenticated Vault route for the selected owned Core", async () => {
+  it("executes the authenticated Vault route without a duplicate history read", async () => {
     const catalogue = {
       connectionStatus: "connected" as const,
       filters: {
@@ -133,12 +133,6 @@ describe("private owner page route replay", () => {
       },
     };
     mocks.loadCatalogue.mockResolvedValue(catalogue);
-    mocks.loadSelectedHistory.mockResolvedValue({
-      selectionRequested: true,
-      selectedCore: core,
-      acceptedHistory,
-    });
-
     const html = renderToStaticMarkup(
       await VaultPage({
         searchParams: Promise.resolve({ q: "10457", coreId: "10457" }),
@@ -154,21 +148,14 @@ describe("private owner page route replay", () => {
         filters: expect.objectContaining({ query: "10457" }),
       }),
     );
-    expect(mocks.loadSelectedHistory).toHaveBeenCalledWith(
-      expect.objectContaining({
-        authenticatedOwnerId: ownerId,
-        configuredOwnerId: ownerId,
-        selectedCoreId: "10457",
-        acceptedHistoryRepository: mocks.historyRepository,
-      }),
-    );
+    expect(mocks.loadSelectedHistory).not.toHaveBeenCalled();
     expect(html).toContain("Accepted owner API snapshot");
     expect(html).toContain("214 current owner Cores");
-    expect(html).toContain("Accepted race history — Core 10457 (Core 10457)");
-    expect(html).toContain("Bike");
-    expect(html).toContain("1,000 m");
-    expect(html).toContain("Unavailable: unsupported format");
-    expect(html).toContain(`Row SHA-256 ${"b".repeat(64)}`);
+    expect(html).toContain("View core");
+    expect(html).toContain(
+      'href="/search-core?q=10457&amp;coreId=10457#selected-core"',
+    );
+    expect(html).not.toContain("Accepted race history");
   });
 
   it("executes Search Core with exact Bike filters and owner-scoped repositories", async () => {

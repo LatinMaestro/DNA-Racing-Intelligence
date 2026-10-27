@@ -1,7 +1,5 @@
 import { OwnerVaultWorkspace } from "@/components/owner-vault-workspace";
 import { authenticatedClerkOwnerId } from "@/lib/clerk-owner-session";
-import { neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment } from "@/lib/neon-active-dna-core-race-history-generation";
-import { loadOwnerVaultSelectedHistory } from "@/lib/owner-vault-selected-history-service";
 import { ownerVaultCatalogueRepositoryWithApiFallbackFromEnvironment } from "@/lib/owner-vault-api-catalogue-repository";
 import { loadOwnerVaultCataloguePageState } from "@/lib/owner-vault-catalogue-service";
 
@@ -51,19 +49,5 @@ export default async function VaultPage({
     },
   });
 
-  const selectedHistory = await loadOwnerVaultSelectedHistory({
-    catalogue: state,
-    selectedCoreId: single(params, "coreId"),
-    authenticatedOwnerId,
-    configuredOwnerId: process.env.AUTHORIZED_CLERK_USER_ID ?? null,
-    acceptedHistoryRepository:
-      neonActiveDnaCoreRaceHistoryGenerationReadRepositoryFromEnvironment({
-        ...databaseEnvironment,
-        ownerId: process.env.AUTHORIZED_CLERK_USER_ID,
-      }),
-  });
-
-  return (
-    <OwnerVaultWorkspace state={state} selectedHistory={selectedHistory} />
-  );
+  return <OwnerVaultWorkspace state={state} />;
 }
