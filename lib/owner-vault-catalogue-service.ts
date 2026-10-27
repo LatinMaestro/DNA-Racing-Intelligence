@@ -198,7 +198,7 @@ function validateCore(value: OwnerVaultCatalogueCore): OwnerVaultCatalogueCore {
     (source === "owner_registry" &&
       (value.meEligible === null || value.version === null)) ||
     (source === "accepted_owner_api_snapshot" &&
-      (!value.inMyVault || value.meEligible !== null || value.version !== null))
+      (!value.inMyVault || value.version !== null))
   ) {
     throw new Error("Vault catalogue source state is invalid.");
   }

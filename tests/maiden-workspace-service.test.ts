@@ -319,6 +319,11 @@ describe("Maiden workspace service", () => {
         knownEligibleCount: 1,
         knownNotEligibleCount: 1,
         unknownEligibilityCount: 1,
+        cores: [
+          expect.objectContaining({ sourceCoreId: "10457", meEligible: true }),
+          expect.objectContaining({ sourceCoreId: "10459", meEligible: null }),
+          expect.objectContaining({ sourceCoreId: "10458", meEligible: false }),
+        ],
       },
     });
     expect(listCoresByOwner).toHaveBeenCalledWith("owner", {

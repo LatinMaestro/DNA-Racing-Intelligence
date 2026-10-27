@@ -35,7 +35,7 @@ export function createOwnerVaultApiCatalogueRepository(
     fallback: OwnerVaultCatalogueRepository;
     apiRepository: Pick<
       DnaOpenLabCombinedServingReadRepository,
-      "readServingOwnedCores"
+      "readServingOwnedCores" | "readServingSupplementalCores"
     >;
   }>,
 ): OwnerVaultCatalogueRepository {
@@ -62,9 +62,10 @@ export function createOwnerVaultApiCatalogueRepository(
       }
     }
 
-    const serving = await input.apiRepository.readServingOwnedCores({
-      ownerId,
-    });
+    const [serving, supplemental] = await Promise.all([
+      input.apiRepository.readServingOwnedCores({ ownerId }),
+      input.apiRepository.readServingSupplementalCores({ ownerId }),
+    ]);
     if (serving.length === 0) {
       throw new Error("Accepted owner API Core snapshot is unavailable.");
     }
@@ -78,6 +79,22 @@ export function createOwnerVaultApiCatalogueRepository(
     if (observed.some(Number.isNaN)) {
       throw new Error("Accepted owner API Core observation time is invalid.");
     }
+    const maidenEligibility = new Map<string, boolean>();
+    for (const row of supplemental.rows) {
+      if (
+        row.generationId !== supplemental.generationId ||
+        row.family !== "racing_stats"
+      ) {
+        continue;
+      }
+      if (row.canonical.sourceType !== "core_racing_stats_snapshot") {
+        throw new Error("Accepted Core Maiden evidence type is invalid.");
+      }
+      if (maidenEligibility.has(row.sourceCoreId)) {
+        throw new Error("Accepted Core Maiden evidence is duplicated.");
+      }
+      maidenEligibility.set(row.sourceCoreId, row.canonical.isMaiden);
+    }
     const cores = serving
       .map(({ canonical, observedAt }): OwnerVaultCatalogueCore => ({
         sourceCoreId: canonical.sourceCoreId,
@@ -87,7 +104,7 @@ export function createOwnerVaultApiCatalogueRepository(
         fNumber: canonical.fNumber,
         sex: canonical.sex,
         inMyVault: true,
-        meEligible: null,
+        meEligible: maidenEligibility.get(canonical.sourceCoreId) ?? null,
         version: null,
         updatedAt: observedAt,
         source: "accepted_owner_api_snapshot",
