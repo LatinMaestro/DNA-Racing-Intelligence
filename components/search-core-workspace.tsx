@@ -1,4 +1,5 @@
 import { CorePerformanceComparison } from "@/components/core-performance-comparison";
+import { CoreSearchDatalist } from "@/components/core-search-datalist";
 import { corePerformanceComparisonRows } from "@/lib/core-performance-comparison";
 import Link from "next/link";
 
@@ -383,6 +384,7 @@ export function SearchCoreWorkspace({
   filters = { mode: "all", distance: null },
 }: Readonly<{ state: SearchCorePageState; filters?: EvidenceViewFilters }>) {
   const connected = state.connectionStatus === "connected";
+  const searchSuggestions = state.suggestions ?? state.results;
   const ownerApiCoverage =
     state.catalogueCoverage === "accepted_owner_api_snapshot";
   const unavailable = connected
@@ -451,10 +453,15 @@ export function SearchCoreWorkspace({
             autoComplete="off"
             className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
             defaultValue={state.query ?? ""}
+            list="search-core-options"
             maxLength={128}
             name="q"
             placeholder="Search the Core Details catalogue"
             type="search"
+          />
+          <CoreSearchDatalist
+            cores={connected ? searchSuggestions : []}
+            id="search-core-options"
           />
         </label>
         <input name="mode" type="hidden" value={filters.mode} />

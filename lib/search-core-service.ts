@@ -34,6 +34,7 @@ export type SearchCorePageState = Readonly<{
     | "connected";
   query: string | null;
   results: readonly OwnerVaultCatalogueCore[];
+  suggestions?: readonly OwnerVaultCatalogueCore[];
   selectedCore: OwnerVaultCatalogueCore | null;
   populationIdentityStatus?:
     "not_connected" | "missing" | "connected" | "unavailable";
@@ -356,10 +357,23 @@ export async function loadSearchCorePageState(
   const status = connectionStatus(input);
 
   if (query === null && selectedId === null) {
+    const suggestionState =
+      status === "connected"
+        ? await loadOwnerVaultCataloguePageState({
+            authenticatedOwnerId: input.authenticatedOwnerId,
+            configuredOwnerId: input.configuredOwnerId,
+            repository: input.repository,
+            filters: { scope: "vault" },
+          })
+        : null;
     return {
       connectionStatus: status,
       query,
       results: [],
+      suggestions:
+        suggestionState?.connectionStatus === "connected"
+          ? suggestionState.cores
+          : [],
       selectedCore: null,
       ...noPopulationIdentity,
       ...noPerformance,

@@ -40,6 +40,7 @@ const state: SearchCorePageState = {
   connectionStatus: "connected",
   query: "Synthetic",
   results: [core],
+  suggestions: [core],
   selectedCore: core,
   performanceStatus: "connected",
   performanceProfiles: [
@@ -94,6 +95,12 @@ describe("Core evidence navigation", () => {
     );
     expect(html).toContain('name="coreId" value="synthetic-a&amp;b"');
     expect(html).toContain('href="#core-racing"');
+    expect(html).toContain('list="search-core-options"');
+    expect(html).toContain('<datalist id="search-core-options">');
+    expect(html).toContain(
+      'label="Core ID synthetic-a&amp;b" value="Synthetic"',
+    );
+    expect(html).toContain('label="Synthetic" value="synthetic-a&amp;b"');
     expect(html).not.toContain("Win probability");
   });
 
