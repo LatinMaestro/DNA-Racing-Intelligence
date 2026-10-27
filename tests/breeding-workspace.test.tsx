@@ -165,6 +165,16 @@ describe("Breeding workspace", () => {
     );
 
     expect(html).toContain("Synthetic Horse 1,600 m");
+    expect(html).toContain("Potential elite pairing review");
+    expect(html).toContain(
+      "One accepted elite-upside evidence leader is surfaced per",
+    );
+    expect(html).toContain(
+      "Repeat-elite breeder status is not supplied by this accepted ranking contract",
+    );
+    expect(
+      html.match(/synthetic-parent-a \+ synthetic-parent-b/g),
+    ).toHaveLength(4);
     expect(html).toContain("Elite upside");
     expect(html).toContain("Vault gap");
     expect(html).toContain("Balanced");
@@ -209,6 +219,9 @@ describe("Breeding workspace", () => {
       />,
     );
     expect(wrongDistance).toContain("No accepted pairs match these filters");
+    expect(wrongDistance).toContain(
+      "No accepted potential-elite pair matches these filters",
+    );
     expect(wrongDistance).not.toContain("1. Pair synthetic-pair");
     const sameParent = renderToStaticMarkup(
       <BreedingWorkspace
