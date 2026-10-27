@@ -38,6 +38,26 @@ describe("Maiden workspace", () => {
           generationId: "00000000-0000-4000-8000-000000000001",
           oldestObservedAt: "2026-09-01T00:00:00.000Z",
           newestObservedAt: "2026-09-16T00:00:00.000Z",
+          cores: [
+            {
+              sourceCoreId: "10457",
+              displayName: "Ember Prime",
+              coreClass: "Genesis",
+              element: "Fire",
+              fNumber: 1,
+              sex: "male",
+              meEligible: true,
+            },
+            {
+              sourceCoreId: "10458",
+              displayName: "Unknown Core",
+              coreClass: "Morphed",
+              element: "Water",
+              fNumber: 2,
+              sex: "female",
+              meEligible: null,
+            },
+          ],
         }}
         lastImportedAt={null}
         materializedAt={null}
@@ -51,6 +71,10 @@ describe("Maiden workspace", () => {
     expect(html).toContain("Eligibility unknown");
     expect(html).toContain("214");
     expect(html).toContain("must not be treated as eligible or ineligible");
+    expect(html).toContain("View individual Core eligibility");
+    expect(html).toContain("Ember Prime");
+    expect(html).toContain("Eligible");
+    expect(html).toContain("Mode and exact distance unavailable");
     expect(html).toContain("No accepted Maiden evidence");
   });
 

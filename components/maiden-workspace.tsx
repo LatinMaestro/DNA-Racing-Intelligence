@@ -70,6 +70,12 @@ export function MaidenWorkspace({
   eligibilitySummary?: MaidenEligibilitySummary | null;
 }>) {
   const connection = connectionCopy[connectionStatus];
+  const allocationByCore = new Map(
+    (allocation?.candidates ?? []).map((candidate) => [
+      candidate.coreId,
+      candidate,
+    ]),
+  );
 
   return (
     <div className="space-y-8">
@@ -159,6 +165,64 @@ export function MaidenWorkspace({
                 {timestamp(eligibilitySummary.newestObservedAt)}
               </p>
             )}
+            <details className="mt-5 border-t border-[var(--border)] pt-4">
+              <summary className="cursor-pointer font-semibold">
+                View individual Core eligibility
+              </summary>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead className="text-[var(--muted)]">
+                    <tr>
+                      <th className="pb-3 pr-4 font-medium">Core</th>
+                      <th className="pb-3 pr-4 font-medium">Eligibility</th>
+                      <th className="pb-3 pr-4 font-medium">Profile</th>
+                      <th className="pb-3 font-medium">
+                        Accepted strategy evidence
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligibilitySummary.cores.map((core) => {
+                      const candidate = allocationByCore.get(core.sourceCoreId);
+                      return (
+                        <tr
+                          className="border-t border-[var(--border)] align-top"
+                          key={core.sourceCoreId}
+                        >
+                          <td className="py-3 pr-4">
+                            <Link
+                              className="font-semibold text-[var(--accent)] hover:underline"
+                              href={`/search-core?q=${encodeURIComponent(core.sourceCoreId)}&coreId=${encodeURIComponent(core.sourceCoreId)}`}
+                            >
+                              {core.displayName}
+                            </Link>
+                            <span className="mt-1 block font-mono text-xs text-[var(--muted)]">
+                              {core.sourceCoreId}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 font-semibold">
+                            {core.meEligible === true
+                              ? "Eligible"
+                              : core.meEligible === false
+                                ? "Not eligible"
+                                : "Unknown"}
+                          </td>
+                          <td className="py-3 pr-4 text-[var(--muted)]">
+                            {core.coreClass} · {core.element} · F{core.fNumber}{" "}
+                            · {label(core.sex)}
+                          </td>
+                          <td className="py-3 text-[var(--muted)]">
+                            {candidate === undefined
+                              ? "Mode and exact distance unavailable — no accepted Maiden allocation evidence."
+                              : `${label(candidate.mode)} · ${candidate.bracketLabel}. Exact distance unavailable in the accepted snapshot.`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
         )}
       </section>

@@ -56,6 +56,17 @@ export type MaidenEligibilitySummary = Readonly<{
   generationId: string | null;
   oldestObservedAt: string | null;
   newestObservedAt: string | null;
+  cores: readonly MaidenEligibilityCore[];
+}>;
+
+export type MaidenEligibilityCore = Readonly<{
+  sourceCoreId: string;
+  displayName: string;
+  coreClass: string;
+  element: string;
+  fNumber: number;
+  sex: string;
+  meEligible: boolean | null;
 }>;
 
 export const unavailableMaidenAllocationRepository: MaidenAllocationRepository =
@@ -81,6 +92,37 @@ async function loadEligibilitySummary(
         publication: null,
       };
   const owned = read.cores.filter(({ inMyVault }) => inMyVault);
+  const eligibilityOrder = (value: boolean | null) =>
+    value === true ? 0 : value === null ? 1 : 2;
+  const cores = owned
+    .map(
+      ({
+        sourceCoreId,
+        displayName,
+        coreClass,
+        element,
+        fNumber,
+        sex,
+        meEligible,
+      }) => ({
+        sourceCoreId,
+        displayName,
+        coreClass,
+        element,
+        fNumber,
+        sex,
+        meEligible,
+      }),
+    )
+    .sort(
+      (left, right) =>
+        eligibilityOrder(left.meEligible) -
+          eligibilityOrder(right.meEligible) ||
+        left.displayName.localeCompare(right.displayName, "en-AU") ||
+        left.sourceCoreId.localeCompare(right.sourceCoreId, "en-AU", {
+          numeric: true,
+        }),
+    );
   return {
     ownedCoreCount: owned.length,
     knownEligibleCount: owned.filter(({ meEligible }) => meEligible === true)
@@ -102,6 +144,7 @@ async function loadEligibilitySummary(
       "apiSnapshot" in read
         ? (read.apiSnapshot?.newestObservedAt ?? null)
         : null,
+    cores: Object.freeze(cores),
   };
 }
 
@@ -254,12 +297,10 @@ export async function loadMaidenWorkspacePageState(
     throw new Error("Maiden repository is invalid.");
   }
 
-  const persistedEvidence =
-    await input.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId);
-  const eligibilitySummary = await loadEligibilitySummary(
-    input.vaultRepository,
-    authenticatedOwnerId,
-  );
+  const [persistedEvidence, eligibilitySummary] = await Promise.all([
+    input.repository.loadAllocationEvidenceByOwner(authenticatedOwnerId),
+    loadEligibilitySummary(input.vaultRepository, authenticatedOwnerId),
+  ]);
   if (persistedEvidence === null) {
     return {
       allocation: null,
