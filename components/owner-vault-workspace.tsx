@@ -105,7 +105,6 @@ export function OwnerVaultWorkspace({
         )}
       </nav>
 
-
       <form
         action="/vault"
         className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 md:grid-cols-2 xl:grid-cols-6"
