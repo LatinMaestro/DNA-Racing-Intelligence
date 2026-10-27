@@ -66,6 +66,10 @@ describe("My Vault to existing Search Core navigation", () => {
     expect(html).toContain('aria-current="page" href="/vault?scope=catalogue"');
     expect(html).toContain("In My Vault");
     expect(html).toContain("Not in My Vault");
+    expect(html).toContain('list="vault-core-search-options"');
+    expect(html).toContain('<datalist id="vault-core-search-options">');
+    expect(html).toContain('label="Core ID core-7" value="Seven"');
+    expect(html).toContain('label="Seven" value="core-7"');
   });
 
   it("does not expose a Core evidence link without a connected Vault", () => {

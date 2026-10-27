@@ -99,8 +99,9 @@ describe("Search Core service", () => {
     });
   });
 
-  it("does not query or expose catalogue rows before a search", async () => {
-    const listCoresByOwner = vi.fn(async () => [core]);
+  it("loads bounded owner-only suggestions without exposing search results", async () => {
+    const ownedCore = { ...core, inMyVault: true };
+    const listCoresByOwner = vi.fn(async () => [ownedCore]);
     const state = await loadSearchCorePageState({
       authenticatedOwnerId: ownerId,
       configuredOwnerId: ownerId,
@@ -112,12 +113,17 @@ describe("Search Core service", () => {
       connectionStatus: "connected",
       query: null,
       results: [],
+      suggestions: [ownedCore],
       selectedCore: null,
       performanceStatus: "not_connected",
       performanceProfiles: [],
       archiveHistoryStatus: "not_connected",
     } satisfies Partial<SearchCorePageState>);
-    expect(listCoresByOwner).not.toHaveBeenCalled();
+    expect(listCoresByOwner).toHaveBeenCalledOnce();
+    expect(listCoresByOwner).toHaveBeenCalledWith(
+      ownerId,
+      expect.objectContaining({ scope: "vault", query: null }),
+    );
   });
 
   it("searches the game-wide Core Details catalogue rather than My Vault only", async () => {

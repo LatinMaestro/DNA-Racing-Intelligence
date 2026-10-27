@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CoreSearchDatalist } from "@/components/core-search-datalist";
 import { OwnerVaultMutationForm } from "@/components/owner-vault-mutation-form";
 import {
   OWNER_CORE_CATALOGUE_LIST_LIMIT,
@@ -120,10 +121,15 @@ export function OwnerVaultWorkspace({
           <input
             className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
             defaultValue={state.filters.query ?? ""}
+            list="vault-core-search-options"
             maxLength={128}
             name="q"
             placeholder="Search cores"
             type="search"
+          />
+          <CoreSearchDatalist
+            cores={connected ? state.cores : []}
+            id="vault-core-search-options"
           />
         </label>
         <label>
