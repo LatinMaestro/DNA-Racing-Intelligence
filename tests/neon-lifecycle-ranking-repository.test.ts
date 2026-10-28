@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { LifecycleWorkspace } from "@/components/lifecycle-workspace";
 import type { NeonImportPersistenceClient } from "@/lib/neon-import-persistence-driver";
 import {
   createNeonLifecycleRankingRepository,
@@ -151,6 +154,46 @@ describe("compact Neon Lifecycle ranking dependency", () => {
     expect(reads[0]?.[1]).toEqual([databaseOwnerId]);
     expect(test.query.mock.calls.at(-1)?.[0]).toBe("COMMIT");
     expect(test.close).toHaveBeenCalledOnce();
+  });
+
+  it("replays immutable accepted evidence through repository, service and owner UI", async () => {
+    const test = harness();
+    const state = await loadLifecycleWorkspacePageState({
+      authenticatedOwnerId,
+      configuredOwnerId: authenticatedOwnerId,
+      repository: test.repository,
+      now,
+    });
+
+    expect(state.connectionStatus).toBe("read_model_connected");
+    expect(state.ranking?.cores).toHaveLength(1);
+    expect(state.ranking?.cores[0]).toMatchObject({
+      coreId: "synthetic-core",
+      leadingAction: "race",
+      finalRecommendationAllowed: false,
+      saleExecutionAllowed: false,
+      burnExecutionAllowed: false,
+      ledgerMutationAllowed: false,
+      burnCreditUsedInRanking: false,
+      saleProfitUsedInRanking: false,
+    });
+    expect(state.ranking?.sourceFactsMutated).toBe(false);
+    expect(state.ranking?.noStarEvidenceCanCauseBurn).toBe(false);
+
+    const rendered = renderToStaticMarkup(
+      createElement(LifecycleWorkspace, {
+        ranking: state.ranking,
+        publishedAt: state.publishedAt,
+        snapshotSha256: state.snapshotSha256,
+        connectionStatus: state.connectionStatus,
+      }),
+    );
+    expect(rendered).toContain("Historical lifecycle evidence connected");
+    expect(rendered).toContain("Core synthetic-core · Morphed");
+    expect(rendered).toContain("Sale unavailable");
+    expect(rendered).toContain("Burn unavailable");
+    expect(rendered).toContain("No final recommendation");
+    expect(rendered).not.toContain("Recommended disposal");
   });
 
   it("keeps an unmaterialized read model explicitly empty", async () => {
