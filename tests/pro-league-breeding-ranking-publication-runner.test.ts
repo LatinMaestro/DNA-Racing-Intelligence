@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { BreedingPairRankingInput } from "@/domain/breeding-pair-ranking";
+import {
+  rankBreedingPairs,
+  type BreedingPairRankingInput,
+} from "@/domain/breeding-pair-ranking";
 import {
   acceptedProLeagueBreedingAnalysisSha256,
   type AcceptedProLeagueBreedingAnalysis,
@@ -49,6 +52,28 @@ function ranking(): BreedingPairRankingInput {
             coreClass: "Morphed",
             element: "Earth",
             fNumber: 8,
+          },
+        ],
+        parentBreederEvidence: [
+          {
+            parentCoreId: "owned-parent-a",
+            status: "target",
+            confidence: "moderate",
+            qualifiedOffspringCount: 4,
+            distinctCoParentCount: 2,
+            medianLiftBenchmarkPercentile: 96,
+            exceptionalRateBenchmarkPercentile: 92,
+            evaluationCutoff: "2026-09-08T00:15:00.000Z",
+          },
+          {
+            parentCoreId: "owned-parent-b",
+            status: "watch",
+            confidence: "low",
+            qualifiedOffspringCount: 1,
+            distinctCoParentCount: 1,
+            medianLiftBenchmarkPercentile: 91,
+            exceptionalRateBenchmarkPercentile: 88,
+            evaluationCutoff: "2026-09-08T00:15:00.000Z",
           },
         ],
         source: "owned_owned",
@@ -164,6 +189,46 @@ describe("Pro League breeding ranking publication runner", () => {
       analysisId,
     );
     expect(test.publish).toHaveBeenCalledOnce();
+  });
+
+  it("replays accepted repeat-elite evidence through publication and domain read-back", async () => {
+    let readBack: readonly BreedingPairRankingInput[] = [];
+    const test = harness({
+      target: {
+        status: "ready" as const,
+        publish: async (
+          _ownerId: string,
+          publication: Readonly<{
+            rankings: readonly BreedingPairRankingInput[];
+          }>,
+        ) => {
+          readBack = structuredClone(publication.rankings);
+          return "published" as const;
+        },
+      },
+    });
+
+    await expect(
+      runProLeagueBreedingRankingPublication(test.input),
+    ).resolves.toMatchObject({ status: "published", published: true });
+    expect(readBack).toHaveLength(1);
+    expect(readBack[0]?.candidates[0]?.parentBreederEvidence).toMatchObject([
+      { parentCoreId: "owned-parent-a", status: "target" },
+      { parentCoreId: "owned-parent-b", status: "watch" },
+    ]);
+
+    const projected = rankBreedingPairs(readBack[0]!);
+    expect(
+      projected.eliteUpsideRanking[0]?.parentBreederEvidence,
+    ).toMatchObject([
+      { parentCoreId: "owned-parent-a", status: "target" },
+      { parentCoreId: "owned-parent-b", status: "watch" },
+    ]);
+    expect(projected).toMatchObject({
+      recommendationAllowed: false,
+      breedingExecutionAllowed: false,
+      gateEPassed: false,
+    });
   });
 
   it("fails before private source access for a different owner", async () => {
