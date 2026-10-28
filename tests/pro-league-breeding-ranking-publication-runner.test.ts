@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {\n  rankBreedingPairs,\n  type BreedingPairRankingInput,\n} from "@/domain/breeding-pair-ranking";
+import {
+  rankBreedingPairs,
+  type BreedingPairRankingInput,
+} from "@/domain/breeding-pair-ranking";
 import {
   acceptedProLeagueBreedingAnalysisSha256,
   type AcceptedProLeagueBreedingAnalysis,
@@ -49,6 +52,28 @@ function ranking(): BreedingPairRankingInput {
             coreClass: "Morphed",
             element: "Earth",
             fNumber: 8,
+          },
+        ],
+        parentBreederEvidence: [
+          {
+            parentCoreId: "owned-parent-a",
+            status: "target",
+            confidence: "moderate",
+            qualifiedOffspringCount: 4,
+            distinctCoParentCount: 2,
+            medianLiftBenchmarkPercentile: 96,
+            exceptionalRateBenchmarkPercentile: 92,
+            evaluationCutoff: "2026-09-08T00:15:00.000Z",
+          },
+          {
+            parentCoreId: "owned-parent-b",
+            status: "watch",
+            confidence: "low",
+            qualifiedOffspringCount: 1,
+            distinctCoParentCount: 1,
+            medianLiftBenchmarkPercentile: 91,
+            exceptionalRateBenchmarkPercentile: 88,
+            evaluationCutoff: "2026-09-08T00:15:00.000Z",
           },
         ],
         source: "owned_owned",
