@@ -69,6 +69,35 @@ function percentage(basisPoints: number): string {
 
 type RankedPair = BreedingPairRankingResult["eliteUpsideRanking"][number];
 
+type PotentialEliteReviewPair = Readonly<{
+  rankingId: string;
+  rankingLabel: string;
+  pair: RankedPair;
+}>;
+
+function potentialEliteReviewPairs(
+  rankings: readonly BreedingPairRankingResult[],
+  matches: (pair: RankedPair) => boolean,
+): readonly PotentialEliteReviewPair[] {
+  const seen = new Set<string>();
+  const shortlist: PotentialEliteReviewPair[] = [];
+
+  for (const ranking of rankings) {
+    const pair = ranking.eliteUpsideRanking.find(matches);
+    if (pair === undefined) continue;
+    const key = `${pair.mode}\u0000${pair.exactDistanceM}\u0000${[...pair.parentCoreIds].sort().join("\u0000")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    shortlist.push({
+      rankingId: ranking.rankingId,
+      rankingLabel: ranking.rankingLabel,
+      pair,
+    });
+  }
+
+  return shortlist;
+}
+
 function RankingList({
   heading,
   description,
@@ -208,6 +237,7 @@ export function BreedingWorkspace({
       (id) => id === "" || pair.parentCoreIds.includes(id),
     ) &&
     !(selectedParents[0] !== "" && selectedParents[0] === selectedParents[1]);
+  const potentialElitePairs = potentialEliteReviewPairs(rankings, matches);
 
   return (
     <div className="space-y-8">
@@ -438,6 +468,57 @@ export function BreedingWorkspace({
           </div>
         ) : (
           <div className="mt-4 space-y-8">
+            <section
+              aria-labelledby="potential-elite-pairing-review"
+              className="rounded-2xl border border-[var(--accent)]/50 bg-[var(--surface-raised)] p-5"
+            >
+              <h3
+                className="text-lg font-semibold"
+                id="potential-elite-pairing-review"
+              >
+                Potential elite pairing review
+              </h3>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
+                One accepted elite-upside evidence leader is surfaced per
+                mode-distance board after the selected filters. This is a review
+                shortlist, not a breeding recommendation, because Gate E and
+                current official pair validation remain incomplete.
+              </p>
+              {potentialElitePairs.length === 0 ? (
+                <p className="mt-4 text-sm text-[var(--muted)]">
+                  No accepted potential-elite pair matches these filters.
+                </p>
+              ) : (
+                <ol className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {potentialElitePairs.map(
+                    ({ rankingId, rankingLabel, pair }) => (
+                      <li
+                        className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+                        key={`${rankingId}:${pair.pairId}`}
+                      >
+                        <p className="font-semibold">
+                          {pair.parentCoreIds.join(" + ")}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {rankingLabel} · {pair.mode} ·{" "}
+                          {pair.exactDistanceM.toLocaleString("en-AU")} m
+                        </p>
+                        <p className="mt-2 text-sm text-[var(--muted)]">
+                          Experimental exceptional estimate{" "}
+                          {percentage(pair.exceptionalUpsideBasisPoints)} ·{" "}
+                          {label(pair.evidenceConfidence)} confidence
+                        </p>
+                      </li>
+                    ),
+                  )}
+                </ol>
+              )}
+              <p className="mt-4 text-xs leading-5 text-[var(--warning)]">
+                Repeat-elite breeder status is not supplied by this accepted
+                ranking contract. It remains unavailable rather than inferred
+                from pair rank or one exceptional-outcome estimate.
+              </p>
+            </section>
             {rankings.map((ranking) => (
               <article className="space-y-5" key={ranking.rankingId}>
                 <div>
