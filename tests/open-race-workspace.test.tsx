@@ -1,9 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { OpenRaceWorkspace } from "@/components/open-race-workspace";
 import { applyRacePredictionReconciliation } from "@/domain/race-prediction-reconciliation";
 import { freezeRacePredictionSnapshot } from "@/domain/race-prediction-snapshot";
+import { loadOpenRacePredictionPageState } from "@/lib/open-race-prediction-page-service";
 import type { OpenRaceWorkspaceSession } from "@/lib/open-race-workspace-service";
 
 const session = {
@@ -310,6 +311,49 @@ describe("Open Race workspace", () => {
       "Accepted result Reconciled · revision 0 · outcome Complete · stars Complete.",
     );
     expect(html).toContain("No automatic promotion, race entry or game action");
+  });
+
+  it("replays owner-scoped prediction readback through the page service into the UI", async () => {
+    const listSnapshotsByOwner = vi.fn(async () => [snapshot]);
+    const listReconciliationsByOwner = vi.fn(async () => [reconciliation]);
+    const predictionState = await loadOpenRacePredictionPageState({
+      authenticatedOwnerId: "owner-1",
+      configuredOwnerId: "owner-1",
+      repository: {
+        status: "ready",
+        publishSnapshotByOwner: vi.fn(),
+        listSnapshotsByOwner,
+        publishReconciliationByOwner: vi.fn(),
+        listReconciliationsByOwner,
+      },
+      sessions: [session],
+    });
+
+    expect(listSnapshotsByOwner).toHaveBeenCalledOnce();
+    expect(listSnapshotsByOwner).toHaveBeenCalledWith("owner-1");
+    expect(listReconciliationsByOwner).toHaveBeenCalledOnce();
+    expect(listReconciliationsByOwner).toHaveBeenCalledWith("owner-1");
+    expect(predictionState.connectionStatus).toBe("read_model_connected");
+
+    const html = renderToStaticMarkup(
+      <OpenRaceWorkspace
+        connectionStatus="read_model_connected"
+        predictionConnectionStatus={predictionState.connectionStatus}
+        predictionEvidence={predictionState.evidence}
+        sessions={[session]}
+      />,
+    );
+    expect(html).toContain("Win");
+    expect(html).toContain("62.50%");
+    expect(html).toContain("Place");
+    expect(html).toContain("Blue star");
+    expect(html).toContain("Yellow star (source: gold_star)");
+    expect(html).toContain(
+      "Accepted result Reconciled · revision 0 · outcome Complete · stars Complete.",
+    );
+    expect(html).toContain("Frozen pre-entry ranking unchanged");
+    expect(html).toContain("No automatic promotion, race entry or game action");
+    expect(html).not.toContain("Enter race");
   });
 
   it("labels legacy sessions without exact probability context as unavailable", () => {
