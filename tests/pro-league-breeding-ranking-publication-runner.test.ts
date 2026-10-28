@@ -212,9 +212,7 @@ describe("Pro League breeding ranking publication runner", () => {
       runProLeagueBreedingRankingPublication(test.input),
     ).resolves.toMatchObject({ status: "published", published: true });
     expect(readBack).toHaveLength(1);
-    expect(
-      readBack[0]?.candidates[0]?.parentBreederEvidence,
-    ).toMatchObject([
+    expect(readBack[0]?.candidates[0]?.parentBreederEvidence).toMatchObject([
       { parentCoreId: "owned-parent-a", status: "target" },
       { parentCoreId: "owned-parent-b", status: "watch" },
     ]);
