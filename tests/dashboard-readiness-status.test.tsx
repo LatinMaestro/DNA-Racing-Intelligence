@@ -1,9 +1,69 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DashboardReadinessStatus } from "@/components/dashboard-readiness-status";
+import { FreshnessStatus } from "@/components/freshness-status";
+import { loadDashboardFreshnessPageState } from "@/lib/dashboard-freshness-service";
+import { loadDashboardReadinessPageState } from "@/lib/dashboard-readiness-service";
 
 describe("Dashboard readiness status", () => {
+  it("replays an empty owner-scoped Preview read without inventing freshness or readiness", async () => {
+    const ownerId = "preview-owner";
+    const listBatchesByOwner = vi.fn(async () => []);
+    const loadLatestAssessmentByOwner = vi.fn(async () => ({
+      assessment: null,
+      acceptedAssessmentVersion: null,
+      publishedAt: null,
+      snapshotSha256: null,
+    }));
+    const [freshnessState, readinessState] = await Promise.all([
+      loadDashboardFreshnessPageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository: { status: "ready", listBatchesByOwner },
+        now: new Date("2026-10-28T00:00:00.000Z"),
+      }),
+      loadDashboardReadinessPageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository: { status: "ready", loadLatestAssessmentByOwner },
+        expectedHeadSha: "a".repeat(40),
+        now: new Date("2026-10-28T00:00:00.000Z"),
+      }),
+    ]);
+
+    expect(listBatchesByOwner).toHaveBeenCalledExactlyOnceWith(ownerId);
+    expect(loadLatestAssessmentByOwner).toHaveBeenCalledExactlyOnceWith(
+      ownerId,
+    );
+    expect(freshnessState.connectionStatus).toBe("read_model_connected");
+    expect(freshnessState.workspace.recentBatches).toEqual([]);
+    expect(readinessState.connectionStatus).toBe("assessment_unavailable");
+
+    const coreStatus = freshnessState.workspace.sources.find(
+      ({ sourceType }) => sourceType === "core_details",
+    );
+    const markup = renderToStaticMarkup(
+      <main>
+        <FreshnessStatus
+          source="Core"
+          connectionStatus={freshnessState.connectionStatus}
+          status={coreStatus ?? null}
+        />
+        <DashboardReadinessStatus state={readinessState} />
+      </main>,
+    );
+
+    expect(markup).toContain("No active accepted source receipt is available");
+    expect(markup).toContain("Freshness unknown here");
+    expect(markup).toContain("Assessment unavailable");
+    expect(markup).toContain("Not assessed");
+    expect(markup).toContain(
+      "This summary is read-only. It cannot deploy, enable Production or change provider settings.",
+    );
+    expect(markup).not.toContain("Assessment connected");
+  });
+
   it("renders a fail-closed unavailable state without an activation action", () => {
     const markup = renderToStaticMarkup(
       <DashboardReadinessStatus
