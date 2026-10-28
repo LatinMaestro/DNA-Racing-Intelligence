@@ -1,9 +1,73 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { VaultPerformanceWorkspace } from "@/components/vault-performance-workspace";
 import { buildVaultPerformanceSummary } from "@/domain/vault-performance-summary";
+import { resolveVaultPerformanceEconomicWriteStatus } from "@/lib/vault-performance-economic-write-status-service";
+import { loadVaultPerformancePageState } from "@/lib/vault-performance-workspace-service";
 
 describe("Vault Performance workspace", () => {
+  it("replays empty owner evidence without implying profit or enabling economic writes", async () => {
+    const ownerId = "preview-owner";
+    const loadSummaryByOwner = vi.fn(async () => null);
+    const loadLedgerContextByOwner = vi.fn(async () => {
+      throw new Error("accepted asset registry unavailable");
+    });
+    const loadPayoutContextByOwner = vi.fn(async () => {
+      throw new Error("accepted payout candidates unavailable");
+    });
+    const [state, economicWriteStatus] = await Promise.all([
+      loadVaultPerformancePageState({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        repository: { status: "ready", loadSummaryByOwner },
+        now: new Date("2026-10-29T00:00:00.000Z"),
+      }),
+      resolveVaultPerformanceEconomicWriteStatus({
+        authenticatedOwnerId: ownerId,
+        configuredOwnerId: ownerId,
+        manualLedgerPersistence: {
+          status: "ready",
+          repository: { status: "ready" } as never,
+          loadContextByOwner: loadLedgerContextByOwner,
+        },
+        tournamentPayoutPersistence: {
+          status: "ready",
+          repository: { status: "ready" } as never,
+          loadContextByOwner: loadPayoutContextByOwner,
+        },
+      }),
+    ]);
+
+    expect(loadSummaryByOwner).toHaveBeenCalledExactlyOnceWith(ownerId);
+    expect(loadLedgerContextByOwner).toHaveBeenCalledExactlyOnceWith(ownerId);
+    expect(loadPayoutContextByOwner).not.toHaveBeenCalled();
+    expect(state).toEqual({
+      summary: null,
+      acceptedEvidence: null,
+      connectionStatus: "read_model_connected",
+    });
+    expect(economicWriteStatus).toBe("asset_registry_unavailable");
+
+    const html = renderToStaticMarkup(
+      <VaultPerformanceWorkspace
+        acceptedEvidence={state.acceptedEvidence}
+        connectionStatus={state.connectionStatus}
+        economicWriteStatus={economicWriteStatus}
+        summary={state.summary}
+      />,
+    );
+
+    expect(html).toContain("No accepted economic summary");
+    expect(html).toContain("not a zero balance");
+    expect(html).toContain("Accepted assets unavailable");
+    expect(html).toContain(
+      "missing assets and transactions are not treated as zeros",
+    );
+    expect(html.match(/<fieldset[^>]*disabled/g)).toHaveLength(2);
+    expect(html).not.toContain("Lifetime profit");
+    expect(html).not.toContain("0 DEZ");
+  });
+
   it("renders unavailable evidence without fabricated zeros", () => {
     const html = renderToStaticMarkup(
       <VaultPerformanceWorkspace
