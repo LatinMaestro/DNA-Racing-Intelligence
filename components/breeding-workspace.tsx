@@ -508,15 +508,30 @@ export function BreedingWorkspace({
                           {percentage(pair.exceptionalUpsideBasisPoints)} ·{" "}
                           {label(pair.evidenceConfidence)} confidence
                         </p>
+                        <ul className="mt-3 space-y-1 text-xs text-[var(--muted)]">
+                          {pair.parentBreederEvidence.map((evidence) => (
+                            <li key={evidence.parentCoreId}>
+                              {evidence.parentCoreId}: breeder evidence{" "}
+                              <span className="font-semibold text-[var(--foreground)]">
+                                {label(evidence.status)}
+                              </span>
+                              {evidence.status === "unavailable"
+                                ? " — accepted repeat-elite metrics unavailable"
+                                : ` — ${evidence.qualifiedOffspringCount} qualified offspring / ${evidence.distinctCoParentCount} co-parents; lift p${evidence.medianLiftBenchmarkPercentile}; exceptional rate p${evidence.exceptionalRateBenchmarkPercentile}; cutoff ${timestamp(evidence.evaluationCutoff)}`}
+                            </li>
+                          ))}
+                        </ul>
                       </li>
                     ),
                   )}
                 </ol>
               )}
               <p className="mt-4 text-xs leading-5 text-[var(--warning)]">
-                Repeat-elite breeder status is not supplied by this accepted
-                ranking contract. It remains unavailable rather than inferred
-                from pair rank or one exceptional-outcome estimate.
+                TARGET means the approved repeat-elite gates are cleared; WATCH
+                and WAIT remain non-elite evidence states. Older accepted
+                snapshots without parent breeder metrics display unavailable
+                rather than inferring status from pair rank or one
+                exceptional-outcome estimate.
               </p>
             </section>
             {rankings.map((ranking) => (

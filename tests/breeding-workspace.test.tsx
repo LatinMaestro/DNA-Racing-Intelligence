@@ -131,6 +131,28 @@ describe("Breeding workspace", () => {
               fNumber: 8,
             },
           ],
+          parentBreederEvidence: [
+            {
+              parentCoreId: "synthetic-parent-a",
+              status: "target",
+              confidence: "moderate",
+              qualifiedOffspringCount: 4,
+              distinctCoParentCount: 2,
+              medianLiftBenchmarkPercentile: 96,
+              exceptionalRateBenchmarkPercentile: 92,
+              evaluationCutoff: "2026-07-18T00:00:00.000Z",
+            },
+            {
+              parentCoreId: "synthetic-parent-b",
+              status: "unavailable",
+              confidence: "unavailable",
+              qualifiedOffspringCount: null,
+              distinctCoParentCount: null,
+              medianLiftBenchmarkPercentile: null,
+              exceptionalRateBenchmarkPercentile: null,
+              evaluationCutoff: null,
+            },
+          ],
           source: "owned_arena",
           mode: "Horse",
           exactDistanceM: 1_600,
@@ -169,9 +191,11 @@ describe("Breeding workspace", () => {
     expect(html).toContain(
       "One accepted elite-upside evidence leader is surfaced per",
     );
-    expect(html).toContain(
-      "Repeat-elite breeder status is not supplied by this accepted ranking contract",
-    );
+    expect(html).toContain("TARGET means the approved repeat-elite gates");
+    expect(html).toContain("synthetic-parent-a: breeder evidence");
+    expect(html).toContain("4 qualified offspring / 2 co-parents");
+    expect(html).toContain("lift p96; exceptional rate p92");
+    expect(html).toContain("accepted repeat-elite metrics unavailable");
     expect(
       html.match(/synthetic-parent-a \+ synthetic-parent-b/g),
     ).toHaveLength(4);

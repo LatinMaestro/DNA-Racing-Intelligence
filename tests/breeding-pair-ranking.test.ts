@@ -152,6 +152,87 @@ describe("breeding pair ranking", () => {
     });
   });
 
+  it("carries approved repeat-elite parent evidence without inferring missing history", () => {
+    const result = rankBreedingPairs(
+      input({
+        candidates: [
+          candidate("only", ["core-a", "core-b"], {
+            parentBreederEvidence: [
+              {
+                parentCoreId: "core-a",
+                status: "target",
+                confidence: "moderate",
+                qualifiedOffspringCount: 4,
+                distinctCoParentCount: 2,
+                medianLiftBenchmarkPercentile: 96,
+                exceptionalRateBenchmarkPercentile: 92,
+                evaluationCutoff: "2026-07-21T00:00:00.000Z",
+              },
+              {
+                parentCoreId: "core-b",
+                status: "watch",
+                confidence: "low",
+                qualifiedOffspringCount: 1,
+                distinctCoParentCount: 1,
+                medianLiftBenchmarkPercentile: 91,
+                exceptionalRateBenchmarkPercentile: 88,
+                evaluationCutoff: "2026-07-21T00:00:00.000Z",
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(result.eliteUpsideRanking[0]?.parentBreederEvidence).toMatchObject([
+      { parentCoreId: "core-a", status: "target" },
+      { parentCoreId: "core-b", status: "watch" },
+    ]);
+
+    const unavailable = rankBreedingPairs(
+      input({ candidates: [candidate("legacy", ["legacy-a", "legacy-b"])] }),
+    );
+    expect(
+      unavailable.eliteUpsideRanking[0]?.parentBreederEvidence.map(
+        ({ status }) => status,
+      ),
+    ).toEqual(["unavailable", "unavailable"]);
+  });
+
+  it("rejects an elite breeder TARGET that does not clear approved gates", () => {
+    expect(() =>
+      rankBreedingPairs(
+        input({
+          candidates: [
+            candidate("bad-target", ["bad-a", "bad-b"], {
+              parentBreederEvidence: [
+                {
+                  parentCoreId: "bad-a",
+                  status: "target",
+                  confidence: "moderate",
+                  qualifiedOffspringCount: 2,
+                  distinctCoParentCount: 2,
+                  medianLiftBenchmarkPercentile: 96,
+                  exceptionalRateBenchmarkPercentile: 92,
+                  evaluationCutoff: "2026-07-21T00:00:00.000Z",
+                },
+                {
+                  parentCoreId: "bad-b",
+                  status: "unavailable",
+                  confidence: "unavailable",
+                  qualifiedOffspringCount: null,
+                  distinctCoParentCount: null,
+                  medianLiftBenchmarkPercentile: null,
+                  exceptionalRateBenchmarkPercentile: null,
+                  evaluationCutoff: null,
+                },
+              ],
+            }),
+          ],
+        }),
+      ),
+    ).toThrow("does not clear approved gates");
+  });
+
   it("keeps balanced arithmetic exact as an integer numerator", () => {
     const result = rankBreedingPairs(
       input({

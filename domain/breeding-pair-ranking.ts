@@ -20,9 +20,24 @@ export type BreedingParentEvidence = Readonly<{
   fNumber: number;
 }>;
 
+export type BreedingParentBreederEvidence = Readonly<{
+  parentCoreId: string;
+  status: "target" | "watch" | "wait" | "unavailable";
+  confidence: BreedingEvidenceConfidence | "unavailable";
+  qualifiedOffspringCount: number | null;
+  distinctCoParentCount: number | null;
+  medianLiftBenchmarkPercentile: number | null;
+  exceptionalRateBenchmarkPercentile: number | null;
+  evaluationCutoff: string | null;
+}>;
+
 export type BreedingRankingCandidateInput = Readonly<{
   pairId: string;
   parents: readonly [BreedingParentEvidence, BreedingParentEvidence];
+  parentBreederEvidence?: readonly [
+    BreedingParentBreederEvidence,
+    BreedingParentBreederEvidence,
+  ];
   source: BreedingPairSource;
   mode: BreedingRankingMode;
   exactDistanceM: number;
@@ -77,6 +92,10 @@ type RankedBreedingPair = Readonly<{
   mode: BreedingRankingMode;
   exactDistanceM: number;
   evidenceConfidence: BreedingEvidenceConfidence;
+  parentBreederEvidence: readonly [
+    BreedingParentBreederEvidence,
+    BreedingParentBreederEvidence,
+  ];
   predictedOffspringClass: CoreClass;
   predictedOffspringElement: Element;
   predictedOffspringFNumber: number;
@@ -170,8 +189,139 @@ function positiveInteger(value: number, label: string): number {
   return value;
 }
 
+function nonNegativeInteger(value: number, label: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative safe integer.`);
+  }
+  return value;
+}
+
+function nullablePercentile(
+  value: number | null,
+  label: string,
+): number | null {
+  if (value === null) return null;
+  if (!Number.isFinite(value) || value < 0 || value > 100) {
+    throw new Error(`${label} must be between 0 and 100.`);
+  }
+  return value;
+}
+
+function unavailableBreederEvidence(
+  parentCoreId: string,
+): BreedingParentBreederEvidence {
+  return {
+    parentCoreId,
+    status: "unavailable",
+    confidence: "unavailable",
+    qualifiedOffspringCount: null,
+    distinctCoParentCount: null,
+    medianLiftBenchmarkPercentile: null,
+    exceptionalRateBenchmarkPercentile: null,
+    evaluationCutoff: null,
+  };
+}
+
+function parentBreederEvidence(
+  value: BreedingParentBreederEvidence | undefined,
+  parentCoreId: string,
+  evaluatedAt: string,
+): BreedingParentBreederEvidence {
+  if (value === undefined) return unavailableBreederEvidence(parentCoreId);
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Breeder evidence is invalid.");
+  }
+  if (required(value.parentCoreId, "Breeder parent Core ID") !== parentCoreId) {
+    throw new Error("Breeder evidence must match its parent Core ID.");
+  }
+  if (!["target", "watch", "wait", "unavailable"].includes(value.status)) {
+    throw new Error("Breeder evidence status is invalid.");
+  }
+  if (!["low", "moderate", "high", "unavailable"].includes(value.confidence)) {
+    throw new Error("Breeder evidence confidence is invalid.");
+  }
+  const evaluationCutoff = timestamp(
+    value.evaluationCutoff,
+    "Breeder evidence cutoff",
+  );
+  if (
+    evaluationCutoff !== null &&
+    Date.parse(evaluationCutoff) > Date.parse(evaluatedAt)
+  ) {
+    throw new Error("Breeder evidence cutoff cannot postdate evaluation.");
+  }
+  if (value.status === "unavailable") {
+    if (
+      value.confidence !== "unavailable" ||
+      value.qualifiedOffspringCount !== null ||
+      value.distinctCoParentCount !== null ||
+      value.medianLiftBenchmarkPercentile !== null ||
+      value.exceptionalRateBenchmarkPercentile !== null ||
+      evaluationCutoff !== null
+    ) {
+      throw new Error("Unavailable breeder evidence cannot contain metrics.");
+    }
+    return unavailableBreederEvidence(parentCoreId);
+  }
+  if (
+    value.confidence === "unavailable" ||
+    value.qualifiedOffspringCount === null ||
+    value.distinctCoParentCount === null ||
+    value.medianLiftBenchmarkPercentile === null ||
+    value.exceptionalRateBenchmarkPercentile === null ||
+    evaluationCutoff === null
+  ) {
+    throw new Error("Available breeder evidence requires complete metrics.");
+  }
+  const qualifiedOffspringCount = nonNegativeInteger(
+    value.qualifiedOffspringCount,
+    "Qualified offspring count",
+  );
+  const distinctCoParentCount = nonNegativeInteger(
+    value.distinctCoParentCount,
+    "Distinct co-parent count",
+  );
+  if (distinctCoParentCount > qualifiedOffspringCount) {
+    throw new Error(
+      "Distinct co-parent count cannot exceed qualified offspring count.",
+    );
+  }
+  const medianLiftBenchmarkPercentile = nullablePercentile(
+    value.medianLiftBenchmarkPercentile,
+    "Median-lift benchmark percentile",
+  )!;
+  const exceptionalRateBenchmarkPercentile = nullablePercentile(
+    value.exceptionalRateBenchmarkPercentile,
+    "Exceptional-rate benchmark percentile",
+  )!;
+  if (
+    value.status === "target" &&
+    (qualifiedOffspringCount < 3 ||
+      distinctCoParentCount < 2 ||
+      medianLiftBenchmarkPercentile < 95 ||
+      exceptionalRateBenchmarkPercentile < 90)
+  ) {
+    throw new Error(
+      "Elite breeder TARGET evidence does not clear approved gates.",
+    );
+  }
+  return {
+    ...value,
+    parentCoreId,
+    qualifiedOffspringCount,
+    distinctCoParentCount,
+    medianLiftBenchmarkPercentile,
+    exceptionalRateBenchmarkPercentile,
+    evaluationCutoff,
+  };
+}
+
 type NormalizedCandidate = BreedingRankingCandidateInput & {
   parents: readonly [BreedingParentEvidence, BreedingParentEvidence];
+  parentBreederEvidence: readonly [
+    BreedingParentBreederEvidence,
+    BreedingParentBreederEvidence,
+  ];
   arenaListingExpiresAt: string | null;
 };
 
@@ -189,6 +339,7 @@ function ranked(
     mode: candidate.mode,
     exactDistanceM: candidate.exactDistanceM,
     evidenceConfidence: candidate.evidenceConfidence,
+    parentBreederEvidence: candidate.parentBreederEvidence,
     predictedOffspringClass: offspringClass(
       candidate.parents[0].coreClass,
       candidate.parents[1].coreClass,
@@ -337,6 +488,20 @@ export function rankBreedingPairs(
     if (parents[0].coreId === parents[1].coreId) {
       throw new Error("A breeding pair requires two distinct parents.");
     }
+    if (
+      candidateInput.parentBreederEvidence !== undefined &&
+      (!Array.isArray(candidateInput.parentBreederEvidence) ||
+        candidateInput.parentBreederEvidence.length !== 2)
+    ) {
+      throw new Error("Breeder evidence requires exactly two parents.");
+    }
+    const breederEvidence = parents.map((parent, index) =>
+      parentBreederEvidence(
+        candidateInput.parentBreederEvidence?.[index],
+        parent.coreId,
+        evaluatedAt,
+      ),
+    ) as [BreedingParentBreederEvidence, BreedingParentBreederEvidence];
     const pairId = required(candidateInput.pairId, "Pair ID");
     if (pairIds.has(pairId)) throw new Error("Pair IDs must be unique.");
     pairIds.add(pairId);
@@ -471,6 +636,7 @@ export function rankBreedingPairs(
       ...candidateInput,
       pairId,
       parents,
+      parentBreederEvidence: breederEvidence,
       arenaListingExpiresAt,
     };
     const reasons: string[] = [];
