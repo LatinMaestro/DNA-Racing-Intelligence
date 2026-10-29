@@ -57,6 +57,7 @@ describe("Pro League owner plan confirmation", () => {
           coreId: `core-${index + 1}`,
         })),
         allSlotsFilled: true,
+        requiredCoreEntries: 1_021,
       },
       lineup: {
         lineup: {
@@ -76,11 +77,25 @@ describe("Pro League owner plan confirmation", () => {
     mocks.saveLineup.mockResolvedValue({ disposition: "created" });
   });
 
-  it("recomputes the accepted plan before persisting its roster and 168-line mapping", async () => {
-    await expect(confirmProLeaguePlanAction(form())).resolves.toBeUndefined();
+  it("blocks the legacy 168-line write when the full-gate plan requires 1,021 assignments", async () => {
+    await expect(confirmProLeaguePlanAction(form())).rejects.toThrow(
+      "accepted evidence changed",
+    );
     expect(mocks.load).toHaveBeenCalledWith(
       expect.objectContaining({ authenticatedOwnerId: "owner-1" }),
     );
+    expect(mocks.saveRoster).not.toHaveBeenCalled();
+    expect(mocks.saveLineup).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("persists only when the repository payload covers every required gate assignment", async () => {
+    const complete = await mocks.load();
+    mocks.load.mockResolvedValue({
+      ...complete,
+      ownerPlan: { ...complete.ownerPlan, requiredCoreEntries: 168 },
+    });
+    await expect(confirmProLeaguePlanAction(form())).resolves.toBeUndefined();
     expect(mocks.saveRoster).toHaveBeenCalledWith(
       "owner-1",
       expect.objectContaining({
