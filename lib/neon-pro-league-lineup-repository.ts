@@ -10,6 +10,7 @@ import type {
   ProLeagueMapId,
   ProLeagueMapLineupEntry,
 } from "@/domain/pro-league-maps";
+import type { ProLeagueOwnerCommissioningPlan } from "@/domain/pro-league-owner-commissioning-plan";
 import {
   createDefaultNeonImportPersistenceSession,
   type NeonImportPersistenceSessionFactory,
@@ -33,6 +34,12 @@ const VERIFY_ISOLATION_SQL = `
       'dna.read_pro_league_lineup_version(uuid,text)',
       'EXECUTE') AS runtime_can_read_lineup,
     has_function_privilege(session_user,
+      'dna.store_pro_league_full_gate_plan(uuid,text,text,text,text,jsonb)',
+      'EXECUTE') AS runtime_can_store_full_gate,
+    has_function_privilege(session_user,
+      'dna.read_pro_league_full_gate_plan(uuid,text)',
+      'EXECUTE') AS runtime_can_read_full_gate,
+    has_function_privilege(session_user,
       'dna.store_pro_league_match_lock(uuid,text,text,text,text,text,text,text,text,timestamp with time zone,timestamp with time zone,text,text,text,text,text,text,text,text,text)',
       'EXECUTE') AS runtime_can_store_lock,
     has_function_privilege(session_user,
@@ -55,6 +62,8 @@ const VERIFY_ISOLATION_SQL = `
     WHERE class.oid IN (
       'dna.pro_league_lineup_version'::regclass,
       'dna.pro_league_lineup_entry_snapshot'::regclass,
+      'dna.pro_league_full_gate_plan'::regclass,
+      'dna.pro_league_full_gate_assignment_snapshot'::regclass,
       'dna.pro_league_match_lock'::regclass
     )
   ) table_state
@@ -69,6 +78,11 @@ const STORE_LINEUP_SQL = `SELECT * FROM dna.store_pro_league_lineup_version(
 )`;
 const READ_LINEUP_SQL =
   "SELECT * FROM dna.read_pro_league_lineup_version($1::uuid,$2::text)";
+const STORE_FULL_GATE_SQL = `SELECT * FROM dna.store_pro_league_full_gate_plan(
+  $1::uuid,$2::text,$3::text,$4::text,$5::text,$6::jsonb
+)`;
+const READ_FULL_GATE_SQL =
+  "SELECT * FROM dna.read_pro_league_full_gate_plan($1::uuid,$2::text)";
 const STORE_LOCK_SQL = `SELECT * FROM dna.store_pro_league_match_lock(
   $1::uuid,$2::text,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,
   $9::text,$10::timestamptz,$11::timestamptz,$12::text,$13::text,$14::text,
@@ -92,6 +106,26 @@ export type StoredProLeagueMatchLock = Readonly<{
   createdAt: string;
 }>;
 
+export type ProLeagueFullGateAssignment = Readonly<{
+  mapId: ProLeagueMapId;
+  raceNumber: number;
+  slotNumber: number;
+  raceType: string;
+  distanceMetres: number;
+  totalGateEntries: number;
+  gateEntriesPerVault: number;
+  coreId: string;
+}>;
+
+export type StoredProLeagueFullGatePlan = Readonly<{
+  planId: string;
+  lineupVersionId: string;
+  rosterVersionId: string;
+  assignments: readonly ProLeagueFullGateAssignment[];
+  planSha256: string;
+  createdAt: string;
+}>;
+
 export type ProLeagueLineupRepository = Readonly<{
   saveLineup: (
     ownerId: string,
@@ -103,6 +137,22 @@ export type ProLeagueLineupRepository = Readonly<{
     ownerId: string,
     lineupVersionId: string,
   ) => Promise<StoredProLeagueLineupVersion | null>;
+  saveFullGatePlan: (
+    ownerId: string,
+    lineupVersionId: string,
+    rosterVersionId: string,
+    plan: ProLeagueOwnerCommissioningPlan,
+  ) => Promise<
+    Readonly<{
+      disposition: "created" | "existing";
+      assignmentCount: number;
+      planSha256: string;
+    }>
+  >;
+  loadFullGatePlan: (
+    ownerId: string,
+    lineupVersionId: string,
+  ) => Promise<StoredProLeagueFullGatePlan | null>;
   saveMatchLock: (
     ownerId: string,
     lock: ProLeagueMatchLock,
@@ -183,6 +233,36 @@ function flatEntries(version: ProLeagueLineupVersion) {
     }));
 }
 
+function fullGateAssignments(
+  plan: ProLeagueOwnerCommissioningPlan,
+): readonly ProLeagueFullGateAssignment[] {
+  return plan.maps.flatMap((map) =>
+    map.lines.flatMap((line) =>
+      line.coreIds.map((coreId, index) => ({
+        mapId: map.mapId,
+        raceNumber: line.raceNumber,
+        slotNumber: index + 1,
+        raceType: line.raceType,
+        distanceMetres: line.distanceMetres,
+        totalGateEntries: line.totalGateEntries,
+        gateEntriesPerVault: line.ourSlots,
+        coreId,
+      })),
+    ),
+  );
+}
+
+function fullGateFingerprint(
+  input: Readonly<{
+    lineupVersionId: string;
+    rosterVersionId: string;
+    planId: string;
+    assignments: readonly ProLeagueFullGateAssignment[];
+  }>,
+): string {
+  return sha256(input);
+}
+
 function versionFingerprint(version: ProLeagueLineupVersion): string {
   return sha256({
     lineupVersionId: version.lineupVersionId,
@@ -212,6 +292,8 @@ function verifyIsolation(
     bool(value.runtime_can_read_tables, "direct table privilege") ||
     !bool(value.runtime_can_store_lineup, "lineup store privilege") ||
     !bool(value.runtime_can_read_lineup, "lineup read privilege") ||
+    !bool(value.runtime_can_store_full_gate, "full-gate store privilege") ||
+    !bool(value.runtime_can_read_full_gate, "full-gate read privilege") ||
     !bool(value.runtime_can_store_lock, "match lock store privilege") ||
     !bool(value.runtime_can_read_lock, "match lock read privilege") ||
     text(value.session_user_name, "session user") !== runtimeRole ||
@@ -405,6 +487,114 @@ export function createNeonProLeagueLineupRepository(
               stored.created_at,
               "lineup creation timestamp",
             ),
+          };
+        },
+      });
+    },
+
+    async saveFullGatePlan(ownerId, lineupVersionId, rosterVersionId, plan) {
+      const assignments = fullGateAssignments(plan);
+      if (
+        !plan.allSlotsFilled ||
+        assignments.length !== plan.requiredCoreEntries ||
+        assignments.length !== 1_021
+      ) {
+        throw new Error("Pro League full-gate plan is incomplete.");
+      }
+      const fingerprintInput = {
+        lineupVersionId: text(lineupVersionId, "lineup version ID"),
+        rosterVersionId: text(rosterVersionId, "roster version ID"),
+        planId: plan.planId,
+        assignments,
+      };
+      const planSha256 = fullGateFingerprint(fingerprintInput);
+      return transaction({
+        ownerId,
+        readOnly: false,
+        async execute(query) {
+          const stored = one(
+            await query(STORE_FULL_GATE_SQL, [
+              databaseOwnerId,
+              fingerprintInput.lineupVersionId,
+              fingerprintInput.rosterVersionId,
+              fingerprintInput.planId,
+              planSha256,
+              JSON.stringify(assignments),
+            ]),
+            "full-gate write",
+          );
+          const disposition = text(
+            stored.disposition,
+            "full-gate write disposition",
+          );
+          if (disposition !== "created" && disposition !== "existing")
+            throw new Error("Pro League full-gate disposition is invalid.");
+          const assignmentCount = integer(
+            stored.assignment_count,
+            "full-gate assignment count",
+          );
+          if (assignmentCount !== 1_021)
+            throw new Error("Pro League full-gate write is incomplete.");
+          return { disposition, assignmentCount, planSha256 };
+        },
+      });
+    },
+
+    async loadFullGatePlan(ownerId, lineupVersionId) {
+      return transaction({
+        ownerId,
+        readOnly: true,
+        async execute(query) {
+          const result = await query(READ_FULL_GATE_SQL, [
+            databaseOwnerId,
+            text(lineupVersionId, "lineup version ID"),
+          ]);
+          if (result.rows.length === 0) return null;
+          const stored = one(result, "full-gate read");
+          const rawAssignments =
+            typeof stored.assignments === "string"
+              ? JSON.parse(stored.assignments)
+              : stored.assignments;
+          if (!Array.isArray(rawAssignments) || rawAssignments.length !== 1_021)
+            throw new Error("Pro League full-gate read is incomplete.");
+          const assignments = rawAssignments.map((value) => {
+            const assignment = row(value, "full-gate assignment");
+            return {
+              mapId: text(assignment.mapId, "map ID") as ProLeagueMapId,
+              raceNumber: integer(assignment.raceNumber, "race number"),
+              slotNumber: integer(assignment.slotNumber, "slot number"),
+              raceType: text(assignment.raceType, "race type"),
+              distanceMetres: integer(assignment.distanceMetres, "distance"),
+              totalGateEntries: integer(
+                assignment.totalGateEntries,
+                "total gate entries",
+              ),
+              gateEntriesPerVault: integer(
+                assignment.gateEntriesPerVault,
+                "Vault gate entries",
+              ),
+              coreId: text(assignment.coreId, "mapped Core ID"),
+            };
+          });
+          const fingerprintInput = {
+            lineupVersionId: text(
+              stored.lineup_version_id,
+              "lineup version ID",
+            ),
+            rosterVersionId: text(
+              stored.roster_version_id,
+              "roster version ID",
+            ),
+            planId: text(stored.plan_id, "plan ID"),
+            assignments,
+          };
+          const planSha256 = text(stored.plan_sha256, "full-gate SHA-256");
+          if (fullGateFingerprint(fingerprintInput) !== planSha256)
+            throw new Error("Pro League full-gate fingerprint drifted.");
+          return {
+            ...fingerprintInput,
+            planSha256,
+            createdAt: timestamp(stored.created_at, "full-gate timestamp"),
           };
         },
       });

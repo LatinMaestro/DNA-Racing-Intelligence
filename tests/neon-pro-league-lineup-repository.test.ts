@@ -5,6 +5,8 @@ import {
   buildProLeagueMatchLock,
 } from "@/domain/pro-league-lineup-version";
 import { proLeagueMaps } from "@/domain/pro-league-maps";
+import { PRO_LEAGUE_OWNER_FINAL_PLAN_ID } from "@/domain/pro-league-owner-final-plan";
+import type { ProLeagueOwnerCommissioningPlan } from "@/domain/pro-league-owner-commissioning-plan";
 import type {
   NeonImportPersistenceClient,
   NeonImportPersistenceSessionFactory,
@@ -15,6 +17,70 @@ const databaseOwnerId = "82000000-0000-4000-8000-000000000001";
 const ownerId = "private_owner";
 const runtimeRole = "dna_app_runtime";
 const rosterCoreIds = ["core-1", "core-2"];
+
+function fullGatePlan(): ProLeagueOwnerCommissioningPlan {
+  const allCoreIds = Array.from(
+    { length: 25 },
+    (_, index) => `core-${index + 1}`,
+  );
+  const maps = proLeagueMaps.map((map) => {
+    const lines = map.races.map((race) => ({
+      raceNumber: race.raceNumber,
+      first16: race.raceNumber <= 16,
+      raceType: race.raceType,
+      distanceMetres: race.distanceMetres,
+      totalGateEntries: race.totalGateEntries,
+      ourSlots: race.gateEntriesPerVault,
+      coreIds: Array.from(
+        { length: race.gateEntriesPerVault },
+        (_, index) => allCoreIds[(race.raceNumber + index - 1) % 25]!,
+      ),
+      coreNames: Array.from(
+        { length: race.gateEntriesPerVault },
+        (_, index) => `Core ${((race.raceNumber + index - 1) % 25) + 1}`,
+      ),
+      evidenceBackedCount: 0,
+      allSlotsFilled: true,
+    }));
+    const requiredCoreEntries = lines.reduce(
+      (sum, line) => sum + line.ourSlots,
+      0,
+    );
+    return {
+      mapId: map.mapId,
+      name: map.name,
+      requiredCoreEntries,
+      assignedCoreEntries: requiredCoreEntries,
+      allSlotsFilled: true,
+      lines,
+    };
+  });
+  const requiredCoreEntries = maps.reduce(
+    (sum, map) => sum + map.requiredCoreEntries,
+    0,
+  );
+  return {
+    planId: PRO_LEAGUE_OWNER_FINAL_PLAN_ID,
+    roster: allCoreIds.map((coreId, index) => ({
+      coreId,
+      displayName: `Core ${index + 1}`,
+      element: "Fire",
+      fNumber: 11,
+      sex: index < 8 ? "female" : "male",
+      primaryDistances: [1000],
+    })),
+    mapStrategy: {
+      homePick: "Map 1",
+      homeDeny: "Map 4",
+      awayPriority: ["Map 2"],
+      contingencyMap: "Map 3",
+    },
+    maps,
+    requiredCoreEntries,
+    assignedCoreEntries: requiredCoreEntries,
+    allSlotsFilled: true,
+  };
+}
 
 function lineup() {
   return buildProLeagueLineupVersion({
@@ -61,6 +127,8 @@ function isolation(overrides: Record<string, unknown> = {}) {
     runtime_can_read_tables: false,
     runtime_can_store_lineup: true,
     runtime_can_read_lineup: true,
+    runtime_can_store_full_gate: true,
+    runtime_can_read_full_gate: true,
     runtime_can_store_lock: true,
     runtime_can_read_lock: true,
     session_user_name: runtimeRole,
@@ -238,6 +306,53 @@ describe("Neon Pro League lineup repository", () => {
         selection: { thirdMap: "map-3" },
       },
       matchLockSha256: saved.matchLockSha256,
+    });
+  });
+
+  it("stores and revalidates all 1,021 full-gate assignments", async () => {
+    expect(fullGatePlan().requiredCoreEntries).toBe(1_021);
+    const writer = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [{ disposition: "created", assignment_count: 1_021 }],
+    ]);
+    const saved = await writer.repository.saveFullGatePlan(
+      ownerId,
+      "lineup-v1",
+      "roster-v1",
+      fullGatePlan(),
+    );
+    expect(saved).toMatchObject({
+      disposition: "created",
+      assignmentCount: 1_021,
+      planSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
+    const writeValues = writer.query.mock.calls[3]?.[1] as readonly unknown[];
+    const assignments = JSON.parse(writeValues[5] as string);
+    expect(assignments).toHaveLength(1_021);
+
+    const reader = harness([
+      [{ owner_scope: databaseOwnerId }],
+      [isolation()],
+      [
+        {
+          lineup_version_id: "lineup-v1",
+          roster_version_id: "roster-v1",
+          plan_id: PRO_LEAGUE_OWNER_FINAL_PLAN_ID,
+          plan_sha256: saved.planSha256,
+          created_at: new Date("2026-10-29T05:00:00Z"),
+          assignments,
+        },
+      ],
+    ]);
+    await expect(
+      reader.repository.loadFullGatePlan(ownerId, "lineup-v1"),
+    ).resolves.toMatchObject({
+      assignments: expect.arrayContaining([
+        expect.objectContaining({ mapId: "map-1", slotNumber: 1 }),
+      ]),
+      planSha256: saved.planSha256,
+      createdAt: "2026-10-29T05:00:00.000Z",
     });
   });
 

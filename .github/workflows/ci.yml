@@ -491,6 +491,26 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.up.sql
       - name: Run Dashboard import refresh runtime read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.smoke.sql
+      - name: Apply Pro League roster persistence prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0081_pro_league_roster_version_persistence.up.sql
+      - name: Apply Pro League lineup persistence prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0082_pro_league_lineup_match_lock_persistence.up.sql
+      - name: Apply Pro League full-gate persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0152_pro_league_full_gate_persistence.up.sql
+      - name: Run Pro League full-gate persistence smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0152_pro_league_full_gate_persistence.smoke.sql
+      - name: Reverse Pro League full-gate persistence migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0152_pro_league_full_gate_persistence.down.sql
+      - name: Verify Pro League full-gate persistence removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0152_pro_league_full_gate_persistence.removal.sql
+      - name: Reverse Pro League lineup persistence prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0082_pro_league_lineup_match_lock_persistence.down.sql
+      - name: Verify Pro League lineup persistence prerequisite removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0082_pro_league_lineup_match_lock_persistence.removal.sql
+      - name: Reverse Pro League roster persistence prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0081_pro_league_roster_version_persistence.down.sql
+      - name: Verify Pro League roster persistence prerequisite removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0081_pro_league_roster_version_persistence.removal.sql
       - name: Reverse Dashboard import refresh runtime read migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.down.sql
       - name: Verify Dashboard import refresh runtime read removal

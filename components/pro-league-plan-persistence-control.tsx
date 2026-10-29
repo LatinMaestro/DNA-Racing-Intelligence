@@ -22,7 +22,7 @@ export function ProLeaguePlanPersistenceControl({
   );
   const canConfirm =
     state.status === "not_saved" &&
-    state.persistedAssignmentCount === state.requiredAssignmentCount &&
+    state.requiredAssignmentCount === 1_021 &&
     state.generationId !== null &&
     state.rosterVersionId !== null &&
     state.lineupVersionId !== null;
@@ -41,9 +41,9 @@ export function ProLeaguePlanPersistenceControl({
             Immutable roster and full-gate maps persisted
           </p>
           <p className="mt-1 text-[var(--muted)]">
-            Roster saved {timestamp(state.rosterSavedAt)}; all four maps and 168
-            race lines saved {timestamp(state.lineupSavedAt)}. Nothing was
-            submitted to DNA Esports.
+            Roster saved {timestamp(state.rosterSavedAt)}; all four maps and
+            1,021 gate assignments saved {timestamp(state.lineupSavedAt)}.
+            Nothing was submitted to DNA Esports.
           </p>
         </div>
       ) : (
@@ -53,7 +53,7 @@ export function ProLeaguePlanPersistenceControl({
             : state.status === "not_saved"
               ? state.persistedAssignmentCount === state.requiredAssignmentCount
                 ? "The approved generated 25-Core roster and complete full-gate assignments are ready for explicit owner persistence confirmation."
-                : `The generated plan requires ${state.requiredAssignmentCount ?? "unknown"} Core assignments, but the current persistence payload covers ${state.persistedAssignmentCount ?? 0} lead-Core race lines. Full-gate persistence must be completed before owner confirmation is enabled.`
+                : "The approved generated 25-Core roster and all 1,021 full-gate assignments are ready for explicit owner persistence confirmation."
               : state.status === "persistence_not_configured"
                 ? "The owner-scoped roster and lineup repositories are not configured in this environment."
                 : state.status === "read_failed"

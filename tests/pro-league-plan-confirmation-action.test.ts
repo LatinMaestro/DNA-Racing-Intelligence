@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createLineupRepository: vi.fn(),
   saveRoster: vi.fn(),
   saveLineup: vi.fn(),
+  saveFullGatePlan: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
@@ -58,6 +59,7 @@ describe("Pro League owner plan confirmation", () => {
         })),
         allSlotsFilled: true,
         requiredCoreEntries: 1_021,
+        assignedCoreEntries: 1_021,
       },
       lineup: {
         lineup: {
@@ -72,12 +74,22 @@ describe("Pro League owner plan confirmation", () => {
     mocks.createRepository.mockReturnValue({ saveVersion: mocks.saveRoster });
     mocks.createLineupRepository.mockReturnValue({
       saveLineup: mocks.saveLineup,
+      saveFullGatePlan: mocks.saveFullGatePlan,
     });
     mocks.saveRoster.mockResolvedValue({ disposition: "created" });
     mocks.saveLineup.mockResolvedValue({ disposition: "created" });
+    mocks.saveFullGatePlan.mockResolvedValue({
+      disposition: "created",
+      assignmentCount: 1_021,
+    });
   });
 
-  it("blocks the legacy 168-line write when the full-gate plan requires 1,021 assignments", async () => {
+  it("blocks an incomplete full-gate plan before any write", async () => {
+    const incomplete = await mocks.load();
+    mocks.load.mockResolvedValue({
+      ...incomplete,
+      ownerPlan: { ...incomplete.ownerPlan, assignedCoreEntries: 168 },
+    });
     await expect(confirmProLeaguePlanAction(form())).rejects.toThrow(
       "accepted evidence changed",
     );
@@ -86,15 +98,11 @@ describe("Pro League owner plan confirmation", () => {
     );
     expect(mocks.saveRoster).not.toHaveBeenCalled();
     expect(mocks.saveLineup).not.toHaveBeenCalled();
+    expect(mocks.saveFullGatePlan).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("persists only when the repository payload covers every required gate assignment", async () => {
-    const complete = await mocks.load();
-    mocks.load.mockResolvedValue({
-      ...complete,
-      ownerPlan: { ...complete.ownerPlan, requiredCoreEntries: 168 },
-    });
+  it("persists the roster, line catalogue and all full-gate assignments", async () => {
     await expect(confirmProLeaguePlanAction(form())).resolves.toBeUndefined();
     expect(mocks.saveRoster).toHaveBeenCalledWith(
       "owner-1",
@@ -106,6 +114,15 @@ describe("Pro League owner plan confirmation", () => {
       "owner-1",
       expect.objectContaining({
         lineupVersionId: "draft-lineup/generation-1",
+      }),
+    );
+    expect(mocks.saveFullGatePlan).toHaveBeenCalledWith(
+      "owner-1",
+      "draft-lineup/generation-1",
+      "draft-roster/generation-1",
+      expect.objectContaining({
+        requiredCoreEntries: 1_021,
+        assignedCoreEntries: 1_021,
       }),
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pro-league");
