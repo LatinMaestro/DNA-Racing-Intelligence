@@ -36,9 +36,11 @@ BEGIN
   FOR v_slot IN 1..25 LOOP
     v_members := v_members || jsonb_build_array(jsonb_build_object(
       'coreId', 'core-' || v_slot, 'displayName', 'Core ' || v_slot,
-      'element', 'Fire', 'coreClass', 'Morphed',
+      'element', (ARRAY['Metal','Fire','Earth','Water'])[((v_slot - 1) % 4) + 1],
+      'coreClass', 'Morphed',
       'sex', CASE WHEN v_slot <= 8 THEN 'female' ELSE 'male' END,
-      'fNumber', 11, 'inMyVault', true, 'disposition', 'rostered',
+      'fNumber', CASE WHEN v_slot <= 2 THEN 16 ELSE 11 END,
+      'inMyVault', true, 'disposition', 'rostered',
       'role', 'nucleus', 'position', v_slot,
       'reason', 'Synthetic full-gate roster.',
       'evidence', jsonb_build_object(
