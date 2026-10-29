@@ -20,6 +20,7 @@ const commissioning = {
       coreId: `core-${index + 1}`,
     })),
     allSlotsFilled: true,
+    requiredCoreEntries: 1_021,
   },
 } as unknown as ProLeagueDraftCommissioningState;
 const base = {
@@ -73,7 +74,11 @@ describe("Pro League owner roster persistence state", () => {
         rosterRepository: { loadVersion },
         lineupRepository: { loadLineup },
       }),
-    ).resolves.toMatchObject({ status: "not_saved" });
+    ).resolves.toMatchObject({
+      status: "not_saved",
+      persistedAssignmentCount: 168,
+      requiredAssignmentCount: 1_021,
+    });
     await expect(
       loadProLeaguePlanPersistenceState({
         ...base,
@@ -81,10 +86,40 @@ describe("Pro League owner roster persistence state", () => {
         lineupRepository: { loadLineup },
       }),
     ).resolves.toMatchObject({
-      status: "saved",
+      status: "lead_only_saved",
       rosterSavedAt: "2026-10-20T00:00:00.000Z",
       lineupSavedAt: "2026-10-20T00:01:00.000Z",
+      persistedAssignmentCount: 168,
+      requiredAssignmentCount: 1_021,
     });
+  });
+
+  it("accepts saved status only when every required gate assignment is persisted", async () => {
+    const complete = {
+      ...commissioning,
+      ownerPlan: {
+        ...commissioning.ownerPlan,
+        requiredCoreEntries: 168,
+      },
+    } as ProLeagueDraftCommissioningState;
+    await expect(
+      loadProLeaguePlanPersistenceState({
+        ...base,
+        commissioning: complete,
+        rosterRepository: {
+          loadVersion: vi.fn(async () => ({
+            version: roster,
+            createdAt: "2026-10-20T00:00:00.000Z",
+          })),
+        },
+        lineupRepository: {
+          loadLineup: vi.fn(async () => ({
+            version: lineup,
+            createdAt: "2026-10-20T00:01:00.000Z",
+          })),
+        },
+      }),
+    ).resolves.toMatchObject({ status: "saved" });
   });
 
   it("withholds failed or mismatched stored roster reads", async () => {
