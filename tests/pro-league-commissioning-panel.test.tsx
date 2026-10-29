@@ -248,21 +248,23 @@ describe("Pro League commissioning panel", () => {
     const markup = renderToStaticMarkup(
       <ProLeagueCommissioningPanel
         planPersistence={{
-          status: "saved",
+          status: "lead_only_saved",
           generationId: "generation-1",
           rosterVersionId: "draft-roster/generation-1",
           lineupVersionId: "draft-lineup/generation-1",
           rosterSavedAt: "2026-10-20T00:00:00.000Z",
           lineupSavedAt: "2026-10-20T00:01:00.000Z",
+          persistedAssignmentCount: 168,
+          requiredAssignmentCount: 1_021,
         }}
         state={state}
       />,
     );
 
     expect(markup).toContain("Roster recommendation");
-    expect(markup).toContain("Immutable roster and full-gate maps persisted");
-    expect(markup).toContain("all four maps and");
-    expect(markup).toContain("168 race lines saved");
+    expect(markup).toContain("168 lead-Core race lines are saved");
+    expect(markup).toContain("full-gate plan requires 1021 Core assignments");
+    expect(markup).toContain("Full-gate persistence is not commissioned");
     expect(markup).toContain("Roster health");
     expect(markup).toContain("Historical Race evidence");
     expect(markup).toContain("2026-09-02T00:11:55.961Z");

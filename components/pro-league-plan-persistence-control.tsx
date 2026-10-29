@@ -22,6 +22,7 @@ export function ProLeaguePlanPersistenceControl({
   );
   const canConfirm =
     state.status === "not_saved" &&
+    state.persistedAssignmentCount === state.requiredAssignmentCount &&
     state.generationId !== null &&
     state.rosterVersionId !== null &&
     state.lineupVersionId !== null;
@@ -47,17 +48,21 @@ export function ProLeaguePlanPersistenceControl({
         </div>
       ) : (
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          {state.status === "not_saved"
-            ? "The approved generated 25-Core roster and all 168 full-gate race assignments are ready for explicit owner persistence confirmation."
-            : state.status === "persistence_not_configured"
-              ? "The owner-scoped roster and lineup repositories are not configured in this environment."
-              : state.status === "read_failed"
-                ? state.failureStage === "lineup_read"
-                  ? "The saved lineup state could not be verified. No replacement maps are shown."
-                  : state.failureStage === "integrity"
-                    ? "The saved roster or lineup did not match the accepted generation. No replacement plan is shown."
-                    : "The saved roster state could not be verified. No replacement roster is shown."
-                : "No complete accepted 25-Core roster is available to persist."}
+          {state.status === "lead_only_saved"
+            ? `The immutable 25-Core roster and ${state.persistedAssignmentCount ?? 0} lead-Core race lines are saved, but the full-gate plan requires ${state.requiredAssignmentCount ?? "unknown"} Core assignments. Full-gate persistence is not commissioned; no game action was submitted.`
+            : state.status === "not_saved"
+              ? state.persistedAssignmentCount === state.requiredAssignmentCount
+                ? "The approved generated 25-Core roster and complete full-gate assignments are ready for explicit owner persistence confirmation."
+                : `The generated plan requires ${state.requiredAssignmentCount ?? "unknown"} Core assignments, but the current persistence payload covers ${state.persistedAssignmentCount ?? 0} lead-Core race lines. Full-gate persistence must be completed before owner confirmation is enabled.`
+              : state.status === "persistence_not_configured"
+                ? "The owner-scoped roster and lineup repositories are not configured in this environment."
+                : state.status === "read_failed"
+                  ? state.failureStage === "lineup_read"
+                    ? "The saved lineup state could not be verified. No replacement maps are shown."
+                    : state.failureStage === "integrity"
+                      ? "The saved roster or lineup did not match the accepted generation. No replacement plan is shown."
+                      : "The saved roster state could not be verified. No replacement roster is shown."
+                  : "No complete accepted 25-Core roster is available to persist."}
         </p>
       )}
       {canConfirm ? (

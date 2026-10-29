@@ -60,6 +60,8 @@ export async function confirmProLeaguePlanAction(formData: FormData) {
     ownerPlan === undefined ||
     ownerPlan.roster.length !== 25 ||
     ownerPlan.allSlotsFilled !== true ||
+    ownerPlan.requiredCoreEntries !==
+      lineup.maps.flatMap(({ entries }) => entries).length ||
     generationId === null ||
     value(formData, "expectedGenerationId") !== generationId ||
     value(formData, "expectedRosterVersionId") !== roster.rosterVersionId ||
