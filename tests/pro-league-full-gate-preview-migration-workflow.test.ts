@@ -31,7 +31,9 @@ describe("Pro League full-gate Preview migration workflow", () => {
       "neondb",
       "dna_app_runtime",
       "autoscaling_limit_min_cu !== 0.25",
-      "suspend_timeout_seconds > 0",
+      "autoscaling_limit_max_cu !== 0.25",
+      "suspend_timeout_seconds !== 0",
+      'typeof matches[0]?.suspended_at !== "string"',
     ]) {
       expect(workflow).toContain(identity);
     }
