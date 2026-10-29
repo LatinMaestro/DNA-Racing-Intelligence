@@ -16,7 +16,8 @@ export type ProLeaguePlanPersistenceState = Readonly<{
   lineupSavedAt: string | null;
   persistedAssignmentCount?: number | null;
   requiredAssignmentCount?: number | null;
-  failureStage?: "roster_read" | "lineup_read" | "integrity" | null;
+  failureStage?:
+    "roster_read" | "lineup_read" | "full_gate_read" | "integrity" | null;
 }>;
 
 type RosterReadRepository = Readonly<{
@@ -39,6 +40,16 @@ type LineupReadRepository = Readonly<{
       rosterVersionId: string;
       maps: readonly Readonly<{ entries: readonly unknown[] }>[];
     }>;
+    createdAt: string;
+  }> | null>;
+  loadFullGatePlan: (
+    ownerId: string,
+    lineupVersionId: string,
+  ) => Promise<Readonly<{
+    lineupVersionId: string;
+    rosterVersionId: string;
+    planId: string;
+    assignments: readonly unknown[];
     createdAt: string;
   }> | null>;
 }>;
@@ -109,8 +120,7 @@ export async function loadProLeaguePlanPersistenceState(
     generationId,
     rosterVersionId: roster.rosterVersionId,
     lineupVersionId: lineup.lineupVersionId,
-    persistedAssignmentCount: lineup.maps.flatMap(({ entries }) => entries)
-      .length,
+    persistedAssignmentCount: 0,
     requiredAssignmentCount: ownerPlan.requiredCoreEntries,
   };
   if (input.rosterRepository === null || input.lineupRepository === null) {
@@ -146,20 +156,43 @@ export async function loadProLeaguePlanPersistenceState(
   ) {
     return failed(identity, "integrity");
   }
-  if (identity.persistedAssignmentCount !== identity.requiredAssignmentCount) {
+  let storedFullGate: Awaited<
+    ReturnType<LineupReadRepository["loadFullGatePlan"]>
+  >;
+  try {
+    storedFullGate = await input.lineupRepository.loadFullGatePlan(
+      authenticatedOwnerId,
+      lineup.lineupVersionId,
+    );
+  } catch {
+    return failed(identity, "full_gate_read");
+  }
+  if (storedFullGate === null) {
     return {
       status: "lead_only_saved",
       ...identity,
+      persistedAssignmentCount: storedLineup.version.maps.flatMap(
+        ({ entries }) => entries,
+      ).length,
       rosterSavedAt: storedRoster.createdAt,
       lineupSavedAt: storedLineup.createdAt,
       failureStage: null,
     };
   }
+  if (
+    storedFullGate.lineupVersionId !== lineup.lineupVersionId ||
+    storedFullGate.rosterVersionId !== roster.rosterVersionId ||
+    storedFullGate.planId !== ownerPlan.planId ||
+    storedFullGate.assignments.length !== ownerPlan.requiredCoreEntries
+  ) {
+    return failed(identity, "integrity");
+  }
   return {
     status: "saved",
     ...identity,
+    persistedAssignmentCount: storedFullGate.assignments.length,
     rosterSavedAt: storedRoster.createdAt,
-    lineupSavedAt: storedLineup.createdAt,
+    lineupSavedAt: storedFullGate.createdAt,
     failureStage: null,
   };
 }
