@@ -12,7 +12,11 @@ import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
-import { loadHostedProLeaguePlanPersistenceState } from "@/lib/hosted-pro-league-page-runtime";
+import {
+  createHostedProLeagueLineupWriteRepository,
+  createHostedProLeagueRosterWriteRepository,
+  loadHostedProLeaguePlanPersistenceState,
+} from "@/lib/hosted-pro-league-page-runtime";
 
 const connected =
   process.env.PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION === "1";
@@ -232,24 +236,67 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       const persistOwnerConfirmedPlan =
         requiredEnvironment("PRO_LEAGUE_OWNER_CONFIRMED_PERSISTENCE") ===
         "true";
-      const rosterWriteDisposition: "created" | "existing" | null = null;
-      const lineupWriteDisposition: "created" | "existing" | null = null;
-      const verifiedPlanPersistence = planPersistence;
+      let rosterWriteDisposition: "created" | "existing" | null = null;
+      let lineupWriteDisposition: "created" | "existing" | null = null;
+      let fullGateWriteDisposition: "created" | "existing" | null = null;
+      let verifiedPlanPersistence = planPersistence;
       if (persistOwnerConfirmedPlan) {
         expect(state.ownerPlan!.requiredCoreEntries).toBe(1_021);
         expect(
           state.lineup!.lineup.maps.flatMap(({ entries }) => entries),
         ).toHaveLength(168);
+        const persistenceEnvironment = {
+          ...databaseEnvironment,
+          configuredOwnerId: ownerId,
+        };
+        const savedRoster = await createHostedProLeagueRosterWriteRepository(
+          persistenceEnvironment,
+        ).saveVersion(ownerId, state.roster!.draftRoster!);
+        const lineupRepository = createHostedProLeagueLineupWriteRepository(
+          persistenceEnvironment,
+        );
+        const savedLineup = await lineupRepository.saveLineup(
+          ownerId,
+          state.lineup!.lineup,
+        );
+        const savedFullGate = await lineupRepository.saveFullGatePlan(
+          ownerId,
+          state.lineup!.lineup.lineupVersionId,
+          state.roster!.draftRoster!.rosterVersionId,
+          state.ownerPlan!,
+        );
+        rosterWriteDisposition = savedRoster.disposition;
+        lineupWriteDisposition = savedLineup.disposition;
+        fullGateWriteDisposition = savedFullGate.disposition;
+        expect(savedFullGate.assignmentCount).toBe(1_021);
+        verifiedPlanPersistence = await loadHostedProLeaguePlanPersistenceState(
+          {
+            authenticatedOwnerId: ownerId,
+            environment: persistenceEnvironment,
+            commissioning: state,
+          },
+        );
+        expect(verifiedPlanPersistence).toMatchObject({
+          status: "saved",
+          persistedAssignmentCount: 1_021,
+          requiredAssignmentCount: 1_021,
+        });
       }
-      expect(["not_saved", "lead_only_saved", "read_failed"]).toContain(
-        planPersistence.status,
-      );
-      if (planPersistence.status === "lead_only_saved") {
-        expect(planPersistence.rosterSavedAt).not.toBeNull();
-        expect(planPersistence.lineupSavedAt).not.toBeNull();
+      expect([
+        "not_saved",
+        "lead_only_saved",
+        "read_failed",
+        "saved",
+      ]).toContain(verifiedPlanPersistence.status);
+      if (
+        verifiedPlanPersistence.status === "lead_only_saved" ||
+        verifiedPlanPersistence.status === "saved"
+      ) {
+        expect(verifiedPlanPersistence.rosterSavedAt).not.toBeNull();
+        expect(verifiedPlanPersistence.lineupSavedAt).not.toBeNull();
       } else {
-        expect(planPersistence.rosterSavedAt).toBeNull();
-        expect(planPersistence.lineupSavedAt).toBeNull();
+        expect(verifiedPlanPersistence.rosterSavedAt).toBeNull();
+        expect(verifiedPlanPersistence.lineupSavedAt).toBeNull();
       }
       await expect(
         loadHostedProLeaguePlanPersistenceState({
@@ -366,6 +413,7 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           persistenceExplicitlyArmed: persistOwnerConfirmedPlan,
           rosterWriteDisposition,
           lineupWriteDisposition,
+          fullGateWriteDisposition,
           wrongOwnerPersistenceStatus: "identity_not_connected",
           authenticatedPageRender: true,
           initialRosterConsumesSubstitution: false,
