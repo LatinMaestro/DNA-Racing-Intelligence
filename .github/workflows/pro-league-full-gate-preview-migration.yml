@@ -94,7 +94,9 @@ jobs:
               if (matches.length !== 1 ||
                   matches[0]?.branch_id !== "br-floral-haze-a7bvs9lu" ||
                   matches[0]?.autoscaling_limit_min_cu !== 0.25 ||
-                  !(matches[0]?.suspend_timeout_seconds > 0)) {
+                  matches[0]?.autoscaling_limit_max_cu !== 0.25 ||
+                  matches[0]?.suspend_timeout_seconds !== 0 ||
+                  typeof matches[0]?.suspended_at !== "string") {
                 throw new Error("The bounded private Preview endpoint is not approved.");
               }
               process.stdout.write(matches[0].branch_id);
