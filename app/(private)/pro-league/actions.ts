@@ -60,8 +60,8 @@ export async function confirmProLeaguePlanAction(formData: FormData) {
     ownerPlan === undefined ||
     ownerPlan.roster.length !== 25 ||
     ownerPlan.allSlotsFilled !== true ||
-    ownerPlan.requiredCoreEntries !==
-      lineup.maps.flatMap(({ entries }) => entries).length ||
+    ownerPlan.requiredCoreEntries !== ownerPlan.assignedCoreEntries ||
+    ownerPlan.requiredCoreEntries !== 1_021 ||
     generationId === null ||
     value(formData, "expectedGenerationId") !== generationId ||
     value(formData, "expectedRosterVersionId") !== roster.rosterVersionId ||
@@ -77,6 +77,12 @@ export async function confirmProLeaguePlanAction(formData: FormData) {
     createHostedProLeagueLineupWriteRepository(hostedEnvironment);
   await rosterRepository.saveVersion(authenticatedOwnerId, roster);
   await lineupRepository.saveLineup(authenticatedOwnerId, lineup);
+  await lineupRepository.saveFullGatePlan(
+    authenticatedOwnerId,
+    lineup.lineupVersionId,
+    roster.rosterVersionId,
+    ownerPlan,
+  );
   revalidatePath("/pro-league");
 }
 
