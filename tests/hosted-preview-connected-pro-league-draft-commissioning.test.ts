@@ -12,11 +12,7 @@ import { neonProLeagueBreedingRankingReadRepositoryFromEnvironment } from "@/lib
 import { neonProLeagueEvidenceReadRepositoryFromEnvironment } from "@/lib/neon-pro-league-evidence-generation-repository";
 import { createNeonProLeagueSubstitutionLedgerReadRepository } from "@/lib/neon-pro-league-substitution-ledger-read-repository";
 import { loadProLeagueDraftCommissioningState } from "@/lib/pro-league-draft-commissioning-service";
-import {
-  createHostedProLeagueLineupWriteRepository,
-  createHostedProLeagueRosterWriteRepository,
-  loadHostedProLeaguePlanPersistenceState,
-} from "@/lib/hosted-pro-league-page-runtime";
+import { loadHostedProLeaguePlanPersistenceState } from "@/lib/hosted-pro-league-page-runtime";
 
 const connected =
   process.env.PRO_LEAGUE_DRAFT_COMMISSIONING_VERIFICATION === "1";
@@ -236,43 +232,19 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
       const persistOwnerConfirmedPlan =
         requiredEnvironment("PRO_LEAGUE_OWNER_CONFIRMED_PERSISTENCE") ===
         "true";
-      let rosterWriteDisposition: "created" | "existing" | null = null;
-      let lineupWriteDisposition: "created" | "existing" | null = null;
-      let verifiedPlanPersistence = planPersistence;
+      const rosterWriteDisposition: "created" | "existing" | null = null;
+      const lineupWriteDisposition: "created" | "existing" | null = null;
+      const verifiedPlanPersistence = planPersistence;
       if (persistOwnerConfirmedPlan) {
-        expect(["not_saved", "saved"]).toContain(planPersistence.status);
-        const hostedEnvironment = {
-          ...databaseEnvironment,
-          configuredOwnerId: ownerId,
-        };
-        const rosterWrite = await createHostedProLeagueRosterWriteRepository(
-          hostedEnvironment,
-        ).saveVersion(ownerId, state.roster!.draftRoster!);
-        rosterWriteDisposition = rosterWrite.disposition;
-        const lineupWrite = await createHostedProLeagueLineupWriteRepository(
-          hostedEnvironment,
-        ).saveLineup(ownerId, state.lineup!.lineup);
-        lineupWriteDisposition = lineupWrite.disposition;
-        verifiedPlanPersistence = await loadHostedProLeaguePlanPersistenceState(
-          {
-            authenticatedOwnerId: ownerId,
-            environment: hostedEnvironment,
-            commissioning: state,
-          },
-        );
-        expect(verifiedPlanPersistence).toMatchObject({
-          status: "saved",
-          generationId: state.evidence!.generationId,
-          rosterVersionId: state.roster!.draftRoster!.rosterVersionId,
-          lineupVersionId: state.lineup!.lineup.lineupVersionId,
-        });
-        expect(verifiedPlanPersistence.rosterSavedAt).not.toBeNull();
-        expect(verifiedPlanPersistence.lineupSavedAt).not.toBeNull();
+        expect(state.ownerPlan!.requiredCoreEntries).toBe(1_021);
+        expect(
+          state.lineup!.lineup.maps.flatMap(({ entries }) => entries),
+        ).toHaveLength(168);
       }
-      expect(["not_saved", "saved", "read_failed"]).toContain(
+      expect(["not_saved", "lead_only_saved", "read_failed"]).toContain(
         planPersistence.status,
       );
-      if (planPersistence.status === "saved") {
+      if (planPersistence.status === "lead_only_saved") {
         expect(planPersistence.rosterSavedAt).not.toBeNull();
         expect(planPersistence.lineupSavedAt).not.toBeNull();
       } else {
@@ -321,11 +293,17 @@ describeConnected("hosted Preview Pro League draft commissioning", () => {
           "Immutable roster and full-gate maps persisted",
         );
         expect(markup).toContain("Nothing was submitted to DNA Esports");
+      } else if (verifiedPlanPersistence.status === "lead_only_saved") {
+        expect(markup).toContain("168 lead-Core race lines are saved");
+        expect(markup).toContain(
+          "full-gate plan requires 1021 Core assignments",
+        );
+        expect(markup).not.toContain("Persist roster and maps");
       } else if (verifiedPlanPersistence.status === "not_saved") {
         expect(markup).toContain(
-          "ready for explicit owner persistence confirmation",
+          "Full-gate persistence must be completed before owner confirmation is enabled",
         );
-        expect(markup).toContain("Persist roster and maps");
+        expect(markup).not.toContain("Persist roster and maps");
       } else {
         expect(markup).toContain(
           "The saved roster state could not be verified. No replacement roster is shown.",
