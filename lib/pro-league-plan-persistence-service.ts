@@ -6,6 +6,7 @@ export type ProLeaguePlanPersistenceState = Readonly<{
     | "persistence_not_configured"
     | "plan_unavailable"
     | "not_saved"
+    | "lead_only_saved"
     | "saved"
     | "read_failed";
   generationId: string | null;
@@ -13,6 +14,8 @@ export type ProLeaguePlanPersistenceState = Readonly<{
   lineupVersionId: string | null;
   rosterSavedAt: string | null;
   lineupSavedAt: string | null;
+  persistedAssignmentCount?: number | null;
+  requiredAssignmentCount?: number | null;
   failureStage?: "roster_read" | "lineup_read" | "integrity" | null;
 }>;
 
@@ -49,6 +52,8 @@ const empty = (
   lineupVersionId: null,
   rosterSavedAt: null,
   lineupSavedAt: null,
+  persistedAssignmentCount: null,
+  requiredAssignmentCount: null,
   failureStage: null,
 });
 
@@ -104,6 +109,9 @@ export async function loadProLeaguePlanPersistenceState(
     generationId,
     rosterVersionId: roster.rosterVersionId,
     lineupVersionId: lineup.lineupVersionId,
+    persistedAssignmentCount: lineup.maps.flatMap(({ entries }) => entries)
+      .length,
+    requiredAssignmentCount: ownerPlan.requiredCoreEntries,
   };
   if (input.rosterRepository === null || input.lineupRepository === null) {
     return { ...empty("persistence_not_configured"), ...identity };
@@ -137,6 +145,15 @@ export async function loadProLeaguePlanPersistenceState(
     storedLineup.version.maps.flatMap(({ entries }) => entries).length !== 168
   ) {
     return failed(identity, "integrity");
+  }
+  if (identity.persistedAssignmentCount !== identity.requiredAssignmentCount) {
+    return {
+      status: "lead_only_saved",
+      ...identity,
+      rosterSavedAt: storedRoster.createdAt,
+      lineupSavedAt: storedLineup.createdAt,
+      failureStage: null,
+    };
   }
   return {
     status: "saved",
