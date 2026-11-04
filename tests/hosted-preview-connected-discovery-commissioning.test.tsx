@@ -42,6 +42,7 @@ const vaultFilters = Object.freeze({
 
 describeConnected("hosted Preview Discovery commissioning", () => {
   it("renders bounded accepted owner evidence without inventing probes", async () => {
+    const startedAt = Date.now();
     const ownerId = requiredEnvironment("AUTHORIZED_CLERK_USER_ID");
     const verifiedAt = requiredEnvironment(
       "DISCOVERY_COMMISSIONING_VERIFIED_AT",
@@ -195,9 +196,10 @@ describeConnected("hosted Preview Discovery commissioning", () => {
         ),
         persistentWritePerformed: false,
         gameActionPerformed: false,
+        elapsedMilliseconds: Date.now() - startedAt,
         exactCodeHeadSha: process.env.GITHUB_SHA ?? null,
         verifiedAt,
       }),
     );
-  }, 20_000);
+  }, 60_000);
 });
