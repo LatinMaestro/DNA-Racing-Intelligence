@@ -21,26 +21,26 @@ describe("Tournament Horse screening Preview migration workflow", () => {
       expect(workflow).toContain("ep-misty-paper-a796pgn0");
       expect(workflow).toContain("database !== \"neondb\"");
       expect(workflow).toContain(
-      "0143_tournament_horse_screening_snapshot.up.sql",
-    );
+        "0143_tournament_horse_screening_snapshot.up.sql",
+      );
       expect(workflow).toContain(
-      "0143_tournament_horse_screening_snapshot.smoke.sql",
-    );
+        "0143_tournament_horse_screening_snapshot.smoke.sql",
+      );
       expect(workflow).toContain(
-      "0143_tournament_horse_screening_snapshot.down.sql",
-    );
+        "0143_tournament_horse_screening_snapshot.down.sql",
+      );
       expect(workflow).toContain(
-      "0143_tournament_horse_screening_snapshot.removal.sql",
-    );
+        "0143_tournament_horse_screening_snapshot.removal.sql",
+      );
       expect(workflow).toContain(
-      "dna.tournament_horse_screening_snapshot_active",
-    );
+        "dna.tournament_horse_screening_snapshot_active",
+      );
       expect(workflow).toContain(
-      "dna.read_active_tournament_horse_screening_snapshot(uuid)",
-    );
+        "dna.read_active_tournament_horse_screening_snapshot(uuid)",
+      );
       expect(workflow).toContain(
-      "dna.publish_tournament_horse_screening_snapshot(uuid,text,text,text,timestamptz)",
-    );
+        "dna.publish_tournament_horse_screening_snapshot(uuid,text,text,text,timestamptz)",
+      );
       expect(workflow).toContain("DNA_MIGRATION_DATABASE_URL=");
       expect(workflow).not.toMatch(/production/iu);
       expect(workflow).not.toContain(
