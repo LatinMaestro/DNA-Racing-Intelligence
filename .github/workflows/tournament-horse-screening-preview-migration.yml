@@ -143,6 +143,7 @@ jobs:
           psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
             database/migrations/0143_tournament_horse_screening_snapshot.up.sql
           if ! psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 \
+            --set skip_runtime_role=1 \
             --file \
             database/migrations/0143_tournament_horse_screening_snapshot.smoke.sql; then
             psql "$DNA_MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 --file \
