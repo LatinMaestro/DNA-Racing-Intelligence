@@ -280,6 +280,15 @@ describe("DNA owner dispatch relay workflow", () => {
     expect(workflow).toContain(
       "Open Race Preview migration authority is invalid.",
     );
+    expect(workflow).toContain(
+      "tournament-horse-screening-preview-migration.yml",
+    );
+    expect(workflow).toContain(
+      '"tournament-horse-screening-migration"',
+    );
+    expect(workflow).toContain(
+      "Tournament Horse screening migration authority is invalid.",
+    );
     expect(workflow).toContain("lifecycle-ranking-preview-migration.yml");
     expect(workflow).toContain('"lifecycle-ranking-migration"');
     expect(workflow).toContain(
