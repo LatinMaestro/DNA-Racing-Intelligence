@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   authenticatedClerkOwnerId: vi.fn(),
+  pathname: "/vault",
   catalogueRepository: { status: "ready" as const },
   historyRepository: { status: "ready" as const },
   performanceRepository: { status: "ready" as const },
@@ -11,6 +12,10 @@ const mocks = vi.hoisted(() => ({
   loadSearchCore: vi.fn(),
 }));
 
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  usePathname: () => mocks.pathname,
+}));
 vi.mock("@/lib/clerk-owner-session", () => ({
   authenticatedClerkOwnerId: mocks.authenticatedClerkOwnerId,
 }));
@@ -46,6 +51,8 @@ vi.mock("@/lib/search-core-service", () => ({
 
 import SearchCorePage from "@/app/(private)/search-core/page";
 import VaultPage from "@/app/(private)/vault/page";
+import PrivateLayout from "@/app/(private)/layout";
+import { resolveProxyOwnerAccess } from "../proxy";
 
 const ownerId = "owner-preview";
 const core = {
@@ -112,6 +119,30 @@ describe("private owner page route replay", () => {
     mocks.authenticatedClerkOwnerId.mockResolvedValue(ownerId);
   });
 
+  it("fails closed before rendering the private shell unless Clerk identifies the exact owner", () => {
+    expect(
+      resolveProxyOwnerAccess({
+        isAuthenticated: false,
+        userId: null,
+        configuredOwnerId: ownerId,
+      }),
+    ).toBe("sign_in_required");
+    expect(
+      resolveProxyOwnerAccess({
+        isAuthenticated: true,
+        userId: "wrong-owner",
+        configuredOwnerId: ownerId,
+      }),
+    ).toBe("not_found");
+    expect(
+      resolveProxyOwnerAccess({
+        isAuthenticated: true,
+        userId: ownerId,
+        configuredOwnerId: ownerId,
+      }),
+    ).toBe("allowed");
+  });
+
   it("executes the authenticated Vault route without a duplicate history read", async () => {
     const catalogue = {
       connectionStatus: "connected" as const,
@@ -133,11 +164,11 @@ describe("private owner page route replay", () => {
       },
     };
     mocks.loadCatalogue.mockResolvedValue(catalogue);
-    const html = renderToStaticMarkup(
-      await VaultPage({
-        searchParams: Promise.resolve({ q: "10457", coreId: "10457" }),
-      }),
-    );
+    mocks.pathname = "/vault";
+    const page = await VaultPage({
+      searchParams: Promise.resolve({ q: "10457", coreId: "10457" }),
+    });
+    const html = renderToStaticMarkup(<PrivateLayout>{page}</PrivateLayout>);
 
     expect(mocks.authenticatedClerkOwnerId).toHaveBeenCalledOnce();
     expect(mocks.loadCatalogue).toHaveBeenCalledWith(
@@ -151,6 +182,8 @@ describe("private owner page route replay", () => {
     expect(mocks.loadSelectedHistory).not.toHaveBeenCalled();
     expect(html).toContain("Accepted owner API snapshot");
     expect(html).toContain("214 current owner Cores");
+    expect(html).toContain('href="#main-content"');
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/vault"/u);
     expect(html).toContain("View core");
     expect(html).toContain(
       'href="/search-core?q=10457&amp;coreId=10457#selected-core"',
@@ -175,16 +208,16 @@ describe("private owner page route replay", () => {
       archiveHistoryRowCount: 0,
     });
 
-    const html = renderToStaticMarkup(
-      await SearchCorePage({
-        searchParams: Promise.resolve({
-          q: "10457",
-          coreId: "10457",
-          mode: "bike",
-          distance: "1000",
-        }),
+    mocks.pathname = "/search-core";
+    const page = await SearchCorePage({
+      searchParams: Promise.resolve({
+        q: "10457",
+        coreId: "10457",
+        mode: "bike",
+        distance: "1000",
       }),
-    );
+    });
+    const html = renderToStaticMarkup(<PrivateLayout>{page}</PrivateLayout>);
 
     expect(mocks.authenticatedClerkOwnerId).toHaveBeenCalledOnce();
     expect(mocks.loadSearchCore).toHaveBeenCalledWith(
@@ -203,6 +236,7 @@ describe("private owner page route replay", () => {
     expect(html).toContain("1,000 m");
     expect(html).toContain("60.123 s");
     expect(html).toContain("Unavailable: unsupported format");
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/search-core"/u);
     expect(html).not.toContain("Accepted analytical cell");
   });
 });
