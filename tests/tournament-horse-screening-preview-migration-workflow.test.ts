@@ -24,6 +24,7 @@ describe("Tournament Horse screening Preview migration workflow", () => {
     expect(workflow).toContain(
       "0143_tournament_horse_screening_snapshot.smoke.sql",
     );
+    expect(workflow).toContain("--set skip_runtime_role=1");
     expect(workflow).toContain(
       "0143_tournament_horse_screening_snapshot.down.sql",
     );
