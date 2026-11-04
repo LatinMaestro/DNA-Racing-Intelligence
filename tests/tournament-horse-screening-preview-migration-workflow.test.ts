@@ -14,7 +14,9 @@ describe("Tournament Horse screening Preview migration workflow", () => {
       expect(workflow).toContain("workflow_dispatch:");
       expect(workflow).toContain("exact_main_sha:");
       expect(workflow).toContain("apply_private_preview_migration:");
-      expect(workflow).toContain('[[ "$EXPECTED_MAIN_SHA" == "$GITHUB_SHA" ]]');
+      expect(workflow).toContain(
+        '[[ "$EXPECTED_MAIN_SHA" == "$GITHUB_SHA" ]]',
+      );
       expect(workflow).toContain("environment: preview");
       expect(workflow).toContain("fancy-bar-26534950");
       expect(workflow).toContain("br-floral-haze-a7bvs9lu");
