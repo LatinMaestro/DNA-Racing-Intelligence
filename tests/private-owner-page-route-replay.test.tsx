@@ -239,4 +239,73 @@ describe("private owner page route replay", () => {
     expect(html).toMatch(/aria-current="page"[^>]*href="\/search-core"/u);
     expect(html).not.toContain("Accepted analytical cell");
   });
+
+  it("fails closed on a catalogue read error and recovers without stale Core evidence", async () => {
+    mocks.loadSearchCore
+      .mockResolvedValueOnce({
+        connectionStatus: "read_failed" as const,
+        query: "10457",
+        results: [],
+        selectedCore: null,
+        performanceStatus: "not_connected" as const,
+        performanceProfiles: [],
+        performanceLastImportedAt: null,
+        acceptedHistoryStatus: "not_connected" as const,
+        acceptedHistoryGeneration: null,
+        acceptedHistoryRows: [],
+        archiveHistoryStatus: "not_connected" as const,
+        archiveHistoryVersionCount: 0,
+        archiveHistoryPartitionCount: 0,
+        archiveHistoryRowCount: 0,
+      })
+      .mockResolvedValueOnce({
+        connectionStatus: "connected" as const,
+        query: "10457",
+        results: [core],
+        selectedCore: core,
+        performanceStatus: "not_connected" as const,
+        performanceProfiles: [],
+        performanceLastImportedAt: null,
+        performancePublication: null,
+        ...acceptedHistory,
+        archiveHistoryStatus: "not_connected" as const,
+        archiveHistoryVersionCount: 0,
+        archiveHistoryPartitionCount: 0,
+        archiveHistoryRowCount: 0,
+      });
+
+    mocks.pathname = "/search-core";
+    const searchParams = Promise.resolve({
+      q: "10457",
+      coreId: "10457",
+      mode: "bike",
+      distance: "1000",
+    });
+    const unavailablePage = await SearchCorePage({ searchParams });
+    const unavailableHtml = renderToStaticMarkup(
+      <PrivateLayout>{unavailablePage}</PrivateLayout>,
+    );
+
+    expect(unavailableHtml).toContain("Core catalogue temporarily unavailable");
+    expect(unavailableHtml).toContain('value="10457"');
+    expect(unavailableHtml).not.toContain("Core 10457");
+    expect(unavailableHtml).not.toContain("Accepted race history");
+    expect(unavailableHtml).not.toContain("Accepted analytical cell");
+
+    const recoveredPage = await SearchCorePage({ searchParams });
+    const recoveredHtml = renderToStaticMarkup(
+      <PrivateLayout>{recoveredPage}</PrivateLayout>,
+    );
+
+    expect(mocks.loadSearchCore).toHaveBeenCalledTimes(2);
+    expect(recoveredHtml).not.toContain(
+      "Core catalogue temporarily unavailable",
+    );
+    expect(recoveredHtml).toContain("Core 10457");
+    expect(recoveredHtml).toContain("Bike");
+    expect(recoveredHtml).toContain("1,000 m");
+    expect(recoveredHtml).toContain("60.123 s");
+    expect(recoveredHtml).toContain("Unavailable: unsupported format");
+    expect(recoveredHtml).not.toContain("Accepted analytical cell");
+  });
 });
