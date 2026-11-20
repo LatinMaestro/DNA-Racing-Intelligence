@@ -269,7 +269,6 @@ export function screenPaidTournamentQualificationOpportunities(
   return { opportunities, excluded, gameEntryAllowed: false };
 }
 
-
 export type PaidTournamentOpponentEvaluation = Readonly<{
   raceId: string;
   selectedCoreId: string;
@@ -287,10 +286,12 @@ export type PaidTournamentOpponentEvaluation = Readonly<{
  * screened paid-tournament opportunity. No new score or probability is added.
  * The result remains provisional and cannot queue or execute a game action.
  */
-export function evaluatePaidTournamentOpponentField(input: Readonly<{
-  opportunity: PaidTournamentOpportunity;
-  ranking: OpenRacePreEntryRankingInput;
-}>): PaidTournamentOpponentEvaluation {
+export function evaluatePaidTournamentOpponentField(
+  input: Readonly<{
+    opportunity: PaidTournamentOpportunity;
+    ranking: OpenRacePreEntryRankingInput;
+  }>,
+): PaidTournamentOpponentEvaluation {
   const { opportunity, ranking } = input;
   if (
     ranking.mode !== opportunity.mode ||
@@ -309,14 +310,10 @@ export function evaluatePaidTournamentOpponentField(input: Readonly<{
     );
   }
   const expectedOpponents = [...opportunity.enteredOpponentCoreIds].sort();
-  const rankedOpponents = ranking.opponents
-    .map(({ coreId }) => coreId)
-    .sort();
+  const rankedOpponents = ranking.opponents.map(({ coreId }) => coreId).sort();
   if (
     expectedOpponents.length !== rankedOpponents.length ||
-    expectedOpponents.some(
-      (coreId, index) => rankedOpponents[index] !== coreId,
-    )
+    expectedOpponents.some((coreId, index) => rankedOpponents[index] !== coreId)
   ) {
     throw new Error(
       "Paid tournament ranking opponents do not match the screened live field.",
