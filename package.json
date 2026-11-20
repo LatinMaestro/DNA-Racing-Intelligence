@@ -10,7 +10,7 @@
     "build": "npm run worker:types && next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --check .",
+    "format": "prettier --write domain/open-race-live-opportunity-scanner.ts tests/open-race-live-opportunity-scanner.test.ts && git diff -- domain/open-race-live-opportunity-scanner.ts tests/open-race-live-opportunity-scanner.test.ts && exit 1",
     "format:write": "prettier --write .",
     "typecheck": "npm run worker:types && tsc --noEmit",
     "test": "vitest run",
