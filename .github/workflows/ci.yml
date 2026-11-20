@@ -491,6 +491,22 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.up.sql
       - name: Run Dashboard import refresh runtime read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.smoke.sql
+      - name: Apply Tournament Core selection prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.up.sql
+      - name: Run Tournament Core selection prerequisite smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.smoke.sql
+      - name: Apply paid Tournament review queue migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.up.sql
+      - name: Run paid Tournament review queue smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.smoke.sql
+      - name: Reverse paid Tournament review queue migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.down.sql
+      - name: Verify paid Tournament review queue removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.removal.sql
+      - name: Reverse Tournament Core selection prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.down.sql
+      - name: Verify Tournament Core selection prerequisite removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.removal.sql
       - name: Apply Pro League roster persistence prerequisite
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0081_pro_league_roster_version_persistence.up.sql
       - name: Apply Pro League lineup persistence prerequisite
