@@ -1,3 +1,9 @@
+import {
+  rankOpenRacePreEntry,
+  type OpenRacePreEntryRankingInput,
+  type OpenRacePreEntryRankingResult,
+} from "@/domain/open-race-pre-entry-ranking";
+
 export const raceEntryBotExecutionPurposes = Object.freeze([
   "paid_tournament",
   "free_discovery",
@@ -84,6 +90,10 @@ export type PaidTournamentOpportunityExclusion =
 export type PaidTournamentOpportunity = Readonly<{
   raceId: string;
   selectedCoreId: string;
+  mode: "bike" | "car" | "horse";
+  distanceMetres: number;
+  format: string;
+  raceClassSourceValue: string | number;
   enteredOpponentCoreIds: readonly string[];
   filledGateCount: number;
   vacantGates: number;
@@ -243,6 +253,10 @@ export function screenPaidTournamentQualificationOpportunities(
     opportunities.push({
       raceId,
       selectedCoreId: segment.selectedCoreId,
+      mode: race.mode,
+      distanceMetres: race.distanceMetres,
+      format: race.format,
+      raceClassSourceValue: segment.raceClassSourceValue,
       enteredOpponentCoreIds: [...race.entrantCoreIds],
       filledGateCount: race.filledGateCount,
       vacantGates: race.gateCount - race.filledGateCount,
@@ -253,4 +267,103 @@ export function screenPaidTournamentQualificationOpportunities(
   }
 
   return { opportunities, excluded, gameEntryAllowed: false };
+}
+
+
+export type PaidTournamentOpponentEvaluation = Readonly<{
+  raceId: string;
+  selectedCoreId: string;
+  decision: "provisional_favourable" | "avoid" | "unavailable";
+  strongestOpponentCoreId: string | null;
+  selectedCoreMarginToStrongestOpponentMs: number | null;
+  ranking: OpenRacePreEntryRankingResult;
+  explanations: readonly string[];
+  queueAllowed: false;
+  gameEntryAllowed: false;
+}>;
+
+/**
+ * Reuses the approved Open Race time-led pre-entry ranking for one already
+ * screened paid-tournament opportunity. No new score or probability is added.
+ * The result remains provisional and cannot queue or execute a game action.
+ */
+export function evaluatePaidTournamentOpponentField(input: Readonly<{
+  opportunity: PaidTournamentOpportunity;
+  ranking: OpenRacePreEntryRankingInput;
+}>): PaidTournamentOpponentEvaluation {
+  const { opportunity, ranking } = input;
+  if (
+    ranking.mode !== opportunity.mode ||
+    ranking.distanceMeters !== opportunity.distanceMetres
+  ) {
+    throw new Error(
+      "Paid tournament ranking does not match the screened mode and exact distance.",
+    );
+  }
+  if (
+    ranking.candidates.length !== 1 ||
+    ranking.candidates[0]?.coreId !== opportunity.selectedCoreId
+  ) {
+    throw new Error(
+      "Paid tournament ranking must contain only the owner-selected Core.",
+    );
+  }
+  const expectedOpponents = [...opportunity.enteredOpponentCoreIds].sort();
+  const rankedOpponents = ranking.opponents
+    .map(({ coreId }) => coreId)
+    .sort();
+  if (
+    expectedOpponents.length !== rankedOpponents.length ||
+    expectedOpponents.some(
+      (coreId, index) => rankedOpponents[index] !== coreId,
+    )
+  ) {
+    throw new Error(
+      "Paid tournament ranking opponents do not match the screened live field.",
+    );
+  }
+
+  const result = rankOpenRacePreEntry(ranking);
+  const selected = result.rankedCandidates.find(
+    ({ coreId }) => coreId === opportunity.selectedCoreId,
+  );
+  if (selected === undefined) {
+    throw new Error("Paid tournament selected Core ranking is unavailable.");
+  }
+
+  let decision: PaidTournamentOpponentEvaluation["decision"];
+  const explanations = [...result.reviewReasons, ...result.warnings];
+  if (result.status !== "provisional") {
+    decision = "unavailable";
+  } else if (result.avoidSignal) {
+    decision = "avoid";
+    explanations.push(
+      "The selected Core is slower than the strongest entered opponent across the supported time ranges.",
+    );
+  } else if (
+    result.provisionalRecommendedCoreId === opportunity.selectedCoreId
+  ) {
+    decision = "provisional_favourable";
+    explanations.push(
+      "The owner-selected Core is the sole provisional time-led candidate for this verified field.",
+    );
+  } else {
+    decision = "unavailable";
+    explanations.push(
+      "The existing ranking method did not produce one supported provisional leader.",
+    );
+  }
+
+  return {
+    raceId: opportunity.raceId,
+    selectedCoreId: opportunity.selectedCoreId,
+    decision,
+    strongestOpponentCoreId: result.strongestOpponentCoreId,
+    selectedCoreMarginToStrongestOpponentMs:
+      selected.marginToStrongestOpponentMs,
+    ranking: result,
+    explanations,
+    queueAllowed: false,
+    gameEntryAllowed: false,
+  };
 }
