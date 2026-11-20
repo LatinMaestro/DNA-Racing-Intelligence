@@ -181,7 +181,6 @@ describe("shared race-entry bot paid tournament opportunity screen", () => {
   });
 });
 
-
 function timeProfile(
   medianTimeMs: number,
   overrides: Partial<
