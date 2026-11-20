@@ -272,7 +272,7 @@ export function screenPaidTournamentQualificationOpportunities(
 export type PaidTournamentOpponentEvaluation = Readonly<{
   raceId: string;
   selectedCoreId: string;
-  decision: "provisional_favourable" | "avoid" | "unavailable";
+  decision: "provisional_candidate" | "avoid" | "unavailable";
   strongestOpponentCoreId: string | null;
   selectedCoreMarginToStrongestOpponentMs: number | null;
   ranking: OpenRacePreEntryRankingResult;
@@ -340,7 +340,7 @@ export function evaluatePaidTournamentOpponentField(
   } else if (
     result.provisionalRecommendedCoreId === opportunity.selectedCoreId
   ) {
-    decision = "provisional_favourable";
+    decision = "provisional_candidate";
     explanations.push(
       "The owner-selected Core is the sole provisional time-led candidate for this verified field.",
     );
