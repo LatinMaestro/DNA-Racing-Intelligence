@@ -50,19 +50,18 @@ The repository must maintain and test the full read-only surface:
 - Utility: `/test`, `/test_auth`
 - Vault: info, info_bulk, search, cores, cores_full, tier_badge, recent_races
 - Races: active, finished, docs, fills
-- Cores: info, racing_stats, power, listing_price, attached_assets, owner, stamina, splicing_info, each documented bulk counterpart
-- Current live Cores additions confirmed by the owner's 7 October 2026 API Reference recording: `telemetry`, `telemetry_bulk`, `telemetry_benchmark`
+- Cores: info, racing_stats, power, listing_price, attached_assets, owner, stamina, splicing_info, class, each with its documented bulk counterpart
 - Tokens: prices
 - Splice: doc GET/POST, arena, pair_info, pair_validate
 - Market: advertised as coming soon and therefore not a callable dependency
 
-The same recording shows the Cores panel as **19 LIVE**, which is why telemetry is no longer treated as an undocumented curiosity.
+## 20 November 2026 Core contract change
 
-## Telemetry
+The current published reference now lists nine Core endpoint pairs. It adds `class` and `class_bulk`, and it no longer lists `telemetry`, `telemetry_bulk` or `telemetry_benchmark`.
 
-Current API Reference evidence describes per-Core telemetry as per-distance race aggregates with best/median/slowest time, top/floor speed and spread, bucketed by `cb` with paid-race variants. `telemetry_benchmark` compares one Core/distance against a cohort and returns aggregate benchmark statistics when a qualifying cohort exists.
+The owner's 7 October 2026 recording remains evidence that telemetry was once observed, but it is not current published authority. Acquisition and bot evaluation must not depend on telemetry unless a new connected, bounded observation re-establishes its availability and exact response authority. Existing accepted race history remains the authority for exact time, speed, variance, sample and age evidence.
 
-Telemetry is analytical aggregate evidence. It does **not** replace immutable Race/Core outcome facts needed for complete historical reconstruction.
+The published class response provides mode and class-band classification metadata; it does not serve race times and must not be treated as a substitute for accepted historical performance evidence.
 
 ## Historical backfill and live updates
 

@@ -274,6 +274,7 @@ describe("DNA Open Lab v1 client", () => {
       ["coreOwnerBulk", "owner_bulk"],
       ["coreStaminaBulk", "stamina_bulk"],
       ["coreSplicingInfoBulk", "splicing_info_bulk"],
+      ["coreClassBulk", "class_bulk"],
     ] as const;
 
     for (const [method, endpoint] of verbs) {

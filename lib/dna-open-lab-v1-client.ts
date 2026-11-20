@@ -201,6 +201,27 @@ export type DnaCoreSplicingInfo = DnaOpenLabRecord<{
   splice_core: unknown;
 }>;
 
+export type DnaCoreClassBand = DnaOpenLabRecord<{
+  cb: number;
+  races_n: number;
+  pending: number;
+  class: 1 | 2 | 3 | 4;
+  source: "races" | "fall" | "fno";
+  rank: number;
+  pool_n: number;
+  bounds_at: string;
+}>;
+
+export type DnaCoreClass = DnaOpenLabRecord<{
+  hid: number;
+  fno: number;
+  burned: boolean;
+  excluded?: boolean;
+  modes: Readonly<
+    Partial<Record<DnaRaceMode, Readonly<Record<string, DnaCoreClassBand>>>>
+  >;
+}>;
+
 export type DnaTokenPrices = DnaOpenLabRecord<{
   ethusd: number;
   btcusd: number;
@@ -342,6 +363,10 @@ export type DnaOpenLabClient = Readonly<{
   coreSplicingInfoBulk: (
     hids: readonly number[],
   ) => Promise<DnaOpenLabResponse<readonly DnaCoreSplicingInfo[]>>;
+  coreClass: (hid: number) => Promise<DnaOpenLabResponse<DnaCoreClass>>;
+  coreClassBulk: (
+    hids: readonly number[],
+  ) => Promise<DnaOpenLabResponse<readonly DnaCoreClass[]>>;
   tokenPrices: () => Promise<DnaOpenLabResponse<DnaTokenPrices>>;
   spliceDocument: (
     requestId: string,
@@ -716,6 +741,8 @@ export function createDnaOpenLabV1Client(input: {
       coreSingle<DnaCoreSplicingInfo>(hid, "splicing_info"),
     coreSplicingInfoBulk: (hids) =>
       coreBulk<DnaCoreSplicingInfo>(hids, "splicing_info"),
+    coreClass: (hid) => coreSingle<DnaCoreClass>(hid, "class"),
+    coreClassBulk: (hids) => coreBulk<DnaCoreClass>(hids, "class"),
     tokenPrices: () =>
       request<DnaTokenPrices>({
         scope: "tokens",

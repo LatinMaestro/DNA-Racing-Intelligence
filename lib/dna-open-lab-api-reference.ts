@@ -47,10 +47,11 @@ const endpoint = (
 /**
  * Machine-readable API contract authority used by tests and future agents.
  *
- * Source: DNA Open Lab v1 llm.txt plus the owner-supplied 2026-10-07 live
- * API Reference recording. The recording confirms the current Cores surface
- * contains 19 live operations, including telemetry, telemetry_bulk and
- * telemetry_benchmark.
+ * Source: current DNA Open Lab v1 llm.txt. On 2026-11-20 the published Cores
+ * surface changed to nine single + bulk pairs: class/class_bulk was added and
+ * telemetry endpoints were removed from the published contract. Older
+ * owner-recorded telemetry observations remain connected evidence only and
+ * are not represented as current published endpoints here.
  *
  * Keep documented bounds even if a live endpoint happens to accept a larger
  * request. A more permissive observation is not authority to exceed the
@@ -151,6 +152,7 @@ export const DNA_OPEN_LAB_REFERENCE_ENDPOINTS = Object.freeze([
     "owner",
     "stamina",
     "splicing_info",
+    "class",
   ].flatMap((verb) => [
     endpoint({
       id: `cores.${verb}`,
@@ -166,25 +168,6 @@ export const DNA_OPEN_LAB_REFERENCE_ENDPOINTS = Object.freeze([
       maximumBatchSize: DNA_OPEN_LAB_REFERENCE_LIMITS.coreBulk,
     }),
   ]),
-  endpoint({
-    id: "cores.telemetry",
-    scope: "cores",
-    method: "GET",
-    path: "/cores/:hid/telemetry",
-  }),
-  endpoint({
-    id: "cores.telemetry_bulk",
-    scope: "cores",
-    method: "POST",
-    path: "/cores/telemetry_bulk",
-    maximumBatchSize: DNA_OPEN_LAB_REFERENCE_LIMITS.coreBulk,
-  }),
-  endpoint({
-    id: "cores.telemetry_benchmark",
-    scope: "cores",
-    method: "GET",
-    path: "/cores/:hid/telemetry_benchmark",
-  }),
   endpoint({
     id: "tokens.prices.get",
     scope: "tokens",
