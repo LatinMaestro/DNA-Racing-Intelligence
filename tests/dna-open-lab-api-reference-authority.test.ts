@@ -14,7 +14,6 @@ import {
   DNA_OPEN_LAB_V1_BASE_URL,
   DnaOpenLabApiError,
 } from "../lib/dna-open-lab-v1-client";
-import { createDnaOpenLabV1TelemetryClient } from "../lib/dna-open-lab-v1-telemetry-client";
 
 const KEY = `dna_${"a".repeat(43)}`;
 
@@ -39,21 +38,23 @@ describe("DNA Open Lab API reference authority", () => {
     ]);
   });
 
-  it("keeps a unique complete endpoint inventory including the 19-live Core surface", () => {
+  it("keeps a unique endpoint inventory matching the current nine Core pairs", () => {
     const ids = DNA_OPEN_LAB_REFERENCE_ENDPOINTS.map((entry) => entry.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain("races.finished");
     expect(ids).toContain("races.docs");
     expect(ids).toContain("races.fills");
-    expect(ids).toContain("cores.telemetry");
-    expect(ids).toContain("cores.telemetry_bulk");
-    expect(ids).toContain("cores.telemetry_benchmark");
+    expect(ids).toContain("cores.class");
+    expect(ids).toContain("cores.class_bulk");
+    expect(ids).not.toContain("cores.telemetry");
+    expect(ids).not.toContain("cores.telemetry_bulk");
+    expect(ids).not.toContain("cores.telemetry_benchmark");
     expect(ids).toContain("splice.pair_validate");
 
     const coreOperations = DNA_OPEN_LAB_REFERENCE_ENDPOINTS.filter(
       (entry) => entry.scope === "cores",
     );
-    expect(coreOperations).toHaveLength(19);
+    expect(coreOperations).toHaveLength(18);
   });
 
   it("retains the published bulk bounds rather than observed permissive behaviour", async () => {
@@ -73,11 +74,6 @@ describe("DNA Open Lab API reference authority", () => {
         headers: { "Content-Type": "application/json" },
       });
     const client = createDnaOpenLabV1Client({ apiKey: KEY, transport });
-    const telemetry = createDnaOpenLabV1TelemetryClient({
-      apiKey: KEY,
-      transport,
-    });
-
     const invalid = async (request: () => Promise<unknown>) => {
       try {
         await request();
@@ -94,6 +90,5 @@ describe("DNA Open Lab API reference authority", () => {
     await invalid(() => client.raceDocs(Array(21).fill(1)));
     await invalid(() => client.raceFills(Array(21).fill(1)));
     await invalid(() => client.coreInfoBulk(Array(21).fill(1)));
-    await invalid(() => telemetry.coreTelemetryBulk(Array(21).fill(1)));
   });
 });
