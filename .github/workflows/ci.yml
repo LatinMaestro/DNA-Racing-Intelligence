@@ -501,6 +501,14 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.up.sql
       - name: Run paid Tournament review queue smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.smoke.sql
+      - name: Apply paid Tournament execution guards migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0154_paid_tournament_execution_guards.up.sql
+      - name: Run paid Tournament execution guards smoke test
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0154_paid_tournament_execution_guards.smoke.sql
+      - name: Reverse paid Tournament execution guards migration
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0154_paid_tournament_execution_guards.down.sql
+      - name: Verify paid Tournament execution guards removal
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0154_paid_tournament_execution_guards.removal.sql
       - name: Reverse paid Tournament review queue migration
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0153_paid_tournament_review_queue.down.sql
       - name: Verify paid Tournament review queue removal
