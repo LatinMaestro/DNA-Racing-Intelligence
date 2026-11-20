@@ -126,6 +126,18 @@ BEGIN
 
   BEGIN
     PERFORM * FROM dna.enqueue_paid_tournament_review(
+      v_owner, v_queue, 'tournament-smoke', 'segment-smoke', 'config-v1',
+      'snapshot-v1', 'race-001', '10457', 'intent-001',
+      'provisional_candidate', v_field, repeat('d', 64),
+      '2026-11-19T01:00:00Z', '2026-11-19T01:10:00Z', 'consent-v1',
+      '2026-11-19T01:11:00Z', '2026-11-19T01:12:00Z');
+    RAISE EXCEPTION 'altered idempotent paid Tournament review was accepted';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'altered idempotent paid Tournament review was accepted' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM * FROM dna.enqueue_paid_tournament_review(
       v_owner, 'a1530000-0000-4000-8000-000000000101',
       'tournament-smoke', 'segment-smoke', 'config-v1', 'snapshot-v1',
       'race-001', '10457', 'intent-002', 'provisional_candidate',
