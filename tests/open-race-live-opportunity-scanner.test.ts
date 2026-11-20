@@ -141,12 +141,15 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
     );
   });
   it("rejects missing race detail, distance, conflicting opponent list and fill status", () => {
+    const { distanceMetres: omittedDistance, ...documentWithoutDistance } =
+      document;
+    expect(omittedDistance).toBe(1600);
     expect(scan({ documents: [] }).excluded[0]?.reason).toBe(
       "missing_or_incomplete_document",
     );
     expect(
       scan({
-        documents: [row("race-1", { ...document, distanceMetres: undefined })],
+        documents: [row("race-1", documentWithoutDistance)],
       }).excluded[0]?.reason,
     ).toBe("missing_or_incomplete_document");
     expect(
