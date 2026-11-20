@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  scanVerifiedOpenRaceOpportunities,
-} from "@/domain/open-race-live-opportunity-scanner";
+import { scanVerifiedOpenRaceOpportunities } from "@/domain/open-race-live-opportunity-scanner";
 import type {
   CanonicalActiveRaceSnapshot,
   CanonicalRaceDocumentMetadata,
@@ -10,7 +8,7 @@ import type {
 } from "@/lib/dna-open-lab-v1-adapters";
 
 const time = "2026-11-20T10:00:00.000Z";
-const row = <T,>(sourceRaceId: string, canonical: T, observedAt = time) => ({
+const row = <T>(sourceRaceId: string, canonical: T, observedAt = time) => ({
   sourceRaceId,
   observedAt,
   rawEvidenceSha256: "a".repeat(64),
@@ -49,7 +47,9 @@ const document: CanonicalRaceDocumentMetadata = {
   entrantCoreIds: ["10", "11", "12"],
 };
 function scan(
-  overrides: Partial<Parameters<typeof scanVerifiedOpenRaceOpportunities>[0]> = {},
+  overrides: Partial<
+    Parameters<typeof scanVerifiedOpenRaceOpportunities>[0]
+  > = {},
 ) {
   return scanVerifiedOpenRaceOpportunities({
     evaluatedAt: time,
@@ -66,13 +66,13 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
     expect(scan()).toMatchObject({
       opportunities: [
         {
-        raceId: "race-1",
-        distanceMetres: 1600,
-        gateCount: 6,
-        vacantGates: 3,
-        enteredOpponentCoreIds: ["10", "11", "12"],
-        eligibility: "needs_owner_core_restriction_check",
-        rank: "not_evaluated",
+          raceId: "race-1",
+          distanceMetres: 1600,
+          gateCount: 6,
+          vacantGates: 3,
+          enteredOpponentCoreIds: ["10", "11", "12"],
+          eligibility: "needs_owner_core_restriction_check",
+          rank: "not_evaluated",
           gameEntryAllowed: false,
         },
       ],
@@ -136,9 +136,9 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
       filledGateCount: 6,
       entrantCoreIds: ["10", "11", "12", "13", "14", "15"],
     };
-    expect(
-      scan({ fills: [row("race-1", full)] }).excluded[0]?.reason,
-    ).toBe("field_incomplete_or_full");
+    expect(scan({ fills: [row("race-1", full)] }).excluded[0]?.reason).toBe(
+      "field_incomplete_or_full",
+    );
   });
   it("rejects missing race detail, distance, conflicting opponent list and fill status", () => {
     expect(scan({ documents: [] }).excluded[0]?.reason).toBe(
@@ -146,9 +146,7 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
     );
     expect(
       scan({
-        documents: [
-          row("race-1", { ...document, distanceMetres: undefined }),
-        ],
+        documents: [row("race-1", { ...document, distanceMetres: undefined })],
       }).excluded[0]?.reason,
     ).toBe("missing_or_incomplete_document");
     expect(
