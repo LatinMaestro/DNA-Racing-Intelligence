@@ -491,6 +491,8 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.up.sql
       - name: Run Dashboard import refresh runtime read smoke test
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0149_dashboard_import_refresh_runtime_read.smoke.sql
+      - name: Apply Tournament configuration prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0021_tournament_configuration.up.sql
       - name: Apply Tournament Core selection prerequisite
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.up.sql
       - name: Run Tournament Core selection prerequisite smoke test
@@ -507,6 +509,15 @@ jobs:
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.down.sql
       - name: Verify Tournament Core selection prerequisite removal
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0151_tournament_core_selection.removal.sql
+      - name: Reverse Tournament configuration prerequisite
+        run: psql --set ON_ERROR_STOP=1 --file database/migrations/0021_tournament_configuration.down.sql
+      - name: Verify Tournament configuration prerequisite removal
+        run: >-
+          psql --set ON_ERROR_STOP=1 --command
+          "DO \$\$ BEGIN IF to_regclass('dna.tournament_configuration') IS NOT NULL
+          OR to_regprocedure('dna.list_tournament_configurations(uuid)') IS NOT NULL
+          THEN RAISE EXCEPTION 'Tournament configuration removal failed';
+          END IF; END \$\$;"
       - name: Apply Pro League roster persistence prerequisite
         run: psql --set ON_ERROR_STOP=1 --file database/migrations/0081_pro_league_roster_version_persistence.up.sql
       - name: Apply Pro League lineup persistence prerequisite
