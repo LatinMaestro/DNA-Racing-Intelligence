@@ -3,7 +3,9 @@ import type {
   CanonicalRaceDocumentMetadata,
   CanonicalRaceFillSnapshot,
 } from "@/lib/dna-open-lab-v1-adapters";
-import type { DnaCurrentRaceMaterializationRow } from "@/lib/dna-open-lab-current-race-materialization";
+import type {
+  DnaCurrentRaceMaterializationRow,
+} from "@/lib/dna-open-lab-current-race-materialization";
 
 type Observed<T> = DnaCurrentRaceMaterializationRow<T>;
 
@@ -65,7 +67,9 @@ function indexed<T extends { sourceRaceId: string }>(
   const result = new Map<string, T>();
   for (const row of rows) {
     if (!row.sourceRaceId || result.has(row.sourceRaceId)) {
-      throw new Error("Open Race scanner received duplicate or invalid race identity.");
+      throw new Error(
+        "Open Race scanner received duplicate or invalid race identity.",
+      );
     }
     result.set(row.sourceRaceId, row);
   }
@@ -79,14 +83,16 @@ function indexed<T extends { sourceRaceId: string }>(
  * submit, or spend; eligibility and the current field must be checked again
  * immediately before any future owner-authorised local execution.
  */
-export function scanVerifiedOpenRaceOpportunities(input: Readonly<{
+export function scanVerifiedOpenRaceOpportunities(
+  input: Readonly<{
   evaluatedAt: string;
   maximumAgeMinutes: number;
   activeRaces: readonly Observed<CanonicalActiveRaceSnapshot>[];
   fills: readonly Observed<CanonicalRaceFillSnapshot>[];
   documents: readonly Observed<CanonicalRaceDocumentMetadata>[];
   ownedCoreIds: readonly string[];
-}>): OpenRaceScanResult {
+  }>,
+): OpenRaceScanResult {
   const evaluatedAt = validTime(input.evaluatedAt);
   if (
     evaluatedAt === null ||
@@ -135,7 +141,8 @@ export function scanVerifiedOpenRaceOpportunities(input: Readonly<{
       fill.canonical.filledGateCount < 0 ||
       fill.canonical.filledGateCount > fill.canonical.gateCount ||
       fill.canonical.entrantCoreIds.length !== fill.canonical.filledGateCount ||
-      new Set(fill.canonical.entrantCoreIds).size !== fill.canonical.entrantCoreIds.length
+      new Set(fill.canonical.entrantCoreIds).size !==
+        fill.canonical.entrantCoreIds.length
     ) {
       skip("missing_or_conflicting_fill");
       continue;
@@ -160,7 +167,9 @@ export function scanVerifiedOpenRaceOpportunities(input: Readonly<{
       !currentEvidence(doc.observedAt, evaluatedAt, maxAge) ||
       doc.canonical.sourceRaceId !== raceId ||
       doc.canonical.sourceType !== "race_document" ||
-      !["open", "filling"].includes((doc.canonical.status ?? "").toLowerCase()) ||
+      !["open", "filling"].includes(
+        (doc.canonical.status ?? "").toLowerCase(),
+      ) ||
       doc.canonical.mode !== race.mode ||
       doc.canonical.gateCount !== gateCount ||
       doc.canonical.filledGateCount !== filled ||
