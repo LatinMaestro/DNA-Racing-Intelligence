@@ -252,7 +252,7 @@ describe("shared paid tournament opponent evaluation", () => {
     ).toMatchObject({
       raceId: race.raceId,
       selectedCoreId: "10457",
-      decision: "provisional_favourable",
+      decision: "provisional_candidate",
       strongestOpponentCoreId: "9001",
       selectedCoreMarginToStrongestOpponentMs: 100,
       queueAllowed: false,
