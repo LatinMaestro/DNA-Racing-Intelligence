@@ -104,7 +104,7 @@ export function scanVerifiedOpenRaceOpportunities(
   const owned = new Set(input.ownedCoreIds);
   if (
     owned.size !== input.ownedCoreIds.length ||
-    input.ownedCoreIds.some((id) => !/^\\d+$/u.test(id) || id === "0")
+    input.ownedCoreIds.some((id) => !/^\d+$/u.test(id) || id === "0")
   ) {
     throw new Error("Open Race scanner owned-Core identity is invalid.");
   }
