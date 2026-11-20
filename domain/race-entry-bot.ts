@@ -42,7 +42,6 @@ export const raceEntryBotDevelopmentContract = Object.freeze({
 export type RaceEntryBotDevelopmentContract =
   typeof raceEntryBotDevelopmentContract;
 
-
 export type PaidTournamentSegmentSelection = Readonly<{
   tournamentId: string;
   segmentId: string;
