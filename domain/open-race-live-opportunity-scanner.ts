@@ -3,9 +3,7 @@ import type {
   CanonicalRaceDocumentMetadata,
   CanonicalRaceFillSnapshot,
 } from "@/lib/dna-open-lab-v1-adapters";
-import type {
-  DnaCurrentRaceMaterializationRow,
-} from "@/lib/dna-open-lab-current-race-materialization";
+import type { DnaCurrentRaceMaterializationRow } from "@/lib/dna-open-lab-current-race-materialization";
 
 type Observed<T> = DnaCurrentRaceMaterializationRow<T>;
 
@@ -85,12 +83,12 @@ function indexed<T extends { sourceRaceId: string }>(
  */
 export function scanVerifiedOpenRaceOpportunities(
   input: Readonly<{
-  evaluatedAt: string;
-  maximumAgeMinutes: number;
-  activeRaces: readonly Observed<CanonicalActiveRaceSnapshot>[];
-  fills: readonly Observed<CanonicalRaceFillSnapshot>[];
-  documents: readonly Observed<CanonicalRaceDocumentMetadata>[];
-  ownedCoreIds: readonly string[];
+    evaluatedAt: string;
+    maximumAgeMinutes: number;
+    activeRaces: readonly Observed<CanonicalActiveRaceSnapshot>[];
+    fills: readonly Observed<CanonicalRaceFillSnapshot>[];
+    documents: readonly Observed<CanonicalRaceDocumentMetadata>[];
+    ownedCoreIds: readonly string[];
   }>,
 ): OpenRaceScanResult {
   const evaluatedAt = validTime(input.evaluatedAt);
