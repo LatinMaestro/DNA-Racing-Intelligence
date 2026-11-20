@@ -110,7 +110,7 @@ BEGIN
     p_owner_id, p_tournament_id, p_bracket_id, p_configuration_version,
     p_candidate_snapshot_version, p_core_ids, p_updated_at
   )
-  ON CONFLICT (owner_id, tournament_id, bracket_id) DO UPDATE SET
+  ON CONFLICT ON CONSTRAINT tournament_core_selection_pkey DO UPDATE SET
     configuration_version = EXCLUDED.configuration_version,
     candidate_snapshot_version = EXCLUDED.candidate_snapshot_version,
     core_ids = EXCLUDED.core_ids,
