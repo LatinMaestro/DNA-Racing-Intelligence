@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import type { CorePerformanceProfile } from "@/domain/core-performance";
 import { evaluateOpenRaceApiAdvisories } from "@/domain/open-race-api-advisory";
-import type { OpenRaceEligibilityCore } from "@/domain/open-race-eligibility";
 import type {
   DnaActiveRace,
   DnaOpenLabResponse,
@@ -113,29 +112,6 @@ function performance(
   };
 }
 
-function timeProfile(medianTimeMs: number) {
-  return {
-    optimisticTimeMs: medianTimeMs - 1_000,
-    medianTimeMs,
-    conservativeTimeMs: medianTimeMs + 1_000,
-    sampleCount: 12,
-    sampleStatus: "minimally_analytical" as const,
-  };
-}
-
-const eligibilityCores: readonly OpenRaceEligibilityCore[] = vault.map(
-  ({ hid }) => ({
-    coreId: String(hid),
-    activeOwnership: "confirmed",
-    availability: hid === 10457 ? "available" : "unavailable",
-    coreClass: "Genesis",
-    element: "Metal",
-    fNumber: 1,
-    maidenState: "not_eligible",
-    attributeEvidence: "complete",
-  }),
-);
-
 function evaluate(raceDocs: readonly DnaRaceDocument[] = [document]) {
   return evaluateOpenRaceApiAdvisories({
     read: {
@@ -159,56 +135,32 @@ function evaluate(raceDocs: readonly DnaRaceDocument[] = [document]) {
       performance("9002", 63_000),
       performance("9003", 64_000),
     ],
-    fields: [
-      {
-        raceId: "race-open",
-        eligibility: {
-          evaluationId: "eligibility-race-open",
-          evaluatedAt,
-          vaultDataCurrentThrough: dataCurrentThrough,
-          freshness: "current",
-          rules: {
-            ruleSetId: "race-open-rules",
-            evidenceStatus: "confirmed",
-            allowedClasses: ["Genesis"],
-            allowedElements: ["Metal"],
-            minimumFNumber: 1,
-            maximumFNumber: 1,
-            maidenRequirement: "not_restricted",
-          },
-          cores: eligibilityCores,
+    fieldEvidence: {
+      evaluatedAt,
+      dataCurrentThrough,
+      freshness: "current",
+      materialGapMs: 50,
+      rulesByRaceId: {
+        "race-open": {
+          ruleSetId: "race-open-rules",
+          evidenceStatus: "confirmed",
+          allowedClasses: ["Genesis"],
+          allowedElements: ["Metal"],
+          minimumFNumber: 1,
+          maximumFNumber: 1,
+          maidenRequirement: "not_restricted",
         },
-        rankingId: "ranking-race-open",
-        evaluatedAt,
-        dataCurrentThrough,
-        freshness: "current",
-        materialGapMs: 50,
-        eligibleCandidates: [
-          {
-            coreId: "10457",
-            eligibilityStatus: "eligible",
-            mode: "bike",
-            distanceMeters: 1600,
-            profile: timeProfile(60_000),
-            historicalStars: {
-              goldReceived: 2,
-              goldOpportunities: 10,
-              blueReceived: 3,
-              blueOpportunities: 12,
-              evidenceStatus: "complete",
-              rationale: ["Accepted historical star support only."],
-            },
-          },
-        ],
-        opponents: opponents.map((coreId, index) => ({
-          coreId,
-          identityStatus: "confirmed" as const,
-          mode: "bike" as const,
-          distanceMeters: 1600,
-          profile: timeProfile([61_000, 63_000, 64_000][index]!),
-        })),
       },
-    ],
+      availabilityByCoreId: Object.fromEntries(
+        vault.map(({ hid }) => [
+          String(hid),
+          hid === 10457 ? ("available" as const) : ("unavailable" as const),
+        ]),
+      ),
+      maidenStateByCoreId: Object.fromEntries(
+        vault.map(({ hid }) => [String(hid), "not_eligible" as const]),
+      ),
+    },
   });
 }
 
