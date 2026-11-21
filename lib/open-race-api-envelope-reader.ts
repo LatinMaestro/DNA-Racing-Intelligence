@@ -11,6 +11,7 @@ import {
   type CanonicalRaceFillSnapshot,
 } from "@/lib/dna-open-lab-v1-adapters";
 import type {
+  DnaActiveRace,
   DnaOpenLabClient,
   DnaOpenLabResponse,
   DnaRaceDocument,
