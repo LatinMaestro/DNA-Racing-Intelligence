@@ -160,6 +160,24 @@ describe("Free Discovery canonical Open Lab scanner integration", () => {
     );
   });
 
+  it("rejects contradictory hydrated race status or name", () => {
+    const finished = {
+      ...document(),
+      canonical: { ...document().canonical, status: "finished" },
+    };
+    expect(scan({ documents: [finished] }).excluded[0]?.reason).toBe(
+      "missing_or_incomplete_document",
+    );
+
+    const renamed = {
+      ...document(),
+      canonical: { ...document().canonical, displayName: "Free Bike" },
+    };
+    expect(scan({ documents: [renamed] }).excluded[0]?.reason).toBe(
+      "missing_or_incomplete_document",
+    );
+  });
+
   it("preserves the campaign selector and current owned-Core guard", () => {
     const wrongDistance = {
       ...document(),
