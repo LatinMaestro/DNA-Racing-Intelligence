@@ -272,6 +272,7 @@ export function screenPaidTournamentQualificationOpportunities(
 export type PaidTournamentOpponentEvaluation = Readonly<{
   raceId: string;
   selectedCoreId: string;
+  evaluatedOpponentCoreIds: readonly string[];
   decision: "provisional_candidate" | "avoid" | "unavailable";
   strongestOpponentCoreId: string | null;
   selectedCoreMarginToStrongestOpponentMs: number | null;
@@ -354,6 +355,7 @@ export function evaluatePaidTournamentOpponentField(
   return {
     raceId: opportunity.raceId,
     selectedCoreId: opportunity.selectedCoreId,
+    evaluatedOpponentCoreIds: [...opportunity.enteredOpponentCoreIds],
     decision,
     strongestOpponentCoreId: result.strongestOpponentCoreId,
     selectedCoreMarginToStrongestOpponentMs:
@@ -585,9 +587,9 @@ export function evaluatePaidTournamentLocalDryRunGate(
   ) {
     block("field_changed");
   } else {
-    const frozenOpponents = input.evaluation.ranking.opponents
-      .map(({ coreId }) => coreId)
-      .sort();
+    const frozenOpponents = [
+      ...input.evaluation.evaluatedOpponentCoreIds,
+    ].sort();
     const currentOpponents = [...currentRace.entrantCoreIds].sort();
     if (
       frozenOpponents.length !== currentOpponents.length ||
