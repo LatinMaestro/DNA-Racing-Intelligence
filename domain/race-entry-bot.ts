@@ -1043,3 +1043,278 @@ export function evaluateLocalExecutorHeartbeatControl(
     gameEntryAllowed: false,
   };
 }
+
+export type FreeDiscoveryCampaignCell = Readonly<{
+  campaignId: string;
+  cellId: string;
+  selectedCoreId: string;
+  mode: "bike" | "car" | "horse";
+  distanceMetres: number;
+  raceClassSourceValue: string | number;
+  gateCount: number;
+  format: string;
+  targetNewRaces: number;
+  reconciledCompletedNewRaces: number;
+  reservedOrSubmittedNewRaces: number;
+  pairing:
+    | Readonly<{ status: "single_core" }>
+    | Readonly<{
+        status: "verified_benchmark_pair";
+        benchmarkCoreId: string;
+        verifiedMode: "bike" | "car" | "horse";
+        verifiedDistanceMetres: number;
+      }>;
+}>;
+
+export type FreeDiscoveryRaceCandidate = Readonly<{
+  raceId: string;
+  status: string;
+  raceTypeSourceValue: string | null;
+  mode: "bike" | "car" | "horse";
+  distanceMetres: number;
+  raceClassSourceValue: string | number | null;
+  gateCount: number;
+  filledGateCount: number;
+  format: string;
+  entrantCoreIds: readonly string[];
+  observedAt: string;
+}>;
+
+export type FreeDiscoveryOpportunityExclusion =
+  | "campaign_budget_exhausted"
+  | "not_open"
+  | "stale_or_invalid_evidence"
+  | "not_authoritative_standalone_free"
+  | "campaign_selector_mismatch"
+  | "field_full_or_invalid"
+  | "owned_core_already_entered"
+  | "insufficient_vacancies_for_pair";
+
+export type FreeDiscoveryOpportunity = Readonly<{
+  campaignId: string;
+  cellId: string;
+  raceId: string;
+  plannedOwnedCoreIds: readonly string[];
+  mode: "bike" | "car" | "horse";
+  distanceMetres: number;
+  raceClassSourceValue: string | number;
+  gateCount: number;
+  format: string;
+  enteredOpponentCoreIds: readonly string[];
+  vacantGates: number;
+  raceTypeSourceValue: "Free";
+  evaluationStatus: "needs_field_evaluation";
+  queueStatus: "not_queued";
+  automaticPerformanceStopAllowed: false;
+  automaticBurnDecisionAllowed: false;
+  gameEntryAllowed: false;
+}>;
+
+function freeDiscoveryRequiredText(value: string, field: string): string {
+  const normalized = value.trim();
+  if (normalized.length === 0 || normalized.length > 256) {
+    throw new Error(`Free Discovery ${field} is invalid.`);
+  }
+  return normalized;
+}
+
+function freeDiscoveryCoreIds(
+  values: readonly string[],
+  field: string,
+): Set<string> {
+  const ids = new Set(values);
+  if (
+    ids.size !== values.length ||
+    values.some((value) => !/^[1-9]\d*$/u.test(value))
+  ) {
+    throw new Error(`Free Discovery ${field} is invalid.`);
+  }
+  return ids;
+}
+
+/**
+ * Read-only Free Discovery lane of the shared race-entry bot.
+ *
+ * It applies the exact campaign selector and authoritative reconciled new-race
+ * budget before later field evaluation. It does not apply the ordinary Open
+ * Race half-filled advisory rule, queue work, submit game actions, stop from
+ * performance/no-star evidence or make a burn decision.
+ */
+export function screenFreeDiscoveryOpportunities(
+  input: Readonly<{
+    evaluatedAt: string;
+    maximumAgeMinutes: number;
+    campaign: FreeDiscoveryCampaignCell;
+    currentOwnedCoreIds: readonly string[];
+    races: readonly FreeDiscoveryRaceCandidate[];
+  }>,
+): Readonly<{
+  opportunities: readonly FreeDiscoveryOpportunity[];
+  excluded: readonly Readonly<{
+    raceId: string;
+    reason: FreeDiscoveryOpportunityExclusion;
+  }>[];
+  newRaceBudgetRemaining: number;
+  queueAllowed: false;
+  gameEntryAllowed: false;
+}> {
+  const evaluatedAt = Date.parse(input.evaluatedAt);
+  if (
+    !Number.isFinite(evaluatedAt) ||
+    !Number.isSafeInteger(input.maximumAgeMinutes) ||
+    input.maximumAgeMinutes < 1 ||
+    input.maximumAgeMinutes > 60
+  ) {
+    throw new Error("Free Discovery freshness limit is invalid.");
+  }
+  const campaign = input.campaign;
+  const campaignId = freeDiscoveryRequiredText(
+    campaign.campaignId,
+    "campaign identity",
+  );
+  const cellId = freeDiscoveryRequiredText(campaign.cellId, "cell identity");
+  freeDiscoveryRequiredText(campaign.format, "format");
+  if (
+    !Number.isSafeInteger(campaign.distanceMetres) ||
+    campaign.distanceMetres <= 0 ||
+    !Number.isSafeInteger(campaign.gateCount) ||
+    campaign.gateCount < 2 ||
+    !Number.isSafeInteger(campaign.targetNewRaces) ||
+    campaign.targetNewRaces < 1 ||
+    !Number.isSafeInteger(campaign.reconciledCompletedNewRaces) ||
+    campaign.reconciledCompletedNewRaces < 0 ||
+    !Number.isSafeInteger(campaign.reservedOrSubmittedNewRaces) ||
+    campaign.reservedOrSubmittedNewRaces < 0 ||
+    campaign.reconciledCompletedNewRaces +
+      campaign.reservedOrSubmittedNewRaces >
+      campaign.targetNewRaces
+  ) {
+    throw new Error("Free Discovery campaign cell is invalid.");
+  }
+  const owned = freeDiscoveryCoreIds(
+    input.currentOwnedCoreIds,
+    "owned Core selection",
+  );
+  if (!owned.has(campaign.selectedCoreId)) {
+    throw new Error("Free Discovery selected Core is not currently owned.");
+  }
+
+  const plannedOwnedCoreIds = [campaign.selectedCoreId];
+  if (campaign.pairing.status === "verified_benchmark_pair") {
+    if (
+      campaign.gateCount !== 4 ||
+      campaign.pairing.benchmarkCoreId === campaign.selectedCoreId ||
+      !owned.has(campaign.pairing.benchmarkCoreId) ||
+      campaign.pairing.verifiedMode !== campaign.mode ||
+      campaign.pairing.verifiedDistanceMetres !== campaign.distanceMetres
+    ) {
+      throw new Error(
+        "Free Discovery benchmark pair is not verified for the exact campaign context.",
+      );
+    }
+    plannedOwnedCoreIds.push(campaign.pairing.benchmarkCoreId);
+  }
+
+  const newRaceBudgetRemaining =
+    campaign.targetNewRaces -
+    campaign.reconciledCompletedNewRaces -
+    campaign.reservedOrSubmittedNewRaces;
+  const opportunities: FreeDiscoveryOpportunity[] = [];
+  const excluded: {
+    raceId: string;
+    reason: FreeDiscoveryOpportunityExclusion;
+  }[] = [];
+  const raceIds = new Set<string>();
+  const maximumAgeMilliseconds = input.maximumAgeMinutes * 60_000;
+
+  for (const race of input.races) {
+    const raceId = freeDiscoveryRequiredText(race.raceId, "race identity");
+    if (raceIds.has(raceId)) {
+      throw new Error("Free Discovery race identity is duplicated.");
+    }
+    raceIds.add(raceId);
+    const exclude = (reason: FreeDiscoveryOpportunityExclusion) => {
+      excluded.push({ raceId, reason });
+    };
+    if (newRaceBudgetRemaining === 0) {
+      exclude("campaign_budget_exhausted");
+      continue;
+    }
+    if (!["open", "filling"].includes(race.status.toLowerCase())) {
+      exclude("not_open");
+      continue;
+    }
+    const observedAt = Date.parse(race.observedAt);
+    if (
+      !Number.isFinite(observedAt) ||
+      observedAt > evaluatedAt ||
+      evaluatedAt - observedAt > maximumAgeMilliseconds
+    ) {
+      exclude("stale_or_invalid_evidence");
+      continue;
+    }
+    if (race.raceTypeSourceValue !== "Free") {
+      exclude("not_authoritative_standalone_free");
+      continue;
+    }
+    if (
+      race.mode !== campaign.mode ||
+      race.distanceMetres !== campaign.distanceMetres ||
+      race.raceClassSourceValue !== campaign.raceClassSourceValue ||
+      race.gateCount !== campaign.gateCount ||
+      race.format !== campaign.format
+    ) {
+      exclude("campaign_selector_mismatch");
+      continue;
+    }
+    if (
+      !Number.isSafeInteger(race.gateCount) ||
+      !Number.isSafeInteger(race.filledGateCount) ||
+      race.gateCount < 2 ||
+      race.filledGateCount < 0 ||
+      race.filledGateCount >= race.gateCount ||
+      race.entrantCoreIds.length !== race.filledGateCount ||
+      new Set(race.entrantCoreIds).size !== race.entrantCoreIds.length ||
+      race.entrantCoreIds.some((coreId) => !/^[1-9]\d*$/u.test(coreId))
+    ) {
+      exclude("field_full_or_invalid");
+      continue;
+    }
+    if (race.entrantCoreIds.some((coreId) => owned.has(coreId))) {
+      exclude("owned_core_already_entered");
+      continue;
+    }
+    const vacantGates = race.gateCount - race.filledGateCount;
+    if (vacantGates < plannedOwnedCoreIds.length) {
+      exclude("insufficient_vacancies_for_pair");
+      continue;
+    }
+    opportunities.push({
+      campaignId,
+      cellId,
+      raceId,
+      plannedOwnedCoreIds: [...plannedOwnedCoreIds],
+      mode: race.mode,
+      distanceMetres: race.distanceMetres,
+      raceClassSourceValue: campaign.raceClassSourceValue,
+      gateCount: race.gateCount,
+      format: race.format,
+      enteredOpponentCoreIds: [...race.entrantCoreIds],
+      vacantGates,
+      raceTypeSourceValue: "Free",
+      evaluationStatus: "needs_field_evaluation",
+      queueStatus: "not_queued",
+      automaticPerformanceStopAllowed: false,
+      automaticBurnDecisionAllowed: false,
+      gameEntryAllowed: false,
+    });
+  }
+
+  return {
+    opportunities,
+    excluded,
+    newRaceBudgetRemaining,
+    queueAllowed: false,
+    gameEntryAllowed: false,
+  };
+}
