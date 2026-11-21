@@ -118,6 +118,11 @@ export function resolveOpenRacePerformanceEvidence(
   if (staleOrUnknownCoreIds.length > 0) {
     reasons.push("One or more exact-context profiles are stale or unknown.");
   }
+  if (hypothesisOnlyCoreIds.length > 0) {
+    reasons.push(
+      "One or more exact-context profiles have weak sample evidence.",
+    );
+  }
   const readyForRanking = reasons.length === 0;
 
   return {
