@@ -112,6 +112,21 @@ function performance(
   };
 }
 
+function rankingProfile(coreId: string, medianTimeMs: number) {
+  return {
+    coreId,
+    mode: "bike" as const,
+    distanceMeters: 1600,
+    profile: {
+      optimisticTimeMs: medianTimeMs - 1_000,
+      medianTimeMs,
+      conservativeTimeMs: medianTimeMs + 1_000,
+      sampleCount: 12,
+      sampleStatus: "minimally_analytical" as const,
+    },
+  };
+}
+
 function evaluate(raceDocs: readonly DnaRaceDocument[] = [document]) {
   return evaluateOpenRaceApiAdvisories({
     read: {
@@ -160,6 +175,12 @@ function evaluate(raceDocs: readonly DnaRaceDocument[] = [document]) {
       maidenStateByCoreId: Object.fromEntries(
         vault.map(({ hid }) => [String(hid), "not_eligible" as const]),
       ),
+      rankingProfiles: [
+        rankingProfile("10457", 60_000),
+        rankingProfile("9001", 61_000),
+        rankingProfile("9002", 63_000),
+        rankingProfile("9003", 64_000),
+      ],
     },
   });
 }
