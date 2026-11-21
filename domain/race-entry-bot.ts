@@ -738,3 +738,308 @@ export function evaluatePaidTournamentLocalDryRunGate(
     gameEntryAllowed: false,
   };
 }
+
+export const localExecutorHeartbeatProtocolVersion =
+  "race-entry-executor-control/v1" as const;
+
+export type LocalExecutorHeartbeat = Readonly<{
+  protocolVersion: typeof localExecutorHeartbeatProtocolVersion;
+  executorId: string;
+  observedAt: string;
+  runtime: "brave_chromium_owner_profile";
+  sessionStatus: "authenticated" | "expired" | "unknown";
+  sessionMaterialLocation: "local_only";
+  nativeContractStatus: "unobserved" | "observed_current" | "drifted";
+  executionMode: "disabled" | "dry_run_only";
+  supportedExecutionPurposes: readonly RaceEntryBotExecutionPurpose[];
+  lastAppliedControlVersion: number;
+  walletSigningEnabled: false;
+  gameSubmissionEnabled: false;
+}>;
+
+export type LocalExecutorControlBlocker =
+  | "owner_control_not_current"
+  | "globally_paused"
+  | "kill_switch_engaged"
+  | "executor_identity_mismatch"
+  | "heartbeat_stale_or_invalid"
+  | "executor_control_version_stale"
+  | "session_not_authenticated"
+  | "native_contract_unobserved"
+  | "native_contract_drifted"
+  | "execution_mode_not_dry_run_only"
+  | "execution_purpose_unsupported";
+
+export type LocalExecutorControlDirective =
+  | "kill"
+  | "pause"
+  | "refresh_control"
+  | "reauthenticate"
+  | "contract_review_required"
+  | "observe_native_contract"
+  | "unsupported_purpose"
+  | "dry_run_only";
+
+const localExecutorHeartbeatKeys = Object.freeze([
+  "protocolVersion",
+  "executorId",
+  "observedAt",
+  "runtime",
+  "sessionStatus",
+  "sessionMaterialLocation",
+  "nativeContractStatus",
+  "executionMode",
+  "supportedExecutionPurposes",
+  "lastAppliedControlVersion",
+  "walletSigningEnabled",
+  "gameSubmissionEnabled",
+] as const);
+
+function localExecutorIdentifier(value: unknown, field: string): string {
+  if (
+    typeof value !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/u.test(value)
+  ) {
+    throw new Error(`Local executor ${field} is invalid.`);
+  }
+  return value;
+}
+
+/**
+ * Parses the complete cloud-visible heartbeat allowlist.
+ *
+ * Unknown fields are rejected so cookies, authorization headers, session
+ * tokens and future native request fields cannot silently cross the local
+ * executor trust boundary.
+ */
+export function parseLocalExecutorHeartbeat(
+  payload: unknown,
+): LocalExecutorHeartbeat {
+  if (
+    payload === null ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    throw new Error("Local executor heartbeat must be an object.");
+  }
+  const record = payload as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  const allowed = [...localExecutorHeartbeatKeys].sort();
+  if (
+    keys.length !== allowed.length ||
+    keys.some((key, index) => key !== allowed[index])
+  ) {
+    throw new Error("Local executor heartbeat contains an unapproved field.");
+  }
+  if (record.protocolVersion !== localExecutorHeartbeatProtocolVersion) {
+    throw new Error(
+      "Local executor heartbeat protocol version is unsupported.",
+    );
+  }
+  const executorId = localExecutorIdentifier(record.executorId, "identity");
+  if (
+    typeof record.observedAt !== "string" ||
+    !Number.isFinite(Date.parse(record.observedAt))
+  ) {
+    throw new Error("Local executor heartbeat observation time is invalid.");
+  }
+  if (record.runtime !== "brave_chromium_owner_profile") {
+    throw new Error("Local executor runtime is unsupported.");
+  }
+  if (
+    !["authenticated", "expired", "unknown"].includes(
+      record.sessionStatus as string,
+    )
+  ) {
+    throw new Error("Local executor session status is invalid.");
+  }
+  if (record.sessionMaterialLocation !== "local_only") {
+    throw new Error("Local executor session material must remain local.");
+  }
+  if (
+    !["unobserved", "observed_current", "drifted"].includes(
+      record.nativeContractStatus as string,
+    )
+  ) {
+    throw new Error("Local executor native contract status is invalid.");
+  }
+  if (!["disabled", "dry_run_only"].includes(record.executionMode as string)) {
+    throw new Error("Local executor execution mode is invalid.");
+  }
+  if (
+    !Array.isArray(record.supportedExecutionPurposes) ||
+    record.supportedExecutionPurposes.length < 1 ||
+    record.supportedExecutionPurposes.length >
+      raceEntryBotExecutionPurposes.length ||
+    new Set(record.supportedExecutionPurposes).size !==
+      record.supportedExecutionPurposes.length ||
+    record.supportedExecutionPurposes.some(
+      (purpose) =>
+        typeof purpose !== "string" ||
+        !raceEntryBotExecutionPurposes.includes(
+          purpose as RaceEntryBotExecutionPurpose,
+        ),
+    )
+  ) {
+    throw new Error("Local executor supported execution purposes are invalid.");
+  }
+  if (
+    !Number.isSafeInteger(record.lastAppliedControlVersion) ||
+    (record.lastAppliedControlVersion as number) < 0
+  ) {
+    throw new Error("Local executor control version is invalid.");
+  }
+  if (
+    record.walletSigningEnabled !== false ||
+    record.gameSubmissionEnabled !== false
+  ) {
+    throw new Error(
+      "Local executor heartbeat cannot enable signing or game submission.",
+    );
+  }
+
+  return {
+    protocolVersion: localExecutorHeartbeatProtocolVersion,
+    executorId,
+    observedAt: record.observedAt,
+    runtime: "brave_chromium_owner_profile",
+    sessionStatus:
+      record.sessionStatus as LocalExecutorHeartbeat["sessionStatus"],
+    sessionMaterialLocation: "local_only",
+    nativeContractStatus:
+      record.nativeContractStatus as LocalExecutorHeartbeat["nativeContractStatus"],
+    executionMode:
+      record.executionMode as LocalExecutorHeartbeat["executionMode"],
+    supportedExecutionPurposes:
+      record.supportedExecutionPurposes as RaceEntryBotExecutionPurpose[],
+    lastAppliedControlVersion: record.lastAppliedControlVersion as number,
+    walletSigningEnabled: false,
+    gameSubmissionEnabled: false,
+  };
+}
+
+/**
+ * Evaluates one sanitized local heartbeat against current owner controls.
+ *
+ * This protocol carries health and pause/kill state only. It never carries a
+ * native entry URL, request body, credential or submission authority.
+ */
+export function evaluateLocalExecutorHeartbeatControl(
+  input: Readonly<{
+    evaluatedAt: string;
+    maximumHeartbeatAgeSeconds: number;
+    expectedExecutorId: string;
+    minimumControlVersion: number;
+    requestedPurpose: RaceEntryBotExecutionPurpose;
+    ownerControl: Readonly<{
+      authorityStatus: "current" | "stale";
+      globallyPaused: boolean;
+      killSwitchEngaged: boolean;
+    }>;
+    heartbeat: unknown;
+  }>,
+): Readonly<{
+  healthStatus: "healthy" | "blocked";
+  directive: LocalExecutorControlDirective;
+  blockers: readonly LocalExecutorControlBlocker[];
+  localDryRunAllowed: boolean;
+  requestContractIncluded: false;
+  cloudCredentialStorageAllowed: false;
+  gameEntryAllowed: false;
+}> {
+  const evaluatedAt = Date.parse(input.evaluatedAt);
+  if (
+    !Number.isFinite(evaluatedAt) ||
+    !Number.isSafeInteger(input.maximumHeartbeatAgeSeconds) ||
+    input.maximumHeartbeatAgeSeconds < 1 ||
+    input.maximumHeartbeatAgeSeconds > 300 ||
+    !Number.isSafeInteger(input.minimumControlVersion) ||
+    input.minimumControlVersion < 0 ||
+    !raceEntryBotExecutionPurposes.includes(input.requestedPurpose)
+  ) {
+    throw new Error("Local executor control evaluation is invalid.");
+  }
+  const expectedExecutorId = localExecutorIdentifier(
+    input.expectedExecutorId,
+    "expected identity",
+  );
+  const heartbeat = parseLocalExecutorHeartbeat(input.heartbeat);
+  const blockers: LocalExecutorControlBlocker[] = [];
+  const block = (value: LocalExecutorControlBlocker) => {
+    if (!blockers.includes(value)) blockers.push(value);
+  };
+
+  if (input.ownerControl.authorityStatus !== "current") {
+    block("owner_control_not_current");
+  }
+  if (input.ownerControl.globallyPaused) block("globally_paused");
+  if (input.ownerControl.killSwitchEngaged) block("kill_switch_engaged");
+  if (heartbeat.executorId !== expectedExecutorId) {
+    block("executor_identity_mismatch");
+  }
+  const observedAt = Date.parse(heartbeat.observedAt);
+  if (
+    observedAt > evaluatedAt ||
+    evaluatedAt - observedAt > input.maximumHeartbeatAgeSeconds * 1_000
+  ) {
+    block("heartbeat_stale_or_invalid");
+  }
+  if (heartbeat.lastAppliedControlVersion < input.minimumControlVersion) {
+    block("executor_control_version_stale");
+  }
+  if (heartbeat.sessionStatus !== "authenticated") {
+    block("session_not_authenticated");
+  }
+  if (heartbeat.nativeContractStatus === "unobserved") {
+    block("native_contract_unobserved");
+  }
+  if (heartbeat.nativeContractStatus === "drifted") {
+    block("native_contract_drifted");
+  }
+  if (heartbeat.executionMode !== "dry_run_only") {
+    block("execution_mode_not_dry_run_only");
+  }
+  if (!heartbeat.supportedExecutionPurposes.includes(input.requestedPurpose)) {
+    block("execution_purpose_unsupported");
+  }
+
+  let directive: LocalExecutorControlDirective;
+  if (input.ownerControl.killSwitchEngaged) {
+    directive = "kill";
+  } else if (
+    input.ownerControl.globallyPaused ||
+    input.ownerControl.authorityStatus !== "current"
+  ) {
+    directive = "pause";
+  } else if (
+    blockers.includes("executor_identity_mismatch") ||
+    blockers.includes("heartbeat_stale_or_invalid") ||
+    blockers.includes("executor_control_version_stale")
+  ) {
+    directive = "refresh_control";
+  } else if (blockers.includes("session_not_authenticated")) {
+    directive = "reauthenticate";
+  } else if (blockers.includes("native_contract_drifted")) {
+    directive = "contract_review_required";
+  } else if (blockers.includes("native_contract_unobserved")) {
+    directive = "observe_native_contract";
+  } else if (blockers.includes("execution_purpose_unsupported")) {
+    directive = "unsupported_purpose";
+  } else if (blockers.includes("execution_mode_not_dry_run_only")) {
+    directive = "pause";
+  } else {
+    directive = "dry_run_only";
+  }
+
+  const localDryRunAllowed =
+    blockers.length === 0 && directive === "dry_run_only";
+  return {
+    healthStatus: localDryRunAllowed ? "healthy" : "blocked",
+    directive,
+    blockers,
+    localDryRunAllowed,
+    requestContractIncluded: false,
+    cloudCredentialStorageAllowed: false,
+    gameEntryAllowed: false,
+  };
+}
