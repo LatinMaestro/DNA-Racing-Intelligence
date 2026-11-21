@@ -365,7 +365,6 @@ export function evaluatePaidTournamentOpponentField(
   };
 }
 
-
 export type PaidTournamentDryRunBlocker =
   | "evaluation_not_favourable"
   | "owner_control_not_current"
@@ -411,8 +410,7 @@ function parseExactHlx(
   const unsigned = negative ? value.slice(1) : value;
   const [whole = "0", fraction = ""] = unsigned.split(".");
   const scaled =
-    BigInt(whole) * hlxScale +
-    BigInt(fraction.padEnd(18, "0") || "0");
+    BigInt(whole) * hlxScale + BigInt(fraction.padEnd(18, "0") || "0");
   return {
     scaled: negative ? -scaled : scaled,
     text: formatExactHlx(negative ? -scaled : scaled),
@@ -539,17 +537,11 @@ export function evaluatePaidTournamentLocalDryRunGate(
   if (input.segmentGuard.authorityStatus !== "current") {
     block("segment_guard_not_current");
   }
-  if (
-    input.segmentGuard.selectedCoreId !== input.evaluation.selectedCoreId
-  ) {
+  if (input.segmentGuard.selectedCoreId !== input.evaluation.selectedCoreId) {
     block("segment_guard_not_current");
   }
   if (
-    !currentAuthorityTime(
-      input.ownerConsentAt,
-      evaluatedAt,
-      maxAgeMilliseconds,
-    )
+    !currentAuthorityTime(input.ownerConsentAt, evaluatedAt, maxAgeMilliseconds)
   ) {
     block("owner_consent_stale_or_invalid");
   }
