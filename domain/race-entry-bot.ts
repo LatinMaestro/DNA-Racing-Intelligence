@@ -377,6 +377,7 @@ export type PaidTournamentDryRunBlocker =
   | "race_recheck_stale_or_invalid"
   | "race_not_open_or_vacant"
   | "field_changed"
+  | "selected_core_not_currently_owned"
   | "owned_core_already_entered"
   | "duplicate_entry_risk"
   | "prior_attempt_unreconciled"
@@ -558,6 +559,9 @@ export function evaluatePaidTournamentLocalDryRunGate(
     input.currentOwnedCoreIds,
     "dry-run owned Core selection",
   );
+  if (!owned.has(input.evaluation.selectedCoreId)) {
+    block("selected_core_not_currently_owned");
+  }
   const currentRace = input.currentRace;
   if (
     currentRace.raceId !== input.evaluation.raceId ||
