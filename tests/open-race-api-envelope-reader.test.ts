@@ -57,7 +57,16 @@ const fill: DnaRaceFill = {
   entry_txns_confirmed: {},
 };
 const document: DnaRaceDocument = {
-  ...activeRace,
+  rid: "race-open",
+  status: "open",
+  race_name: "Open Bike race-open",
+  format: "normal",
+  class: 2,
+  cb: 1600,
+  rgate: 6,
+  hs_in: 3,
+  version: 1,
+  rvmode: "bike",
   hids: [9001, 9002, 9003],
 };
 
