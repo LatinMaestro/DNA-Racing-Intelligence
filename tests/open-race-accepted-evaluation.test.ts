@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { CorePerformanceProfile } from "@/domain/core-performance";
-import { evaluateOpenRaceAcceptedEvidence } from "@/domain/open-race-accepted-evaluation";
+import {
+  evaluateOpenRaceAcceptedEvidence,
+  evaluateOwnerVaultOpenRaceAdvisories,
+} from "@/domain/open-race-accepted-evaluation";
 import type { OpenRaceScanOpportunity } from "@/domain/open-race-live-opportunity-scanner";
+import type { OwnerVaultOpenRaceScan } from "@/domain/open-race-owner-vault-scanner";
 import type { OpenRacePerformanceEvidence } from "@/domain/open-race-performance-evidence";
 import type {
   OpenRaceRankedCandidate,
@@ -210,5 +214,129 @@ describe("Open Race accepted evidence evaluation", () => {
         evidence: evidence({ opponentProfiles: [] }),
       }),
     ).toThrow("ranked opponents do not match");
+  });
+});
+
+describe("whole-Vault Open Race advisory coordination", () => {
+  const completeOwnedCoreIds = [
+    ...Array.from({ length: 213 }, (_, index) => String(index + 1)),
+    "10457",
+  ];
+  const ownerScan: OwnerVaultOpenRaceScan = {
+    sourceGenerationId: "11111111-1111-4111-8111-111111111111",
+    ownedCoreCount: 214,
+    enteredOpponentCount: 3,
+    scan: {
+      opportunities: [opportunity],
+      excluded: [{ raceId: "race-full", reason: "field_incomplete_or_full" }],
+      gameEntryAllowed: false as const,
+    },
+    ownerCoreUniverse: "complete_serving_generation" as const,
+    gameEntryAllowed: false as const,
+  };
+  const eligibilityCores = completeOwnedCoreIds.map((coreId) => ({
+    coreId,
+    activeOwnership: "confirmed" as const,
+    availability:
+      coreId === "10457" ? ("available" as const) : ("unavailable" as const),
+    coreClass: "Genesis" as const,
+    element: "Metal" as const,
+    fNumber: 1,
+    maidenState: "not_eligible" as const,
+    attributeEvidence: "complete" as const,
+  }));
+  const field = {
+    raceId: "race-99",
+    eligibility: {
+      evaluationId: "eligibility-race-99",
+      evaluatedAt: "2026-11-21T09:30:00.000Z",
+      vaultDataCurrentThrough: "2026-11-20T09:30:00.000Z",
+      freshness: "current" as const,
+      rules: {
+        ruleSetId: "race-99-rules",
+        evidenceStatus: "confirmed" as const,
+        allowedClasses: ["Genesis" as const],
+        allowedElements: ["Metal" as const],
+        minimumFNumber: 1,
+        maximumFNumber: 1,
+        maidenRequirement: "not_restricted" as const,
+      },
+      cores: eligibilityCores,
+    },
+    rankingId: "ranking-race-99",
+    evaluatedAt: "2026-11-21T09:30:00.000Z",
+    dataCurrentThrough: "2026-11-20T09:30:00.000Z",
+    freshness: "current" as const,
+    materialGapMs: 50,
+    eligibleCandidates,
+    opponents,
+  };
+
+  function coordinate(
+    overrides: Partial<
+      Parameters<typeof evaluateOwnerVaultOpenRaceAdvisories>[0]
+    > = {},
+  ) {
+    return evaluateOwnerVaultOpenRaceAdvisories({
+      ownerScan,
+      completeOwnedCoreIds,
+      profiles: [...acceptedCandidates, ...acceptedOpponents],
+      fields: [field],
+      ...overrides,
+    });
+  }
+
+  it("hard-filters all 214 owned Cores before one accepted advisory ranking", () => {
+    expect(coordinate()).toMatchObject({
+      racesScanned: 2,
+      qualifyingRaceCount: 1,
+      ownerCoreCount: 214,
+      eligibleCandidateComparisons: 1,
+      opponentComparisons: 3,
+      evaluations: [
+        {
+          decision: "provisional_pick",
+          recommendedCoreId: "10457",
+        },
+      ],
+      advisoryOnly: true,
+      queueAllowed: false,
+      gameEntryAllowed: false,
+    });
+  });
+
+  it("requires eligibility evidence for the complete owner Vault", () => {
+    expect(() =>
+      coordinate({
+        fields: [
+          {
+            ...field,
+            eligibility: {
+              ...field.eligibility,
+              cores: eligibilityCores.slice(0, 213),
+            },
+          },
+        ],
+      }),
+    ).toThrow("does not cover the complete owner Vault");
+  });
+
+  it("rejects a ranked Core that did not pass hard eligibility", () => {
+    expect(() =>
+      coordinate({
+        fields: [
+          {
+            ...field,
+            eligibleCandidates: [candidate("1", 60_000)],
+          },
+        ],
+      }),
+    ).toThrow("do not match hard eligibility");
+  });
+
+  it("requires exactly one field package for every verified opportunity", () => {
+    expect(() => coordinate({ fields: [] })).toThrow(
+      "do not match the verified opportunities",
+    );
   });
 });
