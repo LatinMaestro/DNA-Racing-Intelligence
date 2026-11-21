@@ -450,6 +450,15 @@ describe("shared paid tournament local dry-run safety gate", () => {
     );
   });
 
+  it("rechecks that the selected Core is still currently owned", () => {
+    const result = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({ currentOwnedCoreIds: ["42", "500"] }),
+    );
+    expect(result.blockers).toContain("selected_core_not_currently_owned");
+    expect(result.localDryRunAllowed).toBe(false);
+    expect(result.gameEntryAllowed).toBe(false);
+  });
+
   it("applies exact HLX balance, exposure and every spend ceiling", () => {
     const result = evaluatePaidTournamentLocalDryRunGate(
       dryRunInput({
