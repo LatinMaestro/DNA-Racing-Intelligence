@@ -125,6 +125,12 @@ describe("Free Discovery canonical Open Lab scanner integration", () => {
   it("uses the accepted standalone race-name token and never zero fee inference", () => {
     const result = scan({
       activeRaces: [active("race-free-1", "Freedom Cup")],
+      documents: [
+        {
+          ...document(),
+          canonical: { ...document().canonical, displayName: "Freedom Cup" },
+        },
+      ],
     });
     expect(result.opportunities).toEqual([]);
     expect(result.excluded).toContainEqual({
