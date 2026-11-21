@@ -272,6 +272,7 @@ export function screenPaidTournamentQualificationOpportunities(
 export type PaidTournamentOpponentEvaluation = Readonly<{
   raceId: string;
   selectedCoreId: string;
+  evaluatedOpponentCoreIds: readonly string[];
   decision: "provisional_candidate" | "avoid" | "unavailable";
   strongestOpponentCoreId: string | null;
   selectedCoreMarginToStrongestOpponentMs: number | null;
@@ -354,6 +355,7 @@ export function evaluatePaidTournamentOpponentField(
   return {
     raceId: opportunity.raceId,
     selectedCoreId: opportunity.selectedCoreId,
+    evaluatedOpponentCoreIds: [...opportunity.enteredOpponentCoreIds],
     decision,
     strongestOpponentCoreId: result.strongestOpponentCoreId,
     selectedCoreMarginToStrongestOpponentMs:
@@ -361,6 +363,378 @@ export function evaluatePaidTournamentOpponentField(
     ranking: result,
     explanations,
     queueAllowed: false,
+    gameEntryAllowed: false,
+  };
+}
+
+export type PaidTournamentDryRunBlocker =
+  | "evaluation_not_favourable"
+  | "owner_control_not_current"
+  | "globally_paused"
+  | "kill_switch_engaged"
+  | "segment_guard_not_current"
+  | "owner_consent_stale_or_invalid"
+  | "race_recheck_stale_or_invalid"
+  | "race_not_open_or_vacant"
+  | "field_changed"
+  | "selected_core_not_currently_owned"
+  | "owned_core_already_entered"
+  | "duplicate_entry_risk"
+  | "prior_attempt_unreconciled"
+  | "fee_not_authoritative_hlx"
+  | "financial_state_stale_or_invalid"
+  | "insufficient_hlx_balance"
+  | "max_unsettled_entries_reached"
+  | "max_unsettled_exposure_reached"
+  | "segment_spend_ceiling_reached"
+  | "tournament_spend_ceiling_reached"
+  | "global_session_spend_ceiling_reached"
+  | "realised_stop_loss_triggered";
+
+type ExactHlx = Readonly<{
+  scaled: bigint;
+  text: string;
+}>;
+
+const hlxScale = 1_000_000_000_000_000_000n;
+
+function parseExactHlx(
+  value: string,
+  field: string,
+  allowNegative: boolean,
+): ExactHlx {
+  const pattern = allowNegative
+    ? /^-?(?:0|[1-9]\d{0,19})(?:\.\d{1,18})?$/u
+    : /^(?:0|[1-9]\d{0,19})(?:\.\d{1,18})?$/u;
+  if (!pattern.test(value)) {
+    throw new Error(`Paid tournament ${field} must be an exact HLX decimal.`);
+  }
+  const negative = value.startsWith("-");
+  const unsigned = negative ? value.slice(1) : value;
+  const [whole = "0", fraction = ""] = unsigned.split(".");
+  const scaled =
+    BigInt(whole) * hlxScale + BigInt(fraction.padEnd(18, "0") || "0");
+  return {
+    scaled: negative ? -scaled : scaled,
+    text: formatExactHlx(negative ? -scaled : scaled),
+  };
+}
+
+function formatExactHlx(value: bigint): string {
+  const negative = value < 0n;
+  const absolute = negative ? -value : value;
+  const whole = absolute / hlxScale;
+  const fraction = (absolute % hlxScale)
+    .toString()
+    .padStart(18, "0")
+    .replace(/0+$/u, "");
+  return `${negative ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
+}
+
+function currentAuthorityTime(
+  value: string,
+  evaluatedAt: number,
+  maximumAgeMilliseconds: number,
+): boolean {
+  const parsed = Date.parse(value);
+  return (
+    Number.isFinite(parsed) &&
+    parsed <= evaluatedAt &&
+    evaluatedAt - parsed <= maximumAgeMilliseconds
+  );
+}
+
+/**
+ * Final development-only safety check before a local executor dry run.
+ *
+ * It rechecks the field, owner consent, duplicate/reconciliation state and all
+ * exact-HLX hard controls. A successful result permits only request-shape dry
+ * running; game submission remains impossible.
+ */
+export function evaluatePaidTournamentLocalDryRunGate(
+  input: Readonly<{
+    evaluatedAt: string;
+    maximumAgeMinutes: number;
+    evaluation: PaidTournamentOpponentEvaluation;
+    currentRace: Readonly<{
+      raceId: string;
+      status: string;
+      gateCount: number;
+      filledGateCount: number;
+      entrantCoreIds: readonly string[];
+      observedAt: string;
+    }>;
+    currentOwnedCoreIds: readonly string[];
+    ownerControl: Readonly<{
+      authorityStatus: "current" | "stale";
+      globallyPaused: boolean;
+      killSwitchEngaged: boolean;
+      liveExecutionEnabled: false;
+    }>;
+    segmentGuard: Readonly<{
+      authorityStatus: "current" | "stale";
+      selectedCoreId: string;
+      asset: "HLX";
+      maxUnsettledEntries: number;
+      maxUnsettledExposureHlx: string;
+      segmentSpendCeilingHlx: string;
+      tournamentSpendCeilingHlx: string;
+      globalSessionSpendCeilingHlx: string;
+      realisedStopLossHlx: string;
+      liveExecutionEnabled: false;
+    }>;
+    ownerConsentAt: string;
+    duplicateEntryStatus: "clear" | "detected" | "unknown";
+    priorAttemptStatus: "none" | "reconciled_failed" | "unreconciled";
+    fee: Readonly<
+      | { status: "authoritative"; asset: "HLX"; amountHlx: string }
+      | { status: "unavailable" | "unknown"; asset: string | null }
+    >;
+    financialState: Readonly<{
+      observedAt: string;
+      availableBalanceHlx: string;
+      unsettledEntries: number;
+      unsettledExposureHlx: string;
+      segmentSpentHlx: string;
+      tournamentSpentHlx: string;
+      globalSessionSpentHlx: string;
+      realisedQualificationPnlHlx: string;
+    }>;
+  }>,
+): Readonly<{
+  status: "dry_run_ready" | "blocked";
+  blockers: readonly PaidTournamentDryRunBlocker[];
+  projected: Readonly<{
+    unsettledEntries: number;
+    unsettledExposureHlx: string;
+    segmentSpentHlx: string;
+    tournamentSpentHlx: string;
+    globalSessionSpentHlx: string;
+  }> | null;
+  localDryRunAllowed: boolean;
+  gameEntryAllowed: false;
+}> {
+  const evaluatedAt = Date.parse(input.evaluatedAt);
+  if (
+    !Number.isFinite(evaluatedAt) ||
+    !Number.isSafeInteger(input.maximumAgeMinutes) ||
+    input.maximumAgeMinutes < 1 ||
+    input.maximumAgeMinutes > 15
+  ) {
+    throw new Error("Paid tournament dry-run freshness limit is invalid.");
+  }
+  const maxAgeMilliseconds = input.maximumAgeMinutes * 60_000;
+  const blockers: PaidTournamentDryRunBlocker[] = [];
+  const block = (value: PaidTournamentDryRunBlocker) => {
+    if (!blockers.includes(value)) blockers.push(value);
+  };
+
+  if (input.evaluation.decision !== "provisional_candidate") {
+    block("evaluation_not_favourable");
+  }
+  if (input.ownerControl.authorityStatus !== "current") {
+    block("owner_control_not_current");
+  }
+  if (input.ownerControl.globallyPaused) block("globally_paused");
+  if (input.ownerControl.killSwitchEngaged) block("kill_switch_engaged");
+  if (input.segmentGuard.authorityStatus !== "current") {
+    block("segment_guard_not_current");
+  }
+  if (input.segmentGuard.selectedCoreId !== input.evaluation.selectedCoreId) {
+    block("segment_guard_not_current");
+  }
+  if (
+    !currentAuthorityTime(input.ownerConsentAt, evaluatedAt, maxAgeMilliseconds)
+  ) {
+    block("owner_consent_stale_or_invalid");
+  }
+  if (input.duplicateEntryStatus !== "clear") {
+    block("duplicate_entry_risk");
+  }
+  if (input.priorAttemptStatus === "unreconciled") {
+    block("prior_attempt_unreconciled");
+  }
+
+  const owned = paidTournamentCoreIds(
+    input.currentOwnedCoreIds,
+    "dry-run owned Core selection",
+  );
+  if (!owned.has(input.evaluation.selectedCoreId)) {
+    block("selected_core_not_currently_owned");
+  }
+  const currentRace = input.currentRace;
+  if (
+    currentRace.raceId !== input.evaluation.raceId ||
+    !currentAuthorityTime(
+      currentRace.observedAt,
+      evaluatedAt,
+      maxAgeMilliseconds,
+    )
+  ) {
+    block("race_recheck_stale_or_invalid");
+  }
+  if (
+    !["open", "filling"].includes(currentRace.status.toLowerCase()) ||
+    !Number.isSafeInteger(currentRace.gateCount) ||
+    !Number.isSafeInteger(currentRace.filledGateCount) ||
+    currentRace.gateCount < 2 ||
+    currentRace.filledGateCount < 0 ||
+    currentRace.filledGateCount >= currentRace.gateCount ||
+    currentRace.entrantCoreIds.length !== currentRace.filledGateCount
+  ) {
+    block("race_not_open_or_vacant");
+  }
+  if (
+    new Set(currentRace.entrantCoreIds).size !==
+      currentRace.entrantCoreIds.length ||
+    currentRace.entrantCoreIds.some((coreId) => !/^[1-9]\d*$/u.test(coreId))
+  ) {
+    block("field_changed");
+  } else {
+    const frozenOpponents = [
+      ...input.evaluation.evaluatedOpponentCoreIds,
+    ].sort();
+    const currentOpponents = [...currentRace.entrantCoreIds].sort();
+    if (
+      frozenOpponents.length !== currentOpponents.length ||
+      frozenOpponents.some(
+        (coreId, index) => currentOpponents[index] !== coreId,
+      )
+    ) {
+      block("field_changed");
+    }
+  }
+  if (currentRace.entrantCoreIds.some((coreId) => owned.has(coreId))) {
+    block("owned_core_already_entered");
+  }
+
+  if (
+    !currentAuthorityTime(
+      input.financialState.observedAt,
+      evaluatedAt,
+      maxAgeMilliseconds,
+    )
+  ) {
+    block("financial_state_stale_or_invalid");
+  }
+  if (
+    !Number.isSafeInteger(input.financialState.unsettledEntries) ||
+    input.financialState.unsettledEntries < 0 ||
+    !Number.isSafeInteger(input.segmentGuard.maxUnsettledEntries) ||
+    input.segmentGuard.maxUnsettledEntries < 0
+  ) {
+    throw new Error("Paid tournament unsettled entry count is invalid.");
+  }
+
+  const balance = parseExactHlx(
+    input.financialState.availableBalanceHlx,
+    "available balance",
+    false,
+  );
+  const unsettled = parseExactHlx(
+    input.financialState.unsettledExposureHlx,
+    "unsettled exposure",
+    false,
+  );
+  const segmentSpent = parseExactHlx(
+    input.financialState.segmentSpentHlx,
+    "segment spend",
+    false,
+  );
+  const tournamentSpent = parseExactHlx(
+    input.financialState.tournamentSpentHlx,
+    "tournament spend",
+    false,
+  );
+  const globalSpent = parseExactHlx(
+    input.financialState.globalSessionSpentHlx,
+    "global session spend",
+    false,
+  );
+  const realisedPnl = parseExactHlx(
+    input.financialState.realisedQualificationPnlHlx,
+    "realised qualification P/L",
+    true,
+  );
+  const maxExposure = parseExactHlx(
+    input.segmentGuard.maxUnsettledExposureHlx,
+    "maximum unsettled exposure",
+    false,
+  );
+  const segmentCeiling = parseExactHlx(
+    input.segmentGuard.segmentSpendCeilingHlx,
+    "segment spend ceiling",
+    false,
+  );
+  const tournamentCeiling = parseExactHlx(
+    input.segmentGuard.tournamentSpendCeilingHlx,
+    "tournament spend ceiling",
+    false,
+  );
+  const globalCeiling = parseExactHlx(
+    input.segmentGuard.globalSessionSpendCeilingHlx,
+    "global session spend ceiling",
+    false,
+  );
+  const stopLoss = parseExactHlx(
+    input.segmentGuard.realisedStopLossHlx,
+    "realised stop-loss",
+    true,
+  );
+  if (stopLoss.scaled > 0n) {
+    throw new Error("Paid tournament realised stop-loss must not be positive.");
+  }
+
+  let projected: {
+    unsettledEntries: number;
+    unsettledExposureHlx: string;
+    segmentSpentHlx: string;
+    tournamentSpentHlx: string;
+    globalSessionSpentHlx: string;
+  } | null = null;
+  if (input.fee.status !== "authoritative" || input.fee.asset !== "HLX") {
+    block("fee_not_authoritative_hlx");
+  } else {
+    const fee = parseExactHlx(input.fee.amountHlx, "entry fee", false);
+    const nextEntries = input.financialState.unsettledEntries + 1;
+    const nextUnsettled = unsettled.scaled + fee.scaled;
+    const nextSegment = segmentSpent.scaled + fee.scaled;
+    const nextTournament = tournamentSpent.scaled + fee.scaled;
+    const nextGlobal = globalSpent.scaled + fee.scaled;
+    projected = {
+      unsettledEntries: nextEntries,
+      unsettledExposureHlx: formatExactHlx(nextUnsettled),
+      segmentSpentHlx: formatExactHlx(nextSegment),
+      tournamentSpentHlx: formatExactHlx(nextTournament),
+      globalSessionSpentHlx: formatExactHlx(nextGlobal),
+    };
+    if (balance.scaled < fee.scaled) block("insufficient_hlx_balance");
+    if (nextEntries > input.segmentGuard.maxUnsettledEntries) {
+      block("max_unsettled_entries_reached");
+    }
+    if (nextUnsettled > maxExposure.scaled) {
+      block("max_unsettled_exposure_reached");
+    }
+    if (nextSegment > segmentCeiling.scaled) {
+      block("segment_spend_ceiling_reached");
+    }
+    if (nextTournament > tournamentCeiling.scaled) {
+      block("tournament_spend_ceiling_reached");
+    }
+    if (nextGlobal > globalCeiling.scaled) {
+      block("global_session_spend_ceiling_reached");
+    }
+  }
+  if (realisedPnl.scaled <= stopLoss.scaled) {
+    block("realised_stop_loss_triggered");
+  }
+
+  const localDryRunAllowed = blockers.length === 0;
+  return {
+    status: localDryRunAllowed ? "dry_run_ready" : "blocked",
+    blockers,
+    projected,
+    localDryRunAllowed,
     gameEntryAllowed: false,
   };
 }
