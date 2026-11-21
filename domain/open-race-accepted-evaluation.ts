@@ -7,7 +7,10 @@ import {
   evaluateOpenRaceOpportunity,
   type OpenRaceOpportunityDecision,
 } from "@/domain/open-race-opportunity-evaluation";
-import type { OwnerVaultOpenRaceScan } from "@/domain/open-race-owner-vault-scanner";
+import {
+  scanOwnerVaultOpenRaceOpportunities,
+  type OwnerVaultOpenRaceScan,
+} from "@/domain/open-race-owner-vault-scanner";
 import {
   resolveOpenRacePerformanceEvidence,
   type OpenRacePerformanceEvidence,
@@ -317,4 +320,28 @@ export function evaluateOwnerVaultOpenRaceAdvisories(
     queueAllowed: false,
     gameEntryAllowed: false,
   };
+}
+
+/**
+ * Runs one bounded canonical API-envelope replay through the complete ordinary
+ * Open Race advisory flow. The whole owned-Core set is derived from the same
+ * generation-bound serving input used by the scanner, preventing a caller
+ * from substituting a smaller Vault before eligibility and ranking.
+ */
+export function evaluateOwnerVaultOpenRaceEnvelope(
+  input: Readonly<{
+    scan: Parameters<typeof scanOwnerVaultOpenRaceOpportunities>[0];
+    profiles: readonly CorePerformanceProfile[];
+    fields: readonly OwnerVaultOpenRaceAdvisoryField[];
+  }>,
+): OwnerVaultOpenRaceAdvisoryBatch {
+  const ownerScan = scanOwnerVaultOpenRaceOpportunities(input.scan);
+  return evaluateOwnerVaultOpenRaceAdvisories({
+    ownerScan,
+    completeOwnedCoreIds: input.scan.ownedCores.map(
+      ({ canonical }) => canonical.sourceCoreId,
+    ),
+    profiles: input.profiles,
+    fields: input.fields,
+  });
 }
