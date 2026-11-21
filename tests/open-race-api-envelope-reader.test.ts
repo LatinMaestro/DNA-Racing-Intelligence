@@ -9,16 +9,19 @@ import type {
   DnaVaultCore,
 } from "@/lib/dna-open-lab-v1-client";
 
-function response<T>(result: T): DnaOpenLabResponse<T> {
+function response<T>(
+  result: T,
+  rateLimit: Partial<DnaOpenLabResponse<T>["rateLimit"]> = {},
+): DnaOpenLabResponse<T> {
   return {
     result,
     httpStatus: 200,
     rateLimit: {
       limit: 30,
-      remaining: 29,
+      remaining: rateLimit.remaining ?? 29,
       resetSeconds: 60,
       rateClass: "tier-1",
-      retryAfterSeconds: null,
+      retryAfterSeconds: rateLimit.retryAfterSeconds ?? null,
     },
   };
 }
@@ -180,6 +183,55 @@ describe("Open Race bounded API envelope reader", () => {
       requestCount: 2,
       envelope: null,
     });
+  });
+
+  it("stops before detail reads when provider allowance cannot cover the plan", async () => {
+    const detailCalls: string[][] = [];
+    const result = await read({
+      client: client({
+        racesActive: async () => response([activeRace], { remaining: 1 }),
+        raceFills: async (raceIds: readonly (string | number)[]) => {
+          detailCalls.push(raceIds.map(String));
+          return response([fill]);
+        },
+        raceDocs: async (raceIds: readonly (string | number)[]) => {
+          detailCalls.push(raceIds.map(String));
+          return response([document]);
+        },
+      }),
+    });
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reason: "provider_budget_unavailable",
+      requestCount: 2,
+      envelope: null,
+    });
+    expect(detailCalls).toEqual([]);
+  });
+
+  it("stops a multi-batch read when the provider lowers its allowance", async () => {
+    const races = Array.from({ length: 21 }, (_, index) => ({
+      ...activeRace,
+      rid: `race-${index + 1}`,
+    }));
+    let documentCalls = 0;
+    const result = await read({
+      client: client({
+        racesActive: async () => response(races, { remaining: 10 }),
+        raceFills: async () => response([], { remaining: 2 }),
+        raceDocs: async () => {
+          documentCalls += 1;
+          return response([]);
+        },
+      }),
+    });
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reason: "provider_budget_unavailable",
+      requestCount: 3,
+      envelope: null,
+    });
+    expect(documentCalls).toBe(0);
   });
 
   it("uses active inventory to avoid detail reads for ordinary races below the threshold", async () => {
