@@ -103,6 +103,10 @@ export function scanFreeDiscoveryLiveOpportunities(
 
   for (const active of input.activeRaces) {
     const raceId = active.sourceRaceId;
+    if (active.canonical.sourceRaceId !== raceId) {
+      excluded.push({ raceId, reason: "missing_or_incomplete_document" });
+      continue;
+    }
     const fill = fills.get(raceId);
     if (
       fill === undefined ||
@@ -126,6 +130,11 @@ export function scanFreeDiscoveryLiveOpportunities(
       ) ||
       document.canonical.sourceRaceId !== raceId ||
       document.canonical.sourceType !== "race_document" ||
+      !["open", "filling"].includes(
+        (document.canonical.status ?? "").toLowerCase(),
+      ) ||
+      (document.canonical.displayName !== undefined &&
+        document.canonical.displayName !== active.canonical.displayName) ||
       document.canonical.mode !== active.canonical.mode ||
       document.canonical.format !== active.canonical.format ||
       document.canonical.raceClassSourceValue !==
