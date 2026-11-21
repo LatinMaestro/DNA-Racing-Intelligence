@@ -24,6 +24,8 @@ export type OpenRaceApiAdvisoryOutcome =
       sourceStatus: "live_api" | "offline_replay";
       requestCount: number;
       activeRaceCount: number;
+      detailRaceCount: number;
+      prefilteredRaceCount: number;
       advisory: OwnerVaultOpenRaceAdvisoryBatch;
       advisoryOnly: true;
       queueAllowed: false;
@@ -89,6 +91,8 @@ export async function evaluateOpenRaceApiAdvisories(
       sourceStatus: read.sourceStatus,
       requestCount: read.requestCount,
       activeRaceCount: read.activeRaceCount,
+      detailRaceCount: read.detailRaceCount,
+      prefilteredRaceCount: read.prefilteredRaceCount,
       advisory,
       advisoryOnly: true,
       queueAllowed: false,
