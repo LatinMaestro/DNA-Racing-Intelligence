@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { OpenRacePreEntryRankingInput } from "@/domain/open-race-pre-entry-ranking";
 import {
+  evaluatePaidTournamentLocalDryRunGate,
   evaluatePaidTournamentOpponentField,
   screenPaidTournamentQualificationOpportunities,
   type PaidTournamentRaceCandidate,
@@ -322,5 +323,240 @@ describe("shared paid tournament opponent evaluation", () => {
         }),
       }),
     ).toThrow("do not match the screened live field");
+  });
+});
+
+
+function dryRunInput(
+  overrides: Partial<
+    Parameters<typeof evaluatePaidTournamentLocalDryRunGate>[0]
+  > = {},
+): Parameters<typeof evaluatePaidTournamentLocalDryRunGate>[0] {
+  const opportunity = screen().opportunities[0]!;
+  const evaluation = evaluatePaidTournamentOpponentField({
+    opportunity,
+    ranking: ranking(),
+  });
+  return {
+    evaluatedAt: time,
+    maximumAgeMinutes: 5,
+    evaluation,
+    currentRace: {
+      raceId: race.raceId,
+      status: "open",
+      gateCount: 6,
+      filledGateCount: 1,
+      entrantCoreIds: ["9001"],
+      observedAt: "2026-11-20T13:59:00.000Z",
+    },
+    currentOwnedCoreIds: ["10457", "42", "500"],
+    ownerControl: {
+      authorityStatus: "current",
+      globallyPaused: false,
+      killSwitchEngaged: false,
+      liveExecutionEnabled: false,
+    },
+    segmentGuard: {
+      authorityStatus: "current",
+      selectedCoreId: "10457",
+      asset: "HLX",
+      maxUnsettledEntries: 3,
+      maxUnsettledExposureHlx: "5",
+      segmentSpendCeilingHlx: "10",
+      tournamentSpendCeilingHlx: "20",
+      globalSessionSpendCeilingHlx: "30",
+      realisedStopLossHlx: "-5",
+      liveExecutionEnabled: false,
+    },
+    ownerConsentAt: "2026-11-20T13:59:30.000Z",
+    duplicateEntryStatus: "clear",
+    priorAttemptStatus: "none",
+    fee: {
+      status: "authoritative",
+      asset: "HLX",
+      amountHlx: "1.5",
+    },
+    financialState: {
+      observedAt: "2026-11-20T13:59:00.000Z",
+      availableBalanceHlx: "10",
+      unsettledEntries: 1,
+      unsettledExposureHlx: "2",
+      segmentSpentHlx: "4",
+      tournamentSpentHlx: "6",
+      globalSessionSpentHlx: "8",
+      realisedQualificationPnlHlx: "-1",
+    },
+    ...overrides,
+  };
+}
+
+describe("shared paid tournament local dry-run safety gate", () => {
+  it("permits only a local dry run when every current safety check passes", () => {
+    expect(evaluatePaidTournamentLocalDryRunGate(dryRunInput())).toEqual({
+      status: "dry_run_ready",
+      blockers: [],
+      projected: {
+        unsettledEntries: 2,
+        unsettledExposureHlx: "3.5",
+        segmentSpentHlx: "5.5",
+        tournamentSpentHlx: "7.5",
+        globalSessionSpentHlx: "9.5",
+      },
+      localDryRunAllowed: true,
+      gameEntryAllowed: false,
+    });
+  });
+
+  it("blocks paused, killed, duplicate or unreconciled activity", () => {
+    const result = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        ownerControl: {
+          authorityStatus: "current",
+          globallyPaused: true,
+          killSwitchEngaged: true,
+          liveExecutionEnabled: false,
+        },
+        duplicateEntryStatus: "detected",
+        priorAttemptStatus: "unreconciled",
+      }),
+    );
+    expect(result.status).toBe("blocked");
+    expect(result.blockers).toEqual(
+      expect.arrayContaining([
+        "globally_paused",
+        "kill_switch_engaged",
+        "duplicate_entry_risk",
+        "prior_attempt_unreconciled",
+      ]),
+    );
+    expect(result.localDryRunAllowed).toBe(false);
+    expect(result.gameEntryAllowed).toBe(false);
+  });
+
+  it("requires a fresh unchanged open field with no owned entrant", () => {
+    const result = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        currentRace: {
+          raceId: race.raceId,
+          status: "open",
+          gateCount: 6,
+          filledGateCount: 2,
+          entrantCoreIds: ["9001", "42"],
+          observedAt: "2026-11-20T13:59:00.000Z",
+        },
+      }),
+    );
+    expect(result.blockers).toEqual(
+      expect.arrayContaining(["field_changed", "owned_core_already_entered"]),
+    );
+  });
+
+  it("applies exact HLX balance, exposure and every spend ceiling", () => {
+    const result = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        segmentGuard: {
+          ...dryRunInput().segmentGuard,
+          maxUnsettledEntries: 1,
+          maxUnsettledExposureHlx: "3",
+          segmentSpendCeilingHlx: "5",
+          tournamentSpendCeilingHlx: "7",
+          globalSessionSpendCeilingHlx: "9",
+        },
+        financialState: {
+          ...dryRunInput().financialState,
+          availableBalanceHlx: "1.499999999999999999",
+        },
+      }),
+    );
+    expect(result.blockers).toEqual(
+      expect.arrayContaining([
+        "insufficient_hlx_balance",
+        "max_unsettled_entries_reached",
+        "max_unsettled_exposure_reached",
+        "segment_spend_ceiling_reached",
+        "tournament_spend_ceiling_reached",
+        "global_session_spend_ceiling_reached",
+      ]),
+    );
+  });
+
+  it("uses only realised P/L for the live poor-performance stop", () => {
+    const pendingButAllowed = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        segmentGuard: {
+          ...dryRunInput().segmentGuard,
+          maxUnsettledExposureHlx: "5",
+        },
+        fee: {
+          status: "authoritative",
+          asset: "HLX",
+          amountHlx: "1",
+        },
+        financialState: {
+          ...dryRunInput().financialState,
+          unsettledExposureHlx: "4",
+          realisedQualificationPnlHlx: "-4.999999999999999999",
+        },
+      }),
+    );
+    expect(pendingButAllowed.blockers).not.toContain(
+      "realised_stop_loss_triggered",
+    );
+
+    const stopped = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        financialState: {
+          ...dryRunInput().financialState,
+          realisedQualificationPnlHlx: "-5",
+        },
+      }),
+    );
+    expect(stopped.blockers).toContain("realised_stop_loss_triggered");
+  });
+
+  it("fails closed on stale authority or a non-authoritative fee", () => {
+    const result = evaluatePaidTournamentLocalDryRunGate(
+      dryRunInput({
+        ownerControl: {
+          authorityStatus: "stale",
+          globallyPaused: false,
+          killSwitchEngaged: false,
+          liveExecutionEnabled: false,
+        },
+        segmentGuard: {
+          ...dryRunInput().segmentGuard,
+          authorityStatus: "stale",
+        },
+        ownerConsentAt: "2026-11-20T13:40:00.000Z",
+        fee: { status: "unknown", asset: null },
+        financialState: {
+          ...dryRunInput().financialState,
+          observedAt: "2026-11-20T13:40:00.000Z",
+        },
+      }),
+    );
+    expect(result.blockers).toEqual(
+      expect.arrayContaining([
+        "owner_control_not_current",
+        "segment_guard_not_current",
+        "owner_consent_stale_or_invalid",
+        "fee_not_authoritative_hlx",
+        "financial_state_stale_or_invalid",
+      ]),
+    );
+  });
+
+  it("rejects inexact or over-precision HLX inputs", () => {
+    expect(() =>
+      evaluatePaidTournamentLocalDryRunGate(
+        dryRunInput({
+          fee: {
+            status: "authoritative",
+            asset: "HLX",
+            amountHlx: "0.0000000000000000001",
+          },
+        }),
+      ),
+    ).toThrow("exact HLX decimal");
   });
 });
