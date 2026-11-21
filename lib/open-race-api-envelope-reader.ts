@@ -34,6 +34,8 @@ export type OpenRaceApiEnvelopeReadOutcome =
       sourceStatus: "live_api" | "offline_replay";
       requestCount: number;
       activeRaceCount: number;
+      detailRaceCount: number;
+      prefilteredRaceCount: number;
       ownedCoreCount: number;
       envelope: Parameters<typeof scanOwnerVaultOpenRaceOpportunities>[0];
       gameEntryAllowed: false;
@@ -80,6 +82,21 @@ function batches<T>(values: readonly T[]): readonly (readonly T[])[] {
     result.push(values.slice(index, index + RACE_BATCH_SIZE));
   }
   return result;
+}
+
+function needsOrdinaryOpenRaceDetail(race: DnaActiveRace): boolean {
+  const status = race.status.trim().toLowerCase();
+  if (status !== "open" && status !== "filling") return false;
+  if (
+    !Number.isSafeInteger(race.rgate) ||
+    race.rgate < 2 ||
+    !Number.isSafeInteger(race.hs_in) ||
+    race.hs_in < 0 ||
+    race.hs_in > race.rgate
+  ) {
+    throw new Error("Open Race active inventory gate evidence is invalid.");
+  }
+  return race.hs_in >= Math.ceil(race.rgate / 2) && race.hs_in < race.rgate;
 }
 
 function sameValues(left: readonly string[], right: readonly string[]) {
@@ -155,7 +172,14 @@ export async function readOpenRaceApiEnvelope(
       return unavailable("active_race_limit_exceeded");
     }
 
-    const raceBatches = batches(activeResponse.result);
+    // The ordinary advisory gate rule is an inventory prefilter only. Paid
+    // tournament qualification does not call this reader and must not inherit
+    // the half-filled condition. Detail reads are therefore reserved for open,
+    // vacant ordinary races that already meet the documented threshold.
+    const detailRaces = activeResponse.result.filter(
+      needsOrdinaryOpenRaceDetail,
+    );
+    const raceBatches = batches(detailRaces);
     const requiredRequests = requestCount + raceBatches.length * 2;
     if (requiredRequests > input.maximumRequests) {
       return unavailable("request_budget_exceeded");
@@ -176,7 +200,7 @@ export async function readOpenRaceApiEnvelope(
       rawDocuments.push(...documents.result);
     }
 
-    const activeEvidence = activeResponse.result.map((raw) =>
+    const activeEvidence = detailRaces.map((raw) =>
       adaptDnaActiveRace({ raw, observedAt }),
     );
     const fillEvidence = rawFills.map((raw) =>
@@ -185,7 +209,7 @@ export async function readOpenRaceApiEnvelope(
     const documentEvidence = rawDocuments.map((raw) =>
       adaptDnaRaceDocument({ raw, observedAt, endpoint: "races.docs" }),
     );
-    const activeIds = activeResponse.result.map(dnaActiveRaceSourceId);
+    const activeIds = detailRaces.map(dnaActiveRaceSourceId);
     if (
       new Set(activeIds).size !== activeIds.length ||
       !sameValues(
@@ -242,7 +266,9 @@ export async function readOpenRaceApiEnvelope(
       status: "ready",
       sourceStatus: input.sourceStatus,
       requestCount,
-      activeRaceCount: activeRaces.length,
+      activeRaceCount: activeResponse.result.length,
+      detailRaceCount: activeRaces.length,
+      prefilteredRaceCount: activeResponse.result.length - activeRaces.length,
       ownedCoreCount: ownedCores.length,
       envelope: {
         evaluatedAt: observedAt,
