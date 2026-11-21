@@ -326,7 +326,6 @@ describe("shared paid tournament opponent evaluation", () => {
   });
 });
 
-
 function dryRunInput(
   overrides: Partial<
     Parameters<typeof evaluatePaidTournamentLocalDryRunGate>[0]
