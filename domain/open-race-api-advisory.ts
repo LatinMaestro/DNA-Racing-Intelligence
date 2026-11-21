@@ -1,8 +1,11 @@
 import type { CorePerformanceProfile } from "@/domain/core-performance";
 import {
+  buildOpenRaceAdvisoryFields,
+  type OpenRaceAdvisoryFieldEvidence,
+} from "@/domain/open-race-advisory-field-builder";
+import {
   evaluateOwnerVaultOpenRaceEnvelope,
   type OwnerVaultOpenRaceAdvisoryBatch,
-  type OwnerVaultOpenRaceAdvisoryField,
 } from "@/domain/open-race-accepted-evaluation";
 import {
   readOpenRaceApiEnvelope,
@@ -49,7 +52,7 @@ export async function evaluateOpenRaceApiAdvisories(
   input: Readonly<{
     read: ApiReadInput;
     profiles: readonly CorePerformanceProfile[];
-    fields: readonly OwnerVaultOpenRaceAdvisoryField[];
+    fieldEvidence: OpenRaceAdvisoryFieldEvidence;
   }>,
 ): Promise<OpenRaceApiAdvisoryOutcome> {
   const read = await readOpenRaceApiEnvelope(input.read);
@@ -68,10 +71,18 @@ export async function evaluateOpenRaceApiAdvisories(
   }
 
   try {
+    const fields = buildOpenRaceAdvisoryFields({
+      scan: read.envelope,
+      profiles: input.profiles,
+      evidence: input.fieldEvidence,
+    });
+    if (fields.status === "unavailable") {
+      throw new Error(fields.reason);
+    }
     const advisory = evaluateOwnerVaultOpenRaceEnvelope({
       scan: read.envelope,
       profiles: input.profiles,
-      fields: input.fields,
+      fields: fields.fields,
     });
     return {
       status: "ready",
