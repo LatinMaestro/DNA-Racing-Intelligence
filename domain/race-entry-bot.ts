@@ -405,7 +405,7 @@ function parseExactHlx(
     ? /^-?(?:0|[1-9]\d{0,19})(?:\.\d{1,18})?$/u
     : /^(?:0|[1-9]\d{0,19})(?:\.\d{1,18})?$/u;
   if (!pattern.test(value)) {
-    throw new Error(\`Paid tournament \${field} must be an exact HLX decimal.\`);
+    throw new Error(`Paid tournament ${field} must be an exact HLX decimal.`);
   }
   const negative = value.startsWith("-");
   const unsigned = negative ? value.slice(1) : value;
@@ -427,7 +427,7 @@ function formatExactHlx(value: bigint): string {
     .toString()
     .padStart(18, "0")
     .replace(/0+$/u, "");
-  return \`\${negative ? "-" : ""}\${whole}\${fraction ? \`.\${fraction}\` : ""}\`;
+  return `${negative ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
 }
 
 function currentAuthorityTime(
