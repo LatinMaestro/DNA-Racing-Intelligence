@@ -1,9 +1,17 @@
 import type { CorePerformanceProfile } from "@/domain/core-performance";
 import {
+  evaluateOpenRaceEligibility,
+  type OpenRaceEligibilityInput,
+} from "@/domain/open-race-eligibility";
+import {
   evaluateOpenRaceOpportunity,
   type OpenRaceOpportunityDecision,
 } from "@/domain/open-race-opportunity-evaluation";
-import type { OpenRacePerformanceEvidence } from "@/domain/open-race-performance-evidence";
+import type { OwnerVaultOpenRaceScan } from "@/domain/open-race-owner-vault-scanner";
+import {
+  resolveOpenRacePerformanceEvidence,
+  type OpenRacePerformanceEvidence,
+} from "@/domain/open-race-performance-evidence";
 import type {
   OpenRaceRankedCandidate,
   OpenRaceRankedOpponent,
@@ -153,4 +161,160 @@ export function evaluateOpenRaceAcceptedEvidence(
   }
 
   return evaluateOpenRaceOpportunity(input.evaluation);
+}
+
+export type OwnerVaultOpenRaceAdvisoryField = Readonly<{
+  raceId: string;
+  eligibility: OpenRaceEligibilityInput;
+  rankingId: string;
+  evaluatedAt: string;
+  dataCurrentThrough: string;
+  freshness: Parameters<typeof evaluateOpenRaceOpportunity>[0]["freshness"];
+  materialGapMs: number;
+  eligibleCandidates: readonly OpenRaceRankedCandidate[];
+  opponents: readonly OpenRaceRankedOpponent[];
+}>;
+
+export type OwnerVaultOpenRaceAdvisoryBatch = Readonly<{
+  sourceGenerationId: string;
+  racesScanned: number;
+  qualifyingRaceCount: number;
+  ownerCoreCount: number;
+  eligibleCandidateComparisons: number;
+  opponentComparisons: number;
+  evaluations: readonly OpenRaceAcceptedEvaluation[];
+  advisoryOnly: true;
+  queueAllowed: false;
+  gameEntryAllowed: false;
+}>;
+
+/**
+ * Coordinates the existing ordinary Open Race advisory steps for every race
+ * that passed the whole-Vault live scanner. Each owner Core is hard-filtered
+ * for eligibility before accepted performance evidence can reach ranking.
+ * Tournament qualification and Free Discovery use their separate selectors;
+ * this ordinary advisory coordinator does not alter either execution lane.
+ */
+export function evaluateOwnerVaultOpenRaceAdvisories(
+  input: Readonly<{
+    ownerScan: OwnerVaultOpenRaceScan;
+    completeOwnedCoreIds: readonly string[];
+    profiles: readonly CorePerformanceProfile[];
+    fields: readonly OwnerVaultOpenRaceAdvisoryField[];
+  }>,
+): OwnerVaultOpenRaceAdvisoryBatch {
+  const ownedCoreIds = [...input.completeOwnedCoreIds];
+  if (
+    ownedCoreIds.length !== input.ownerScan.ownedCoreCount ||
+    new Set(ownedCoreIds).size !== ownedCoreIds.length ||
+    ownedCoreIds.some((coreId) => !/^[1-9]\d*$/u.test(coreId))
+  ) {
+    throw new Error(
+      "Open Race advisory owner Cores do not match the whole-Vault scan.",
+    );
+  }
+  if (
+    input.ownerScan.ownerCoreUniverse !== "complete_serving_generation" ||
+    input.ownerScan.gameEntryAllowed !== false ||
+    input.ownerScan.scan.gameEntryAllowed !== false ||
+    input.ownerScan.enteredOpponentCount !==
+      input.ownerScan.scan.opportunities.reduce(
+        (count, opportunity) =>
+          count + opportunity.enteredOpponentCoreIds.length,
+        0,
+      )
+  ) {
+    throw new Error("Open Race advisory scan authority is invalid.");
+  }
+
+  const opportunities = input.ownerScan.scan.opportunities;
+  if (
+    opportunities.length > 100 ||
+    input.fields.length !== opportunities.length ||
+    new Set(input.fields.map(({ raceId }) => raceId)).size !==
+      input.fields.length ||
+    !sameIdentitySet(
+      opportunities.map(({ raceId }) => raceId),
+      input.fields.map(({ raceId }) => raceId),
+    )
+  ) {
+    throw new Error(
+      "Open Race advisory fields do not match the verified opportunities.",
+    );
+  }
+
+  const fields = new Map(input.fields.map((field) => [field.raceId, field]));
+  let eligibleCandidateComparisons = 0;
+  let opponentComparisons = 0;
+  const evaluations = opportunities.map((opportunity) => {
+    const field = fields.get(opportunity.raceId)!;
+    if (
+      !sameIdentitySet(
+        field.eligibility.cores.map(({ coreId }) => coreId),
+        ownedCoreIds,
+      )
+    ) {
+      throw new Error(
+        "Open Race eligibility does not cover the complete owner Vault.",
+      );
+    }
+    if (
+      !sameIdentitySet(
+        field.opponents.map(({ coreId }) => coreId),
+        opportunity.enteredOpponentCoreIds,
+      )
+    ) {
+      throw new Error(
+        "Open Race advisory opponents do not match the verified field.",
+      );
+    }
+
+    const eligibility = evaluateOpenRaceEligibility(field.eligibility);
+    if (
+      !sameIdentitySet(
+        eligibility.eligibleCoreIds,
+        field.eligibleCandidates.map(({ coreId }) => coreId),
+      )
+    ) {
+      throw new Error(
+        "Open Race ranked candidates do not match hard eligibility.",
+      );
+    }
+    eligibleCandidateComparisons += eligibility.eligibleCoreIds.length;
+    opponentComparisons += field.opponents.length;
+
+    const evidence = resolveOpenRacePerformanceEvidence({
+      opportunity,
+      authority: "accepted_profile_read_model",
+      completeOwnedCoreIds: ownedCoreIds,
+      eligibleOwnedCoreIds: eligibility.eligibleCoreIds,
+      profiles: input.profiles,
+    });
+    return evaluateOpenRaceAcceptedEvidence({
+      evidence,
+      evaluation: {
+        rankingId: field.rankingId,
+        evaluatedAt: field.evaluatedAt,
+        dataCurrentThrough: field.dataCurrentThrough,
+        freshness: field.freshness,
+        materialGapMs: field.materialGapMs,
+        opportunity,
+        eligibleCandidates: field.eligibleCandidates,
+        opponents: field.opponents,
+      },
+    });
+  });
+
+  return {
+    sourceGenerationId: input.ownerScan.sourceGenerationId,
+    racesScanned: opportunities.length + input.ownerScan.scan.excluded.length,
+    qualifyingRaceCount: opportunities.length,
+    ownerCoreCount: ownedCoreIds.length,
+    eligibleCandidateComparisons,
+    opponentComparisons,
+    evaluations,
+    advisoryOnly: true,
+    queueAllowed: false,
+    gameEntryAllowed: false,
+  };
 }
