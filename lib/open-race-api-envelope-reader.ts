@@ -47,6 +47,7 @@ export type OpenRaceApiEnvelopeReadOutcome =
       reason:
         | "source_unavailable"
         | "request_budget_exceeded"
+        | "provider_budget_unavailable"
         | "active_race_limit_exceeded"
         | "incomplete_race_coverage";
       requestCount: number;
@@ -75,6 +76,18 @@ function row<T>(
 
 function successful<T>(response: DnaOpenLabResponse<T>): boolean {
   return response.httpStatus >= 200 && response.httpStatus < 300;
+}
+
+function providerAllows(
+  response: DnaOpenLabResponse<unknown>,
+  plannedRequests: number,
+): boolean {
+  return (
+    (response.rateLimit.retryAfterSeconds === null ||
+      response.rateLimit.retryAfterSeconds === 0) &&
+    (response.rateLimit.remaining === null ||
+      response.rateLimit.remaining >= plannedRequests)
+  );
 }
 
 function batches<T>(values: readonly T[]): readonly (readonly T[])[] {
@@ -185,17 +198,35 @@ export async function readOpenRaceApiEnvelope(
     if (requiredRequests > input.maximumRequests) {
       return unavailable("request_budget_exceeded");
     }
+    const plannedDetailRequests = raceBatches.length * 2;
+    if (
+      !providerAllows(vaultResponse, plannedDetailRequests) ||
+      !providerAllows(activeResponse, plannedDetailRequests)
+    ) {
+      return unavailable("provider_budget_unavailable");
+    }
 
     const rawFills: DnaRaceFill[] = [];
     const rawDocuments: DnaRaceDocument[] = [];
-    for (const batch of raceBatches) {
+    for (const [batchIndex, batch] of raceBatches.entries()) {
       const raceIds: readonly DnaRaceIdentifier[] = batch.map(({ rid }) => rid);
       requestCount += 1;
       const fills = await input.client.raceFills(raceIds);
+      if (!successful(fills)) {
+        return unavailable("source_unavailable");
+      }
+      const callsAfterFills = 1 + (raceBatches.length - batchIndex - 1) * 2;
+      if (!providerAllows(fills, callsAfterFills)) {
+        return unavailable("provider_budget_unavailable");
+      }
       requestCount += 1;
       const documents = await input.client.raceDocs(raceIds);
-      if (!successful(fills) || !successful(documents)) {
+      if (!successful(documents)) {
         return unavailable("source_unavailable");
+      }
+      const callsAfterDocuments = (raceBatches.length - batchIndex - 1) * 2;
+      if (!providerAllows(documents, callsAfterDocuments)) {
+        return unavailable("provider_budget_unavailable");
       }
       rawFills.push(...fills.result);
       rawDocuments.push(...documents.result);
