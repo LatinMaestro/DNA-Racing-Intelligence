@@ -192,6 +192,8 @@ describe("Open Race API advisory orchestration", () => {
       sourceStatus: "offline_replay",
       requestCount: 4,
       activeRaceCount: 1,
+      detailRaceCount: 1,
+      prefilteredRaceCount: 0,
       advisory: {
         racesScanned: 1,
         qualifyingRaceCount: 1,
