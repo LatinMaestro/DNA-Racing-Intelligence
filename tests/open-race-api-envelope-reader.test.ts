@@ -104,6 +104,8 @@ describe("Open Race bounded API envelope reader", () => {
       sourceStatus: "offline_replay",
       requestCount: 4,
       activeRaceCount: 1,
+      detailRaceCount: 1,
+      prefilteredRaceCount: 0,
       ownedCoreCount: 214,
       envelope: {
         currentRaces: {
@@ -175,6 +177,52 @@ describe("Open Race bounded API envelope reader", () => {
     expect(result).toMatchObject({
       status: "unavailable",
       reason: "request_budget_exceeded",
+      requestCount: 2,
+      envelope: null,
+    });
+  });
+
+  it("uses active inventory to avoid detail reads for ordinary races below the threshold", async () => {
+    const detailCalls: string[][] = [];
+    const underfilled = Array.from({ length: 21 }, (_, index) => ({
+      ...activeRace,
+      rid: `underfilled-${index + 1}`,
+      hs_in: 2,
+    }));
+    const result = await read({
+      maximumRequests: 2,
+      client: client({
+        racesActive: async () => response(underfilled),
+        raceFills: async (raceIds: readonly (string | number)[]) => {
+          detailCalls.push(raceIds.map(String));
+          return response([]);
+        },
+        raceDocs: async (raceIds: readonly (string | number)[]) => {
+          detailCalls.push(raceIds.map(String));
+          return response([]);
+        },
+      }),
+    });
+    expect(result).toMatchObject({
+      status: "ready",
+      requestCount: 2,
+      activeRaceCount: 21,
+      detailRaceCount: 0,
+      prefilteredRaceCount: 21,
+    });
+    expect(detailCalls).toEqual([]);
+  });
+
+  it("fails closed when an open inventory row has invalid gate evidence", async () => {
+    const result = await read({
+      client: client({
+        racesActive: async () =>
+          response([{ ...activeRace, rgate: 0, hs_in: 0 }]),
+      }),
+    });
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reason: "source_unavailable",
       requestCount: 2,
       envelope: null,
     });
