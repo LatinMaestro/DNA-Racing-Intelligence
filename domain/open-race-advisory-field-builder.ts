@@ -5,6 +5,7 @@ import {
   type OpenRaceEligibilityRules,
 } from "@/domain/open-race-eligibility";
 import { scanOwnerVaultOpenRaceOpportunities } from "@/domain/open-race-owner-vault-scanner";
+import type { OpenRaceTimeProfile } from "@/domain/open-race-pre-entry-ranking";
 
 export type OpenRaceAdvisoryFieldEvidence = Readonly<{
   evaluatedAt: string;
@@ -18,6 +19,12 @@ export type OpenRaceAdvisoryFieldEvidence = Readonly<{
   maidenStateByCoreId: Readonly<
     Record<string, "eligible" | "not_eligible" | "unknown" | "invalid">
   >;
+  rankingProfiles: readonly Readonly<{
+    coreId: string;
+    mode: "bike" | "car" | "horse";
+    distanceMeters: number;
+    profile: OpenRaceTimeProfile;
+  }>[];
 }>;
 
 export type OpenRaceAdvisoryFieldBuild =
@@ -37,19 +44,6 @@ export type OpenRaceAdvisoryFieldBuild =
 
 function profileKey(input: { coreId: string; mode: string; distance: number }) {
   return JSON.stringify([input.coreId, input.mode, input.distance]);
-}
-
-function timeProfile(profile: CorePerformanceProfile) {
-  const optimisticTimeMs = Math.round(profile.elapsedTime.bestMilliseconds);
-  const medianTimeMs = Math.round(profile.elapsedTime.medianMilliseconds);
-  return {
-    optimisticTimeMs,
-    medianTimeMs,
-    conservativeTimeMs:
-      medianTimeMs + Math.max(0, medianTimeMs - optimisticTimeMs),
-    sampleCount: profile.raceCount,
-    sampleStatus: profile.sampleStatus,
-  };
 }
 
 function historicalStars(profile: CorePerformanceProfile) {
@@ -107,6 +101,22 @@ export function buildOpenRaceAdvisoryFields(
     }
     profiles.set(key, profile);
   }
+  const rankingProfiles = new Map<string, OpenRaceTimeProfile>();
+  for (const ranked of input.evidence.rankingProfiles) {
+    const key = profileKey({
+      coreId: ranked.coreId,
+      mode: ranked.mode,
+      distance: ranked.distanceMeters,
+    });
+    if (rankingProfiles.has(key)) {
+      return {
+        status: "unavailable",
+        reason: "duplicate_profile",
+        fields: null,
+      };
+    }
+    rankingProfiles.set(key, ranked.profile);
+  }
 
   const fields: OwnerVaultOpenRaceAdvisoryField[] = [];
   for (const opportunity of ownerScan.scan.opportunities) {
@@ -147,16 +157,23 @@ export function buildOpenRaceAdvisoryFields(
         fields: null,
       };
     }
-    const candidateProfiles = eligible.map((coreId) =>
-      profiles.get(
-        profileKey({
-          coreId,
-          mode: opportunity.mode,
-          distance: opportunity.distanceMetres,
-        }),
-      ),
-    );
-    if (candidateProfiles.some((profile) => profile === undefined)) {
+    const candidateProfiles = eligible.map((coreId) => {
+      const key = profileKey({
+        coreId,
+        mode: opportunity.mode,
+        distance: opportunity.distanceMetres,
+      });
+      return {
+        accepted: profiles.get(key),
+        ranked: rankingProfiles.get(key),
+      };
+    });
+    if (
+      candidateProfiles.some(
+        ({ accepted, ranked }) =>
+          accepted === undefined || ranked === undefined,
+      )
+    ) {
       return {
         status: "unavailable",
         reason: "missing_candidate_profile",
@@ -171,28 +188,32 @@ export function buildOpenRaceAdvisoryFields(
       dataCurrentThrough: input.evidence.dataCurrentThrough,
       freshness: input.evidence.freshness,
       materialGapMs: input.evidence.materialGapMs,
-      eligibleCandidates: candidateProfiles.map((profile) => ({
-        coreId: profile!.coreId,
+      eligibleCandidates: candidateProfiles.map(({ accepted, ranked }) => ({
+        coreId: accepted!.coreId,
         eligibilityStatus: "eligible",
         mode: opportunity.mode,
         distanceMeters: opportunity.distanceMetres,
-        profile: timeProfile(profile!),
-        historicalStars: historicalStars(profile!),
+        profile: ranked!,
+        historicalStars: historicalStars(accepted!),
       })),
       opponents: opportunity.enteredOpponentCoreIds.map((coreId) => {
-        const profile = profiles.get(
-          profileKey({
-            coreId,
-            mode: opportunity.mode,
-            distance: opportunity.distanceMetres,
-          }),
-        );
+        const key = profileKey({
+          coreId,
+          mode: opportunity.mode,
+          distance: opportunity.distanceMetres,
+        });
+        const accepted = profiles.get(key);
+        const ranked = rankingProfiles.get(key);
         return {
           coreId,
-          identityStatus: profile === undefined ? "unresolved" : "confirmed",
+          identityStatus:
+            accepted === undefined || ranked === undefined
+              ? "unresolved"
+              : "confirmed",
           mode: opportunity.mode,
           distanceMeters: opportunity.distanceMetres,
-          profile: profile === undefined ? null : timeProfile(profile),
+          profile:
+            accepted === undefined || ranked === undefined ? null : ranked,
         };
       }),
     });
