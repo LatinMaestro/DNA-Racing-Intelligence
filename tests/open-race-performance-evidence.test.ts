@@ -130,4 +130,19 @@ describe("Open Race accepted performance evidence", () => {
       "No owned Core is confirmed eligible for this race.",
     );
   });
+
+  it("withholds hypothesis-only evidence instead of treating it as favourable", () => {
+    const result = resolve({
+      profiles: [
+        ...exactProfiles.slice(0, 3),
+        profile("9003", {
+          raceCount: 9,
+          sampleStatus: "hypothesis_only",
+        }),
+      ],
+    });
+    expect(result.status).toBe("unavailable");
+    expect(result.hypothesisOnlyCoreIds).toEqual(["9003"]);
+    expect(result.readyForRanking).toBe(false);
+  });
 });
