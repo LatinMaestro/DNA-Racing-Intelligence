@@ -56,6 +56,9 @@ const race: DnaActiveRace = {
   cb: 1600,
   rgate: 6,
   hs_in: 3,
+  fee_fixed: { HLX: 5 },
+  feeusd: 5,
+  paytoken: "HLX",
   start_time: null,
   end_time: null,
   version: 1,
@@ -81,6 +84,13 @@ const document: DnaRaceDocument = {
   version: 1,
   rvmode: "bike",
   hids: [9001, 9002, 9003],
+  fee_fixed: { HLX: 5 },
+  feeusd: 5,
+  paytoken: "HLX",
+  payout: "top two",
+  prize: 18,
+  prizeusd: 18,
+  prize_map: { first: 12, second: 6 },
 };
 
 function performance(
@@ -204,6 +214,19 @@ describe("Open Race API advisory orchestration", () => {
           {
             decision: "provisional_pick",
             recommendedCoreId: "10457",
+            economics: {
+              fixedFeesByAsset: {
+                value: { HLX: 5 },
+                evidenceStatus: "source_supported",
+              },
+              payoutDescription: {
+                value: "top two",
+                evidenceStatus: "source_supported",
+              },
+              prize: { value: 18, evidenceStatus: "source_supported" },
+            },
+            entryLink: null,
+            entryLinkEvidenceStatus: "unavailable",
           },
         ],
         queueAllowed: false,
