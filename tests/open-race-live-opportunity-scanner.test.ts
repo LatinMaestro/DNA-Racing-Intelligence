@@ -22,6 +22,9 @@ const active: CanonicalActiveRaceSnapshot = {
   mode: "horse",
   format: "normal",
   raceClassSourceValue: 2,
+  fixedFeesByAsset: { HLX: 5 },
+  entryFeeUsd: 5,
+  paymentAsset: "HLX",
   startAt: null,
   endAt: null,
 };
@@ -45,6 +48,13 @@ const document: CanonicalRaceDocumentMetadata = {
   gateCount: 6,
   filledGateCount: 3,
   entrantCoreIds: ["10", "11", "12"],
+  fixedFeesByAsset: { HLX: 5 },
+  entryFeeUsd: 5,
+  paymentAsset: "HLX",
+  payoutSourceValue: "top two",
+  prizeSourceValue: 18,
+  prizeUsdSourceValue: 18,
+  prizeDistributionSourceValue: { first: 12, second: 6 },
 };
 function scan(
   overrides: Partial<
@@ -71,6 +81,23 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
           gateCount: 6,
           vacantGates: 3,
           enteredOpponentCoreIds: ["10", "11", "12"],
+          economics: {
+            fixedFeesByAsset: {
+              value: { HLX: 5 },
+              evidenceStatus: "source_supported",
+            },
+            paymentAsset: {
+              value: "HLX",
+              evidenceStatus: "source_supported",
+            },
+            payoutDescription: {
+              value: "top two",
+              evidenceStatus: "source_supported",
+            },
+            prize: { value: 18, evidenceStatus: "source_supported" },
+          },
+          entryLink: null,
+          entryLinkEvidenceStatus: "unavailable",
           eligibility: "needs_owner_core_restriction_check",
           rank: "not_evaluated",
           gameEntryAllowed: false,
@@ -78,6 +105,41 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
       ],
       excluded: [],
       gameEntryAllowed: false,
+    });
+  });
+  it("rejects changed fee evidence before recommendation", () => {
+    expect(
+      scan({
+        documents: [
+          row("race-1", {
+            ...document,
+            fixedFeesByAsset: { HLX: 6 },
+          }),
+        ],
+      }).excluded[0]?.reason,
+    ).toBe("conflicting_economics");
+  });
+  it("preserves source-supported economics when only one read operation publishes them", () => {
+    const result = scan({
+      activeRaces: [
+        row("race-1", {
+          ...active,
+          fixedFeesByAsset: undefined,
+          entryFeeUsd: undefined,
+          paymentAsset: undefined,
+        }),
+      ],
+    });
+    expect(result.opportunities[0]?.economics).toMatchObject({
+      fixedFeesByAsset: {
+        value: { HLX: 5 },
+        evidenceStatus: "source_supported",
+      },
+      entryFeeUsd: { value: 5, evidenceStatus: "source_supported" },
+      paymentAsset: {
+        value: "HLX",
+        evidenceStatus: "source_supported",
+      },
     });
   });
   it("rounds odd gate thresholds upward and rejects underfilled races", () => {
