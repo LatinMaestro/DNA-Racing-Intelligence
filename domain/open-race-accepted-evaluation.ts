@@ -15,6 +15,7 @@ import {
   resolveOpenRacePerformanceEvidence,
   type OpenRacePerformanceEvidence,
 } from "@/domain/open-race-performance-evidence";
+import type { OpenRaceEconomicEvidence } from "@/domain/open-race-live-opportunity-scanner";
 import type {
   OpenRaceRankedCandidate,
   OpenRaceRankedOpponent,
@@ -29,6 +30,9 @@ export type OpenRaceAcceptedEvaluation =
       viableAlternativeCoreIds: readonly [];
       explanation: readonly string[];
       ranking: null;
+      economics: OpenRaceEconomicEvidence | null;
+      entryLink: string | null;
+      entryLinkEvidenceStatus: "confirmed" | "unavailable";
       advisoryOnly: true;
       queueAllowed: false;
       gameEntryAllowed: false;
@@ -94,6 +98,10 @@ export function evaluateOpenRaceAcceptedEvidence(
           ? input.evidence.reasons
           : ["Accepted exact-context history is unavailable."],
       ranking: null,
+      economics: input.evaluation.opportunity.economics ?? null,
+      entryLink: input.evaluation.opportunity.entryLink ?? null,
+      entryLinkEvidenceStatus:
+        input.evaluation.opportunity.entryLinkEvidenceStatus ?? "unavailable",
       advisoryOnly: true,
       queueAllowed: false,
       gameEntryAllowed: false,
