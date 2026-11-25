@@ -120,15 +120,23 @@ describe("Open Lab live race opportunity scanner (no game entry)", () => {
     ).toBe("conflicting_economics");
   });
   it("preserves source-supported economics when only one read operation publishes them", () => {
+    const {
+      fixedFeesByAsset: omittedFixedFees,
+      entryFeeUsd: omittedEntryFeeUsd,
+      paymentAsset: omittedPaymentAsset,
+      ...activeWithoutEconomics
+    } = active;
+    expect({
+      omittedFixedFees,
+      omittedEntryFeeUsd,
+      omittedPaymentAsset,
+    }).toEqual({
+      omittedFixedFees: { HLX: 5 },
+      omittedEntryFeeUsd: 5,
+      omittedPaymentAsset: "HLX",
+    });
     const result = scan({
-      activeRaces: [
-        row("race-1", {
-          ...active,
-          fixedFeesByAsset: undefined,
-          entryFeeUsd: undefined,
-          paymentAsset: undefined,
-        }),
-      ],
+      activeRaces: [row("race-1", activeWithoutEconomics)],
     });
     expect(result.opportunities[0]?.economics).toMatchObject({
       fixedFeesByAsset: {
