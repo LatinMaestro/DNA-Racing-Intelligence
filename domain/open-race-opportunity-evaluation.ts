@@ -1,4 +1,7 @@
-import type { OpenRaceScanOpportunity } from "@/domain/open-race-live-opportunity-scanner";
+import type {
+  OpenRaceEconomicEvidence,
+  OpenRaceScanOpportunity,
+} from "@/domain/open-race-live-opportunity-scanner";
 import {
   rankOpenRacePreEntry,
   type OpenRacePreEntryRankingInput,
@@ -14,6 +17,9 @@ export type OpenRaceOpportunityDecision = Readonly<{
   viableAlternativeCoreIds: readonly string[];
   explanation: readonly string[];
   ranking: OpenRacePreEntryRankingResult;
+  economics: OpenRaceEconomicEvidence | null;
+  entryLink: string | null;
+  entryLinkEvidenceStatus: "confirmed" | "unavailable";
   advisoryOnly: true;
   queueAllowed: false;
   gameEntryAllowed: false;
@@ -88,6 +94,10 @@ export function evaluateOpenRaceOpportunity(
       viableAlternativeCoreIds,
       explanation: ranking.reviewReasons,
       ranking,
+      economics: input.opportunity.economics ?? null,
+      entryLink: input.opportunity.entryLink ?? null,
+      entryLinkEvidenceStatus:
+        input.opportunity.entryLinkEvidenceStatus ?? "unavailable",
       advisoryOnly: true,
       queueAllowed: false,
       gameEntryAllowed: false,
@@ -103,6 +113,10 @@ export function evaluateOpenRaceOpportunity(
         "Even the strongest eligible Core's optimistic time is slower than the strongest opponent's conservative time.",
       ],
       ranking,
+      economics: input.opportunity.economics ?? null,
+      entryLink: input.opportunity.entryLink ?? null,
+      entryLinkEvidenceStatus:
+        input.opportunity.entryLinkEvidenceStatus ?? "unavailable",
       advisoryOnly: true,
       queueAllowed: false,
       gameEntryAllowed: false,
@@ -130,6 +144,10 @@ export function evaluateOpenRaceOpportunity(
           : `The leading eligible Core's median time is ${Math.abs(opponentMargin)} ms slower than the strongest verified opponent, but their accepted time ranges overlap.`,
     ],
     ranking,
+    economics: input.opportunity.economics ?? null,
+    entryLink: input.opportunity.entryLink ?? null,
+    entryLinkEvidenceStatus:
+      input.opportunity.entryLinkEvidenceStatus ?? "unavailable",
     advisoryOnly: true,
     queueAllowed: false,
     gameEntryAllowed: false,
