@@ -2,6 +2,7 @@ import type {
   CanonicalActiveRaceSnapshot,
   CanonicalRaceDocumentMetadata,
   CanonicalRaceFillSnapshot,
+  JsonSourceValue,
 } from "@/lib/dna-open-lab-v1-adapters";
 import type { DnaCurrentRaceMaterializationRow } from "@/lib/dna-open-lab-current-race-materialization";
 
@@ -14,7 +15,39 @@ export type OpenRaceScanExclusion =
   | "stale_or_invalid_evidence"
   | "missing_or_conflicting_fill"
   | "missing_or_incomplete_document"
+  | "conflicting_economics"
   | "owned_core_already_entered";
+
+export type OpenRaceEconomicEvidence = Readonly<{
+  fixedFeesByAsset: Readonly<{
+    value: Readonly<Record<string, number>> | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  entryFeeUsd: Readonly<{
+    value: number | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  paymentAsset: Readonly<{
+    value: string | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  payoutDescription: Readonly<{
+    value: string | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  prize: Readonly<{
+    value: number | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  prizeUsd: Readonly<{
+    value: number | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+  prizeDistribution: Readonly<{
+    value: JsonSourceValue | null;
+    evidenceStatus: "source_supported" | "unavailable";
+  }>;
+}>;
 
 export type OpenRaceScanOpportunity = Readonly<{
   raceId: string;
@@ -26,6 +59,9 @@ export type OpenRaceScanOpportunity = Readonly<{
   vacantGates: number;
   enteredOpponentCoreIds: readonly string[];
   observedAt: string;
+  economics?: OpenRaceEconomicEvidence;
+  entryLink?: string | null;
+  entryLinkEvidenceStatus?: "confirmed" | "unavailable";
   /** Eligible owner Cores cannot be determined until all restrictions are verified. */
   eligibility: "needs_owner_core_restriction_check";
   rank: "not_evaluated";
@@ -72,6 +108,62 @@ function indexed<T extends { sourceRaceId: string }>(
     result.set(row.sourceRaceId, row);
   }
   return result;
+}
+
+function sameRecord(
+  left: Readonly<Record<string, number>>,
+  right: Readonly<Record<string, number>>,
+): boolean {
+  const leftEntries = Object.entries(left).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  const rightEntries = Object.entries(right).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  return (
+    leftEntries.length === rightEntries.length &&
+    leftEntries.every(
+      ([key, value], index) =>
+        rightEntries[index]?.[0] === key && rightEntries[index]?.[1] === value,
+    )
+  );
+}
+
+function matchingField<T>(
+  active: T | undefined,
+  document: T | undefined,
+  same: (left: T, right: T) => boolean = Object.is,
+):
+  | Readonly<{ conflict: true; value: null; evidenceStatus: "unavailable" }>
+  | Readonly<{
+      conflict: false;
+      value: T | null;
+      evidenceStatus: "source_supported" | "unavailable";
+    }> {
+  if (active === undefined && document === undefined) {
+    return { conflict: false, value: null, evidenceStatus: "unavailable" };
+  }
+  if (
+    active !== undefined &&
+    document !== undefined &&
+    !same(active, document)
+  ) {
+    return { conflict: true, value: null, evidenceStatus: "unavailable" };
+  }
+  return {
+    conflict: false,
+    value: active ?? document ?? null,
+    evidenceStatus: "source_supported",
+  };
+}
+
+function documentedField<T>(value: T | undefined): Readonly<{
+  value: T | null;
+  evidenceStatus: "source_supported" | "unavailable";
+}> {
+  return value === undefined
+    ? { value: null, evidenceStatus: "unavailable" }
+    : { value, evidenceStatus: "source_supported" };
 }
 
 /**
@@ -186,6 +278,23 @@ export function scanVerifiedOpenRaceOpportunities(
       skip("missing_or_incomplete_document");
       continue;
     }
+    const fixedFees = matchingField(
+      race.fixedFeesByAsset,
+      doc.canonical.fixedFeesByAsset,
+      sameRecord,
+    );
+    const entryFeeUsd = matchingField(
+      race.entryFeeUsd,
+      doc.canonical.entryFeeUsd,
+    );
+    const paymentAsset = matchingField(
+      race.paymentAsset,
+      doc.canonical.paymentAsset,
+    );
+    if (fixedFees.conflict || entryFeeUsd.conflict || paymentAsset.conflict) {
+      skip("conflicting_economics");
+      continue;
+    }
     opportunities.push({
       raceId,
       mode: race.mode,
@@ -196,6 +305,28 @@ export function scanVerifiedOpenRaceOpportunities(
       vacantGates: gateCount - filled,
       enteredOpponentCoreIds: [...fill.canonical.entrantCoreIds],
       observedAt: active.observedAt,
+      economics: {
+        fixedFeesByAsset: {
+          value: fixedFees.value,
+          evidenceStatus: fixedFees.evidenceStatus,
+        },
+        entryFeeUsd: {
+          value: entryFeeUsd.value,
+          evidenceStatus: entryFeeUsd.evidenceStatus,
+        },
+        paymentAsset: {
+          value: paymentAsset.value,
+          evidenceStatus: paymentAsset.evidenceStatus,
+        },
+        payoutDescription: documentedField(doc.canonical.payoutSourceValue),
+        prize: documentedField(doc.canonical.prizeSourceValue),
+        prizeUsd: documentedField(doc.canonical.prizeUsdSourceValue),
+        prizeDistribution: documentedField(
+          doc.canonical.prizeDistributionSourceValue,
+        ),
+      },
+      entryLink: null,
+      entryLinkEvidenceStatus: "unavailable",
       eligibility: "needs_owner_core_restriction_check",
       rank: "not_evaluated",
       gameEntryAllowed: false,
